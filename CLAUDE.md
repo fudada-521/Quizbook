@@ -31,7 +31,7 @@ pnpm mobile:android   # 打开 Android Studio / Gradle 工程
 ### 数据流与包边界
 
 - `data/questions.json` 是唯一题库数据源（2210 题）。它由 `apps/web/src/App.tsx` 直接 `import`（依赖 `resolveJsonModule`）打进 Web bundle，因此三端共享同一份数据；改题库后必须重新 `pnpm build`，桌面/移动端也需要重新 sync/打包。`.history/` 里的旧 `questions.js` 只是编辑器历史，不要恢复使用。
-- `packages/core`：平台无关的纯函数领域逻辑（判分、抽题、错题本、收藏、进度、schema 兼容），不依赖 DOM 或框架。
+- `packages/core`：平台无关的纯函数领域逻辑（判分、抽题、错题本、收藏、题目心得、进度、schema 兼容），不依赖 DOM 或框架。
 - `packages/storage`：`ProgressStore`（`load`/`save`/`subscribe`）与 `SyncBackend`（`pull`/`push`）接口及适配器。`src/web.ts` 是 localStorage 实现，键名 `gaoxiang_quiz_v1`；`src/sync.ts` 是手动导入/导出的序列化辅助。云同步目前是 `NoopSyncBackend` 占位。
 - 所有 workspace 包都通过 `package.json` 的 `main`/`exports` 直接暴露 `src/*.ts` 源码，没有包级编译步骤；Vite、tsx、tsconfig paths 直接消费 TS 源码。不要为它们增加 `dist` 构建产物。
 - 三端目前共用 `apps/web` 的 localStorage 存储：桌面与移动端尚未接文件/原生存储（`TODO.md` 有明确待办）。桌面端 `src-tauri` 没有自定义 Rust command，`frontendDist` 指向 `../web/dist`；移动端 `webDir` 同样指向 `../web/dist`。
@@ -42,6 +42,7 @@ pnpm mobile:android   # 打开 Android Studio / Gradle 工程
 - 断点续做由 `store/sessionPersistence.ts` 负责：会话快照存 localStorage 键 `gaoxiang_quiz_session_v1`，只保存题目键 `${c}-${n}` 与作答状态，加载时按当前题库重新关联。会话在答题中持续写入，进入结算页或导入/清空进度时清除；答题中退出则保留，首页据此显示「继续练习」。
 - 关键设计：`@quiz/core` 的 `gradeAnswer()` 会**原地修改** `PersistedState` 和 `SessionItem`（设置 `done`、`lastPick`）。QuizStore 因此用 `persistRef` 持有最新进度、修改后 `setPersisted({...persistRef.current})` 触发刷新。改动状态管理时要保持这个“可变 core + 不可变 React 快照”的约定。
 - 视图切换在 `App.tsx` 中按 `app.view` 渲染 `HomeView` / `QuizView` / `ResultView` / `FavoritesView`；`SettingsDialog` 是常驻的 `<dialog>`。收藏夹详情弹窗由 `FavoritesView` 自行管理，打开时用 `showModal()` 并把焦点放在对话框容器上。
+- 题目心得统一由 `components/QuestionNotes.tsx` 渲染，答题解析（`Reveal`）与收藏详情复用。解析页传入 `onComposeStart`，用户聚焦输入框即暂停本题自动跳转倒计时。
 - 构建使用 `vite-plugin-singlefile`（JS/CSS 全部内联进一个 `index.html`）并配合 `inlineDynamicImports`；同时用 `vite-plugin-pwa` 提供「安装到主屏」。产物约 1.5 MB 属正常。不要引入需要额外静态资源的运行时加载方式，否则会破坏“双击离线打开”。
 - UI 不使用组件库：设计令牌集中在 `apps/web/src/styles.css`（浅色/深色两套 CSS 变量，自动跟随系统），线性图标在 `components/Icon.tsx`。改视觉时优先调整变量和已有类，不要在视图里写内联样式或另起一套配色。
 
@@ -51,8 +52,9 @@ pnpm mobile:android   # 打开 Android Studio / Gradle 工程
 - `chapters` 在 JSON 中键为字符串，读取时统一用 `String(c)`。
 - 题号存在刻意间断：多空题被剔除，不要为了“连续”而重排 `n`。
 - 选项乱序通过 `SessionItem.map`（显示下标 → 原始下标）实现；渲染与判分必须经 `map` 换算，`q.a` 始终是原始下标。
-- 进度 schema 当前为 `schemaVersion: 2`（v2 新增 `favorites`），`normalizeState()` 负责旧数据兜底。改动 `PersistedState` 结构时需同步迁移逻辑并提升版本号。
+- 进度 schema 当前为 `schemaVersion: 3`（v2 新增 `favorites`，v3 新增 `notes`），`normalizeState()` 负责旧数据兜底。改动 `PersistedState` 结构时需同步迁移逻辑并提升版本号。
 - `favorites` 是 `题目键 → 收藏时间戳` 的映射；`favoriteQuestions()` 按收藏时间从新到旧返回，`toggleFavorite()` 原地修改状态。收藏专项练习使用全部收藏题；「清空记录」通过 `resetProgress` 保留 `favorites`。
+- `notes` 是 `题目键 → QuestionNote[]` 的心得时间线，只追加、不修改也不删除；`notesFor()` 返回旧→新数组，`addQuestionNote()` 负责去空白并生成题内唯一 id。UI 展示时反转数组使最新在前；「清空记录」同样保留 `notes`。
 - 答对后自动跳转的条件集中在 `shouldAutoAdvance()`：答对、`autoNext > 0`、非错题回顾模式，三者同时满足。
 
 ## 其他注意事项

@@ -75,14 +75,14 @@ gradle assembleDebug            # 或 ./gradlew assembleDebug
 
 - `a` 是 **0 基下标**（`a:3` 表示 D）。
 - 题目唯一键 `${c}-${n}`，新增题目必须保证唯一。
-- 进度持久化 schema 见 `packages/core/src/types.ts`（`PersistedState`，当前 `schemaVersion: 2`，新增 `favorites` 收藏表）。
+- 进度持久化 schema 见 `packages/core/src/types.ts`（`PersistedState`，当前 `schemaVersion: 3`，包含 `favorites` 收藏表与 `notes` 题目心得时间线）。
 
 ## 架构
 
 - **`@quiz/core`**：纯函数领域逻辑，无 DOM/框架依赖，可用 `pnpm test` 单测。
 - **`@quiz/storage`**：`ProgressStore` 接口（`load`/`save`/`subscribe`）+ `SyncBackend` 接口（`pull`/`push`）。
   Web 用 `localStorage`（`@quiz/storage/web`），桌面/移动可注入文件或原生存储实现，云同步实现 `SyncBackend` 即可接入。
-- **`@quiz/web`**：React UI，通过 `QuizStore`（Context + hook）封装状态；极简工具风界面（浅色/深色自动跟随系统）、百词斩式答题卡片、答对自动跳转（答错停留）、章节进度、错题本、收藏夹、答题卡、键盘快捷键。
+- **`@quiz/web`**：React UI，通过 `QuizStore`（Context + hook）封装状态；极简工具风界面（浅色/深色自动跟随系统）、百词斩式答题卡片、答对自动跳转（答错停留）、章节进度、错题本、收藏夹、题目心得、答题卡、键盘快捷键。
 - **断点续做**：未完成的练习会话保存在本机（`gaoxiang_quiz_session_v1`），退出或重新打开后可回到原题继续。
 
 ## 功能
@@ -93,6 +93,7 @@ gradle assembleDebug            # 或 ./gradlew assembleDebug
 | 按章节/随机/智能推进 | 顺序练习、全库随机抽题、优先未做题 |
 | 错题本 | 自动收录，错题重练 + 本轮回顾 |
 | 收藏夹 | 题卡右上角星标收藏；独立列表页可查看题目详情，支持全部收藏专项练习（新收藏优先）；清空记录不会删除收藏 |
+| 题目心得 | 在答题解析与收藏详情中按时间线追加个人心得（不可修改），支持 ⌘/Ctrl+Enter 记录；开始写心得会取消本题自动跳转 |
 | 答题卡 / 快捷键 | 顶栏答题卡跳转；A–D 选择、Enter 继续、←→ 翻题 |
 | 选项乱序 | 防死记位置 |
 | 进度保存 | Web 存 localStorage；可导出/导入 JSON（跨端手动同步），预留云同步接口 |

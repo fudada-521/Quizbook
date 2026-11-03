@@ -46,11 +46,12 @@
 ## 已完成
 
 - [x] 题库从 `questions.js` 转为 `data/questions.json`（唯一数据源）
-- [x] 抽出 `@quiz/core`（判分/抽题/错题/收藏/进度纯函数 + 23 个单测）
+- [x] 抽出 `@quiz/core`（判分/抽题/错题/收藏/心得/进度纯函数 + 29 个单测）
 - [x] 抽出 `@quiz/storage`（`ProgressStore` / `SyncBackend` 接口 + noop 桩 + 文件导入导出）
 - [x] React+Vite+TS 重写 UI，保留百词斩式体验（单文件构建，双击离线可用 + PWA）
 - [x] Tauri 2 桌面壳编译通过（产物已生成）
 - [x] Capacitor 7 移动壳（iOS/Android 原生工程已生成）
-- [x] 进度 schema 版本化（`schemaVersion: 2`，新增 `favorites`）
+- [x] 进度 schema 版本化（`schemaVersion: 3`，新增 `favorites` / `notes`）
 - [x] 极简工具风 UI 重设计（浅色/深色自动跟随系统、断点续做）
 - [x] 收藏夹：题卡星标、收藏列表与只读详情、全部收藏专项练习
+- [x] 题目心得：解析页与收藏详情中的只追加时间线，写心得时暂停自动跳题

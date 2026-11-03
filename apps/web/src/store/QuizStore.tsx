@@ -27,6 +27,7 @@ import {
   unansweredQuestions,
   favoriteQuestions,
   toggleFavorite as toggleFavoriteInState,
+  addQuestionNote,
   qkey,
   type Settings,
   type Question,
@@ -140,6 +141,7 @@ export interface QuizApp {
   startFavorites: () => void;
   reviewWrong: () => void;
   toggleFavorite: (q: Question) => void;
+  addNote: (q: Question, text: string) => void;
   startSessionRaw: (list: Parameters<typeof createSession>[0], title: string, opts?: { shuffle?: boolean; reviewOnly?: boolean }) => void;
   grade: (pickIdx: number) => void;
   pick: (pickIdx: number) => void;
@@ -177,6 +179,7 @@ export function QuizProvider(props: {
     answers: {},
     wrong: {},
     favorites: {},
+    notes: {},
     settings: DEFAULT_SETTINGS,
   });
   const setPersisted = useCallback((next: PersistedState | ((prev: PersistedState) => PersistedState)) => {
@@ -187,6 +190,7 @@ export function QuizProvider(props: {
         answers: { ...v.answers },
         wrong: { ...v.wrong },
         favorites: { ...v.favorites },
+        notes: { ...v.notes },
       };
     });
   }, []);
@@ -250,6 +254,7 @@ export function QuizProvider(props: {
       answers: {},
       wrong: {},
       favorites: s.favorites,
+      notes: s.notes,
       settings: s.settings,
     }));
   }, []);
@@ -321,6 +326,11 @@ export function QuizProvider(props: {
   }, [data, startSessionRaw]);
   const toggleFavorite = useCallback((q: Question) => {
     toggleFavoriteInState(persistRef.current, q);
+    setPersisted({ ...persistRef.current });
+  }, []);
+  const addNote = useCallback((q: Question, text: string) => {
+    const note = addQuestionNote(persistRef.current, q, text);
+    if (!note) return;
     setPersisted({ ...persistRef.current });
   }, []);
   const reviewWrong = useCallback(() => {
@@ -429,6 +439,7 @@ export function QuizProvider(props: {
       startFavorites,
       reviewWrong,
       toggleFavorite,
+      addNote,
       startSessionRaw,
       grade,
       pick,
@@ -446,7 +457,7 @@ export function QuizProvider(props: {
     [
       data, persisted, app, store, sync, resume, resumeSession, discardResume,
       persist, patchSettings, replaceState, resetProgress,
-      startChapter, startRandom, startUnanswered, startWrong, startFavorites, reviewWrong, toggleFavorite, startSessionRaw,
+      startChapter, startRandom, startUnanswered, startWrong, startFavorites, reviewWrong, toggleFavorite, addNote, startSessionRaw,
       grade, pick, move, jump, next, prev, quit, finish, setView, toggleSheet, setAutoPending, tickNow,
     ],
   );

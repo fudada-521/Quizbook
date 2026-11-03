@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { chapterTitle, favoriteQuestions, qkey, type Question } from '@quiz/core';
 import { useQuiz } from '../store/QuizStore';
 import { Icon } from '../components/Icon';
+import { QuestionNotes } from '../components/QuestionNotes';
 
 const LETTERS = ['A', 'B', 'C', 'D'] as const;
 
@@ -130,6 +131,7 @@ export function FavoritesView() {
                 <span className="label">解析</span>
                 <p>{detail.e || '（本题原书无解析）'}</p>
               </div>
+              <QuestionNotes question={detail} />
             </div>
 
             <div className="dialog-foot">

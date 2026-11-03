@@ -10,6 +10,7 @@ import {
   SessionItem,
   QuizSession,
   AnswerRecord,
+  QuestionNote,
   DEFAULT_SETTINGS,
   SCHEMA_VERSION,
   qkey,
@@ -94,6 +95,7 @@ export function normalizeState(raw: unknown): PersistedState {
     answers: r.answers ?? {},
     wrong: r.wrong ?? {},
     favorites: r.favorites ?? {},
+    notes: r.notes ?? {},
     settings: { ...DEFAULT_SETTINGS, ...(r.settings ?? {}) },
   };
 }
@@ -130,6 +132,30 @@ export function favoriteQuestions(
   return data.questions
     .filter((q) => isFavorite(state, q))
     .sort((a, b) => (favs[qkey(b)] ?? 0) - (favs[qkey(a)] ?? 0));
+}
+
+/** 某道题的心得时间线（旧→新） */
+export function notesFor(
+  state: PersistedState,
+  q: Pick<Question, 'c' | 'n'>,
+): QuestionNote[] {
+  return state.notes[qkey(q)] ?? [];
+}
+
+/** 追加一条心得；空白内容不记录，返回新心得或 null */
+export function addQuestionNote(
+  state: PersistedState,
+  q: Pick<Question, 'c' | 'n'>,
+  text: string,
+  at = Date.now(),
+): QuestionNote | null {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  const k = qkey(q);
+  const list = (state.notes[k] ??= []);
+  const note: QuestionNote = { id: `${at}-${list.length}`, text: trimmed, at };
+  list.push(note);
+  return note;
 }
 
 /** 错题本题目（当前仍有错误记录的题目） */

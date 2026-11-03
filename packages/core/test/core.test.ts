@@ -1,4 +1,4 @@
-import { createSession, gradeAnswer, normalizeState, shouldAutoAdvance, wrongQuestions, unansweredQuestions, questionsOfChapter, qkey, isFavorite, toggleFavorite, favoriteQuestions, DEFAULT_SETTINGS, SCHEMA_VERSION, type QuizData } from '../src/index.ts';
+import { createSession, gradeAnswer, normalizeState, shouldAutoAdvance, wrongQuestions, unansweredQuestions, questionsOfChapter, qkey, isFavorite, toggleFavorite, favoriteQuestions, notesFor, addQuestionNote, DEFAULT_SETTINGS, SCHEMA_VERSION, type QuizData } from '../src/index.ts';
 
 const data: QuizData = {
   generatedFrom: 'test',
@@ -23,11 +23,11 @@ ok(JSON.stringify(sortedMap)==='[0,1,2,3]', 'map is permutation');
 
 const st = normalizeState({});
 ok(st.settings.count===DEFAULT_SETTINGS.count && Object.keys(st.answers).length===0, 'normalize defaults');
-ok(st.schemaVersion===SCHEMA_VERSION && Object.keys(st.favorites).length===0, 'normalize favorites + schema');
+ok(st.schemaVersion===SCHEMA_VERSION && Object.keys(st.favorites).length===0 && Object.keys(st.notes).length===0, 'normalize favorites + notes + schema');
 
-// 旧版（schemaVersion 1）数据迁移后补全 favorites
+// 旧版（schemaVersion 1）数据迁移后补全 favorites / notes
 const migrated = normalizeState({ schemaVersion: 1, answers: {}, wrong: {}, settings: {} });
-ok(migrated.schemaVersion===SCHEMA_VERSION && migrated.favorites != null, 'v1 migration adds favorites');
+ok(migrated.schemaVersion===SCHEMA_VERSION && migrated.favorites != null && migrated.notes != null, 'v1 migration adds favorites + notes');
 
 const state = normalizeState({});
 const pickCorrect = item.map.indexOf(item.q.a);
@@ -62,6 +62,18 @@ ok(favState.answers[qkey(data.questions[0])] == null, 'favorite does not touch a
 const favs = favoriteQuestions(data, favState);
 ok(favs.length===2 && qkey(favs[0])==='2-1' && qkey(favs[1])==='1-1', 'favorites newest first');
 ok(toggleFavorite(favState, data.questions[0], 300)===false && !isFavorite(favState, data.questions[0]), 'remove favorite');
+
+// 心得：追加、去空白、按题隔离
+const noteState = normalizeState({});
+const n1 = addQuestionNote(noteState, data.questions[0], '  第一条心得  ', 100);
+const n2 = addQuestionNote(noteState, data.questions[0], '第二条心得', 200);
+ok(n1?.text==='第一条心得' && n2?.text==='第二条心得', 'add note trims text');
+ok(addQuestionNote(noteState, data.questions[0], '   ', 300)===null, 'blank note ignored');
+const timeline = notesFor(noteState, data.questions[0]);
+ok(timeline.length===2 && timeline[0].text==='第一条心得' && timeline[1].text==='第二条心得', 'notes append chronological');
+ok(timeline[0].id !== timeline[1].id, 'note ids unique');
+ok(notesFor(noteState, data.questions[1]).length===0, 'notes scoped by question');
+ok(noteState.answers[qkey(data.questions[0])] == null, 'note does not touch answers');
 
 console.log(`\n${passes} passed, ${fails} failed`);
 process.exit(fails?1:0);

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuiz } from '../store/QuizStore';
 import { isFavorite, qkey, type SessionItem } from '@quiz/core';
 import { Icon } from '../components/Icon';
+import { QuestionNotes } from '../components/QuestionNotes';
 
 const LETTERS = ['A', 'B', 'C', 'D'] as const;
 
@@ -261,6 +262,7 @@ function Reveal({ item }: { item: SessionItem }) {
       {!ok && (
         <p className="reveal-hint">读懂解析后，点「下一题」或按 Enter 继续</p>
       )}
+      <QuestionNotes question={item.q} onComposeStart={() => setPaused(true)} />
     </div>
   );
 }

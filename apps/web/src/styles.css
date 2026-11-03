@@ -1109,6 +1109,127 @@ kbd {
   text-align: center;
 }
 
+/* 题目心得 */
+
+.question-notes {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.reveal .question-notes {
+  margin-top: 0;
+  padding: 15px 16px 16px;
+  border-top: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+  background: var(--surface);
+}
+
+.notes-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.notes-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+}
+
+.notes-title svg {
+  color: var(--ink-3);
+}
+
+.notes-count {
+  color: var(--ink-3);
+  font-size: 10.5px;
+}
+
+.note-compose {
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.note-compose:focus-within {
+  border-color: var(--line-strong);
+  background: var(--surface);
+}
+
+.note-input {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13.5px;
+  line-height: 1.7;
+  outline: none;
+  resize: vertical;
+}
+
+.note-input::placeholder {
+  color: var(--ink-3);
+}
+
+.note-compose-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.note-hint {
+  color: var(--ink-3);
+  font-size: 10px;
+}
+
+.note-list {
+  margin: 14px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+  list-style: none;
+}
+
+.note-item {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.note-item:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.note-item time {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--ink-3);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.note-item p {
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.72;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
 .quiz-nav {
   display: flex;
   justify-content: space-between;
@@ -1753,6 +1874,14 @@ dialog#settings::backdrop {
     font-size: 14px;
   }
 
+  .reveal .question-notes {
+    padding: 14px;
+  }
+
+  .note-input {
+    font-size: 16px;
+  }
+
   .result-page {
     margin-top: 6vh;
   }
@@ -1897,7 +2026,8 @@ dialog#settings::backdrop {
 }
 
 @media (hover: none) {
-  .shortcut-hint {
+  .shortcut-hint,
+  .note-hint {
     display: none;
   }
 }

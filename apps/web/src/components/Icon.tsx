@@ -14,7 +14,8 @@ export type IconName =
   | 'rotate'
   | 'download'
   | 'upload'
-  | 'star';
+  | 'star'
+  | 'pen';
 
 const paths: Record<IconName, ReactNode> = {
   settings: (
@@ -80,6 +81,12 @@ const paths: Record<IconName, ReactNode> = {
   ),
   star: (
     <path d="M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.79L12 16.78l-5.2 2.73.99-5.79-4.21-4.1 5.82-.85L12 3.5z" />
+  ),
+  pen: (
+    <>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4L16.5 3.5z" />
+    </>
   ),
 };
 

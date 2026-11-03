@@ -47,12 +47,21 @@ export interface Settings {
   autoNext: number;
 }
 
+/** 单条题目心得（只追加，不修改） */
+export interface QuestionNote {
+  /** 题内唯一 id，仅用于渲染与排序 */
+  id: string;
+  text: string;
+  at: number; // 记录时间戳
+}
+
 /** 持久化进度 */
 export interface PersistedState {
   schemaVersion: number;
   answers: Record<string, AnswerRecord>;
   wrong: Record<string, number>; // 键 → 错误次数
   favorites: Record<string, number>; // 键 → 收藏时间戳
+  notes: Record<string, QuestionNote[]>; // 键 → 心得时间线（旧→新）
   settings: Settings;
 }
 
@@ -83,8 +92,8 @@ export const DEFAULT_SETTINGS: Settings = {
   autoNext: 1600,
 };
 
-/** 进度存储当前 schema 版本；跨设备同步时据此做迁移（v2 增加 favorites） */
-export const SCHEMA_VERSION = 2;
+/** 进度存储当前 schema 版本；跨设备同步时据此做迁移（v2 增加 favorites，v3 增加 notes） */
+export const SCHEMA_VERSION = 3;
 
 export function qkey(q: Pick<Question, 'c' | 'n'> | Question): string {
   return `${q.c}-${q.n}`;
