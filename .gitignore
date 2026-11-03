@@ -1,0 +1,25 @@
+# 依赖与构建产物
+node_modules/
+dist/
+apps/*/dist/
+
+# Tauri / Rust
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
+
+# Capacitor 原生工程（含 Xcode/Gradle，体积大，按需重新生成）
+apps/mobile/ios/
+apps/mobile/android/
+
+# 编辑器与系统文件
+.DS_Store
+*.log
+.history/
+
+# 全局 ~/.gitignore_global 中有一条规则会忽略名为 web 的目录，
+# 这里先在本项目内把「web 目录内的一切」仍当作可跟踪（反向覆盖全局规则），
+# 再在下方明确恢复 dist / node_modules 的忽略，避免误提交构建产物。
+!apps/web/
+!apps/web/**
+apps/web/dist/
+apps/web/node_modules/

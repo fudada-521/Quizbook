@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "forceConsistentCasingInFileNames": true,
+    "paths": {
+      "@quiz/core": ["../../packages/core/src/index.ts"],
+      "@quiz/storage": ["../../packages/storage/src/index.ts"],
+      "@quiz/storage/web": ["../../packages/storage/src/web.ts"]
+    }
+  },
+  "include": ["src", "vite.config.ts"]
+}

@@ -1,0 +1,34 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "高项千题闯关",
+  "version": "1.0.0",
+  "identifier": "com.gaoxiang.quiz",
+  "build": {
+    "beforeDevCommand": "pnpm --filter @quiz/web build",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm --filter @quiz/web build",
+    "frontendDist": "../web/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "高项千题闯关",
+        "width": 900,
+        "height": 700,
+        "minWidth": 640,
+        "minHeight": 560,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/icon.png"
+    ]
+  }
+}
