@@ -14,9 +14,9 @@ export default defineConfig({
       injectRegister: 'script',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: '高项千题闯关',
-        short_name: '千题闯关',
-        description: '软考高项综合知识刷题（2210 题）',
+        name: '知题',
+        short_name: '知题',
+        description: '刷题·即时判分·错题本（2210 题）',
         lang: 'zh-CN',
         theme_color: '#3b6ef5',
         background_color: '#f4f6fa',

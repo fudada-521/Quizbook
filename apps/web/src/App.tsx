@@ -31,8 +31,8 @@ function Shell() {
   return (
     <div className="wrap">
       <header>
-        <h1>🎯 高项千题闯关 · 答题练习</h1>
-        <p>基于《江山老师题库 · 千题闯关》整理 · 选择后立即判分并显示解析</p>
+        <h1>🎯 知题 · 答题练习</h1>
+        <p>选择后立即判分并显示解析 · 支持章节 / 随机 / 错题重练</p>
       </header>
       {app.view === 'home' && <HomeView />}
       {app.view === 'quiz' && <QuizView />}

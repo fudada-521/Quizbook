@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "高项千题闯关",
+  "productName": "知题",
   "version": "1.0.0",
   "identifier": "com.gaoxiang.quiz",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "高项千题闯关",
+        "title": "知题",
         "width": 900,
         "height": 700,
         "minWidth": 640,
