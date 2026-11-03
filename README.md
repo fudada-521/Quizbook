@@ -36,6 +36,29 @@ pnpm desktop:build    # 桌面 App 打包（apps/desktop/src-tauri/target/releas
 - **桌面版**：`pnpm desktop:build` 产出 `.app`（macOS）/ `.exe`（Windows）/ 二进制（Linux）。
 - **手机版**：`pnpm mobile:sync && pnpm mobile:ios`（或 `android`），再用 Xcode/Android Studio 打包上架。
 
+### 打包 Android APK（命令行）
+
+原生工程由 Capacitor 生成（未入库），首次需先创建并同步：
+
+```bash
+cd apps/mobile
+pnpm exec cap add android      # 仅首次
+pnpm --filter @quiz/web build && pnpm exec cap sync android
+```
+
+然后构建（需 JDK 17+ 与 Android SDK，`android/local.properties` 的 `sdk.dir` 指向本机 SDK）：
+
+```bash
+cd android
+export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+export ANDROID_HOME="$HOME/sdk/Android/sdk"
+gradle assembleDebug            # 或 ./gradlew assembleDebug
+# 产物：app/build/outputs/apk/debug/app-debug.apk
+```
+
+> 国内网络下建议在 `android/settings.gradle` 的 `pluginManagement` 与 `dependencyResolutionManagement`
+> 中优先加入阿里云镜像（`https://maven.aliyun.com/repository/google` 等），可显著加速依赖下载。
+
 ## 数据模型
 
 题库 `data/questions.json` 结构：

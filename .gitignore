@@ -23,3 +23,7 @@ apps/mobile/android/
 !apps/web/**
 apps/web/dist/
 apps/web/node_modules/
+# 构建出的安装包（体积大，按需重新打包）
+release/
+*.apk
+*.aab
