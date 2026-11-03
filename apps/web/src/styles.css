@@ -91,6 +91,10 @@ header p { color: var(--sub); font-size: 13px; margin-top: 6px; }
 .opt.wrong { border-color: var(--bad); background: var(--bad-bg); }
 .opt.wrong .letter { background: var(--bad); color: #fff; }
 .opt.dim { opacity: 0.65; }
+.opt .opt-text { flex: 1; }
+.opt .opt-mark { flex: none; font-size: 12px; font-weight: 600; align-self: center; white-space: nowrap; }
+.opt.correct .opt-mark { color: var(--ok); }
+.opt.wrong .opt-mark { color: var(--bad); }
 .submit-row { margin-top: 6px; }
 
 /* 解析页（百词斩式） */

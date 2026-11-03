@@ -44,7 +44,7 @@ export function QuizView() {
       <div className="qcard in" key={sess.idx}>
         <span className="qtag">{sess.title} · 原题号 {it.q.n}</span>
         <div className="stem">{it.q.s}</div>
-        {!it.done && <Options item={it} />}
+        <Options item={it} />
         {!it.done && settings.instant === 0 && it.pick != null && (
           <div className="submit-row">
             <button className="btn primary" style={{ width: '100%', padding: 11 }} onClick={() => pick(it.pick!)}>
@@ -71,11 +71,31 @@ function Options({ item }: { item: SessionItem }) {
     <div>
       {item.map.map((origIdx, dispIdx) => {
         let cls = 'opt';
-        if (settings.instant === 0 && item.pick === dispIdx) cls += ' picked';
+        let mark: string | null = null;
+        if (item.done) {
+          // 解析页：标出正确答案（绿）与自己选错的那项（红），其余淡化
+          if (origIdx === item.q.a) {
+            cls += ' correct';
+            mark = '✓ 正确答案';
+          } else if (dispIdx === item.lastPick) {
+            cls += ' wrong';
+            mark = '✗ 你的选择';
+          } else {
+            cls += ' dim';
+          }
+        } else if (settings.instant === 0 && item.pick === dispIdx) {
+          cls += ' picked';
+        }
         return (
-          <div key={dispIdx} className={cls} onClick={() => pick(dispIdx)}>
+          <div
+            key={dispIdx}
+            className={cls}
+            onClick={item.done ? undefined : () => pick(dispIdx)}
+            style={item.done ? { cursor: 'default' } : undefined}
+          >
             <span className="letter">{LETTERS[dispIdx]}</span>
-            <span>{item.q.o[origIdx]}</span>
+            <span className="opt-text">{item.q.o[origIdx]}</span>
+            {mark && <span className="opt-mark">{mark}</span>}
           </div>
         );
       })}
@@ -124,11 +144,13 @@ function Reveal({ item }: { item: SessionItem }) {
   const progress = total > 0 ? remainMs / total : 0;
   const R = 9;
   const C = 2 * Math.PI * R;
+  // 乱序模式下 q.a 是原始下标，需换算为当前屏幕上显示的字母位置
+  const correctDispIdx = item.map.indexOf(item.q.a);
 
   return (
     <div className="reveal-wrap">
       <div className={`reveal-head ${ok ? 'ok' : 'bad'}`}>
-        <span>{ok ? '✅ 回答正确！' : `❌ 答错了，正确答案 ${LETTERS[item.q.a]}`}</span>
+        <span>{ok ? '✅ 回答正确！' : `❌ 答错了，正确答案 ${LETTERS[correctDispIdx] ?? ''}`}</span>
         {ok && shouldAuto ? (
           <span className="countdown">
             <svg className="cd-ring" viewBox="0 0 24 24">
