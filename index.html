@@ -1,0 +1,1195 @@
+<!-- @format -->
+
+<!doctype html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0" />
+        <title>高项千题闯关 · 答题练习</title>
+        <style>
+            :root {
+                --bg: #f4f6fa;
+                --card: #ffffff;
+                --text: #1f2733;
+                --sub: #6b7686;
+                --primary: #3b6ef5;
+                --primary-weak: #e8efff;
+                --ok: #1a9e5c;
+                --ok-bg: #e7f7ee;
+                --bad: #d64545;
+                --bad-bg: #fdecec;
+                --border: #e3e8f0;
+                --radius: 14px;
+            }
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --bg: #12161d;
+                    --card: #1b2129;
+                    --text: #e6ebf2;
+                    --sub: #8d99a8;
+                    --primary: #5b8cff;
+                    --primary-weak: #22304d;
+                    --ok: #3ecf8e;
+                    --ok-bg: #173527;
+                    --bad: #ff6b6b;
+                    --bad-bg: #3c2023;
+                    --border: #2a323e;
+                }
+            }
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+            body {
+                font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+                background: var(--bg);
+                color: var(--text);
+                line-height: 1.65;
+            }
+            .wrap {
+                max-width: 860px;
+                margin: 0 auto;
+                padding: 16px;
+            }
+            header {
+                text-align: center;
+                padding: 28px 0 8px;
+            }
+            header h1 {
+                font-size: 26px;
+                letter-spacing: 1px;
+            }
+            header p {
+                color: var(--sub);
+                font-size: 13px;
+                margin-top: 6px;
+            }
+
+            /* ---------- home ---------- */
+            .stats-row {
+                display: flex;
+                gap: 12px;
+                margin: 18px 0;
+            }
+            .stat {
+                flex: 1;
+                background: var(--card);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                padding: 14px;
+                text-align: center;
+            }
+            .stat b {
+                font-size: 22px;
+                display: block;
+            }
+            .stat span {
+                color: var(--sub);
+                font-size: 12px;
+            }
+            .section-title {
+                margin: 22px 4px 10px;
+                font-size: 15px;
+                color: var(--sub);
+            }
+            .chapters {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                gap: 10px;
+            }
+            .chap-card {
+                background: var(--card);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                padding: 12px 14px;
+                cursor: pointer;
+                transition: 0.15s;
+            }
+            .chap-card:hover {
+                border-color: var(--primary);
+                transform: translateY(-1px);
+            }
+            .chap-card .name {
+                font-weight: 600;
+                font-size: 14px;
+            }
+            .chap-card .meta {
+                color: var(--sub);
+                font-size: 12px;
+                margin-top: 4px;
+                display: flex;
+                justify-content: space-between;
+            }
+            .bar {
+                height: 5px;
+                border-radius: 3px;
+                background: var(--border);
+                margin-top: 8px;
+                overflow: hidden;
+            }
+            .bar i {
+                display: block;
+                height: 100%;
+                background: var(--primary);
+                border-radius: 3px;
+            }
+            .modes {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+                gap: 10px;
+            }
+            .mode-card {
+                background: var(--card);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                padding: 16px;
+                cursor: pointer;
+                text-align: center;
+                transition: 0.15s;
+            }
+            .mode-card:hover {
+                border-color: var(--primary);
+            }
+            .mode-card .ico {
+                font-size: 26px;
+            }
+            .mode-card .t {
+                font-weight: 600;
+                margin-top: 6px;
+            }
+            .mode-card .d {
+                font-size: 12px;
+                color: var(--sub);
+                margin-top: 4px;
+            }
+
+            /* ---------- quiz ---------- */
+            .quiz-top {
+                position: sticky;
+                top: 0;
+                z-index: 5;
+                background: var(--bg);
+                padding: 10px 0;
+                border-bottom: 1px solid var(--border);
+            }
+            .quiz-top .row {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .btn {
+                border: 1px solid var(--border);
+                background: var(--card);
+                color: var(--text);
+                border-radius: 9px;
+                padding: 7px 14px;
+                font-size: 13px;
+                cursor: pointer;
+                transition: 0.15s;
+            }
+            .btn:hover {
+                border-color: var(--primary);
+                color: var(--primary);
+            }
+            .btn.primary {
+                background: var(--primary);
+                border-color: var(--primary);
+                color: #fff;
+            }
+            .btn.primary:hover {
+                opacity: 0.9;
+                color: #fff;
+            }
+            .progress-info {
+                flex: 1;
+                text-align: center;
+                font-size: 13px;
+                color: var(--sub);
+            }
+            .qbar {
+                height: 4px;
+                border-radius: 2px;
+                background: var(--border);
+                margin-top: 8px;
+                overflow: hidden;
+            }
+            .qbar i {
+                display: block;
+                height: 100%;
+                background: var(--primary);
+                transition: width 0.25s;
+            }
+            .qcard {
+                background: var(--card);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                padding: 20px;
+                margin-top: 16px;
+                min-height: 320px;
+            }
+            @keyframes cardIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(18px) scale(0.985);
+                }
+                to {
+                    opacity: 1;
+                    transform: none;
+                }
+            }
+            .qcard.in {
+                animation: cardIn 0.28s ease-out;
+            }
+            .reveal-wrap {
+                margin-top: 14px;
+            }
+            .reveal-head {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                border-radius: 10px;
+                padding: 11px 16px;
+                font-weight: 700;
+                font-size: 15px;
+                color: #fff;
+            }
+            .reveal-head.ok {
+                background: linear-gradient(120deg, #16a34a, #22c55e);
+            }
+            .reveal-head.bad {
+                background: linear-gradient(120deg, #dc2626, #f87171);
+            }
+            .reveal-head .countdown {
+                font-size: 12px;
+                font-weight: 500;
+                opacity: 0.9;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .reveal-head .cd-ring {
+                width: 22px;
+                height: 22px;
+                flex: none;
+            }
+            .reveal-head button.cancel-cd {
+                background: rgba(255, 255, 255, 0.18);
+                border: none;
+                color: #fff;
+                border-radius: 6px;
+                font-size: 11px;
+                padding: 3px 9px;
+                cursor: pointer;
+            }
+            .reveal-head button.cancel-cd:hover {
+                background: rgba(255, 255, 255, 0.32);
+            }
+            .reveal-body {
+                margin-top: 0;
+                border: 1px solid var(--border);
+                border-top: none;
+                border-radius: 0 0 10px 10px;
+                background: var(--bg);
+                padding: 14px 16px;
+                font-size: 14px;
+            }
+            .reveal-body b {
+                color: var(--primary);
+            }
+            .reveal-hint {
+                text-align: center;
+                color: var(--sub);
+                font-size: 12px;
+                margin-top: 10px;
+            }
+            .qtag {
+                display: inline-block;
+                font-size: 12px;
+                color: var(--primary);
+                background: var(--primary-weak);
+                border-radius: 6px;
+                padding: 2px 8px;
+                margin-bottom: 10px;
+            }
+            .stem {
+                font-size: 16px;
+                margin-bottom: 16px;
+                white-space: pre-wrap;
+            }
+            .opt {
+                display: flex;
+                gap: 10px;
+                align-items: flex-start;
+                border: 1.5px solid var(--border);
+                border-radius: 10px;
+                padding: 11px 14px;
+                margin-bottom: 10px;
+                cursor: pointer;
+                transition: 0.12s;
+                font-size: 15px;
+            }
+            .opt:hover {
+                border-color: var(--primary);
+            }
+            .opt .letter {
+                flex: none;
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                background: var(--bg);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 600;
+                font-size: 13px;
+            }
+            .opt.picked {
+                border-color: var(--primary);
+                background: var(--primary-weak);
+            }
+            .opt.correct {
+                border-color: var(--ok);
+                background: var(--ok-bg);
+            }
+            .opt.correct .letter {
+                background: var(--ok);
+                color: #fff;
+            }
+            .opt.wrong {
+                border-color: var(--bad);
+                background: var(--bad-bg);
+            }
+            .opt.wrong .letter {
+                background: var(--bad);
+                color: #fff;
+            }
+            .opt.dim {
+                opacity: 0.65;
+            }
+            .verdict {
+                margin-top: 14px;
+                font-weight: 700;
+                font-size: 15px;
+            }
+            .verdict.ok {
+                color: var(--ok);
+            }
+            .verdict.bad {
+                color: var(--bad);
+            }
+            .expl {
+                margin-top: 10px;
+                border-left: 3px solid var(--primary);
+                background: var(--bg);
+                border-radius: 0 10px 10px 0;
+                padding: 12px 14px;
+                font-size: 14px;
+                color: var(--text);
+            }
+            .expl b {
+                color: var(--primary);
+            }
+            .nav-row {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 14px;
+                gap: 10px;
+            }
+            .submit-row {
+                margin-top: 6px;
+            }
+            .answer-sheet {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 6px;
+                margin-top: 10px;
+            }
+            .dot {
+                width: 26px;
+                height: 26px;
+                border-radius: 7px;
+                font-size: 11px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: var(--bg);
+                border: 1px solid var(--border);
+                cursor: pointer;
+                color: var(--sub);
+            }
+            .dot.ok {
+                background: var(--ok-bg);
+                border-color: var(--ok);
+                color: var(--ok);
+            }
+            .dot.bad {
+                background: var(--bad-bg);
+                border-color: var(--bad);
+                color: var(--bad);
+            }
+            .dot.cur {
+                outline: 2px solid var(--primary);
+            }
+
+            /* ---------- result ---------- */
+            .result-hero {
+                background: var(--card);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                padding: 30px;
+                text-align: center;
+                margin-top: 16px;
+            }
+            .ring {
+                font-size: 44px;
+                font-weight: 800;
+            }
+            .result-hero p {
+                color: var(--sub);
+                margin-top: 6px;
+            }
+            .actions {
+                display: flex;
+                gap: 10px;
+                justify-content: center;
+                margin-top: 18px;
+                flex-wrap: wrap;
+            }
+
+            /* settings dialog */
+            dialog {
+                border: none;
+                border-radius: var(--radius);
+                padding: 24px;
+                max-width: 420px;
+                width: 90%;
+                background: var(--card);
+                color: var(--text);
+            }
+            dialog::backdrop {
+                background: rgba(0, 0, 0, 0.4);
+            }
+            dialog h3 {
+                margin-bottom: 14px;
+            }
+            .field {
+                margin-bottom: 14px;
+                font-size: 14px;
+            }
+            .field label {
+                display: block;
+                color: var(--sub);
+                font-size: 12px;
+                margin-bottom: 4px;
+            }
+            select,
+            input[type="number"] {
+                width: 100%;
+                padding: 8px;
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                background: var(--bg);
+                color: var(--text);
+                font-size: 14px;
+            }
+            .hidden {
+                display: none !important;
+            }
+            footer {
+                text-align: center;
+                color: var(--sub);
+                font-size: 12px;
+                padding: 30px 0 20px;
+            }
+            kbd {
+                border: 1px solid var(--border);
+                border-radius: 4px;
+                padding: 0 5px;
+                font-size: 11px;
+                background: var(--bg);
+            }
+        </style>
+    </head>
+    <body>
+        <div class="wrap">
+            <header>
+                <h1>🎯 高项千题闯关 · 答题练习</h1>
+                <p>基于《江山老师题库 · 千题闯关》整理 · 选择后立即判分并显示解析</p>
+            </header>
+
+            <!-- ============ HOME ============ -->
+            <div id="view-home">
+                <div class="stats-row">
+                    <div class="stat"><b id="st-total">0</b><span>题库总题数</span></div>
+                    <div class="stat"><b id="st-done">0</b><span>已作答</span></div>
+                    <div class="stat"><b id="st-acc">--</b><span>总体正确率</span></div>
+                    <div class="stat"><b id="st-wrong">0</b><span>错题本</span></div>
+                </div>
+
+                <div class="section-title">练习模式</div>
+                <div class="modes">
+                    <div
+                        class="mode-card"
+                        onclick="startRandom()">
+                        <div class="ico">🔀</div>
+                        <div class="t">随机练习</div>
+                        <div class="d">全库随机抽题，默认 20 题</div>
+                    </div>
+                    <div
+                        class="mode-card"
+                        onclick="openWrong()">
+                        <div class="ico">📕</div>
+                        <div class="t">错题重练</div>
+                        <div class="d">只刷答错过的题目</div>
+                    </div>
+                    <div
+                        class="mode-card"
+                        onclick="startUnanswered()">
+                        <div class="ico">🧭</div>
+                        <div class="t">智能推进</div>
+                        <div class="d">优先做从未答过的题</div>
+                    </div>
+                    <div
+                        class="mode-card"
+                        onclick="settings.showModal()">
+                        <div class="ico">⚙️</div>
+                        <div class="t">设置 / 数据</div>
+                        <div class="d">题量、乱序、导出记录</div>
+                    </div>
+                </div>
+
+                <div class="section-title">按章节练习（顺序模式）</div>
+                <div
+                    class="chapters"
+                    id="chapter-list"></div>
+            </div>
+
+            <!-- ============ QUIZ ============ -->
+            <div
+                id="view-quiz"
+                class="hidden">
+                <div class="quiz-top">
+                    <div class="row">
+                        <button
+                            class="btn"
+                            onclick="quitQuiz()">
+                            ← 退出
+                        </button>
+                        <div
+                            class="progress-info"
+                            id="q-progress"></div>
+                        <button
+                            class="btn"
+                            id="btn-sheet"
+                            onclick="toggleSheet()">
+                            答题卡
+                        </button>
+                    </div>
+                    <div class="qbar">
+                        <i
+                            id="q-barfill"
+                            style="width: 0%"></i>
+                    </div>
+                    <div
+                        class="answer-sheet hidden"
+                        id="sheet"></div>
+                </div>
+                <div class="qcard">
+                    <span
+                        class="qtag"
+                        id="q-tag"></span>
+                    <div
+                        class="stem"
+                        id="q-stem"></div>
+                    <div id="q-opts"></div>
+                    <div
+                        class="submit-row hidden"
+                        id="submit-row">
+                        <button
+                            class="btn primary"
+                            style="width: 100%; padding: 11px"
+                            onclick="submitPick()">
+                            确 认 答 案
+                        </button>
+                    </div>
+                    <div id="q-feedback"></div>
+                    <div
+                        class="nav-row hidden"
+                        id="nav-row">
+                        <button
+                            class="btn"
+                            id="btn-prev"
+                            onclick="move(-1)">
+                            上一题
+                        </button>
+                        <button
+                            class="btn primary"
+                            id="btn-next"
+                            onclick="onNextClick()">
+                            继续 →
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============ RESULT ============ -->
+            <div
+                id="view-result"
+                class="hidden">
+                <div class="result-hero">
+                    <div
+                        class="ring"
+                        id="r-score"></div>
+                    <p id="r-detail"></p>
+                    <div class="actions">
+                        <button
+                            class="btn"
+                            onclick="quitQuiz()">
+                            返回首页
+                        </button>
+                        <button
+                            class="btn primary"
+                            onclick="reviewWrong()">
+                            回顾错题
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <footer>
+                快捷键：<kbd>A</kbd>-<kbd>D</kbd> 选择选项 · <kbd>Enter</kbd> 确认/下一题 ·
+                进度自动保存在本机浏览器中<br />
+                题目文字由扫描版 PDF 经 OCR 识别生成，个别字词可能存在识别误差，请以官方教材为准。
+            </footer>
+        </div>
+
+        <dialog id="settings">
+            <h3>⚙️ 设置与数据</h3>
+            <div class="field">
+                <label>随机练习每题数量</label
+                ><input
+                    type="number"
+                    id="set-count"
+                    min="5"
+                    max="200"
+                    step="5" />
+            </div>
+            <div class="field">
+                <label>选项乱序（防止死记 ABCD 位置）</label>
+                <select id="set-shuffle">
+                    <option value="0">关闭</option>
+                    <option value="1">开启</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>答题方式</label>
+                <select id="set-instant">
+                    <option value="1">点击选项立即判分</option>
+                    <option value="0">选中后需点“确认答案”</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>答对后自动进入下一题（答错始终停留）</label>
+                <select id="set-autonext">
+                    <option value="1000">1 秒</option>
+                    <option value="1600">1.6 秒（默认）</option>
+                    <option value="2500">2.5 秒</option>
+                    <option value="4000">4 秒</option>
+                    <option value="0">不自动（答对也手动继续）</option>
+                </select>
+                <label style="color: var(--sub); font-size: 12px; margin-top: 4px; display: block"
+                    >仅答对时自动跳转；答错会停在解析页方便细读</label
+                >
+            </div>
+            <div
+                class="actions"
+                style="justify-content: flex-start">
+                <button
+                    class="btn"
+                    onclick="exportProgress()">
+                    导出进度 JSON
+                </button>
+                <button
+                    class="btn"
+                    onclick="importProgress()">
+                    导入进度
+                </button>
+                <button
+                    class="btn"
+                    style="color: var(--bad)"
+                    onclick="resetProgress()">
+                    清空记录
+                </button>
+                <button
+                    class="btn primary"
+                    onclick="settings.close()">
+                    完成
+                </button>
+            </div>
+        </dialog>
+
+        <script src="questions.js"></script>
+        <script>
+            const DATA = window.QUIZ_DATA;
+            const QS = DATA.questions; // {c,n,s,o[4],a,e}
+            const CH_TITLES = DATA.chapters;
+            const LS_KEY = "gaoxiang_quiz_v1";
+
+            /* ---------- state ---------- */
+            let S = load();
+            function load() {
+                try {
+                    return Object.assign(
+                        { answers: {}, wrong: {}, settings: { count: 20, shuffle: 0, instant: 1, autoNext: 1600 } },
+                        JSON.parse(localStorage.getItem(LS_KEY) || "{}"),
+                    );
+                } catch (e) {
+                    return { answers: {}, wrong: {}, settings: { count: 20, shuffle: 0, instant: 1, autoNext: 1600 } };
+                }
+            }
+            function save() {
+                localStorage.setItem(LS_KEY, JSON.stringify(S));
+            }
+            function qid(q) {
+                return q.c + "-" + q.n;
+            }
+
+            /* ---------- session ---------- */
+            let sess = null; // {list:[{q,map}], idx, title, reviewOnly}
+            function keyOf(q) {
+                return q.c + "-" + q.n;
+            }
+
+            function startSession(list, title, opts = {}) {
+                if (!list.length) {
+                    alert("没有符合条件的题目");
+                    return;
+                }
+                const shuffle = S.settings.shuffle == 1 && !opts.keepOrder;
+                sess = {
+                    title,
+                    idx: 0,
+                    reviewOnly: !!opts.review,
+                    list: list.map((q) => {
+                        let map = [0, 1, 2, 3];
+                        if (shuffle)
+                            for (let i = 3; i > 0; i--) {
+                                const j = Math.floor(Math.random() * (i + 1));
+                                [map[i], map[j]] = [map[j], map[i]];
+                            }
+                        return { q, map };
+                    }),
+                };
+                show("view-quiz");
+                render();
+            }
+
+            function startChapter(c) {
+                const list = QS.filter((q) => q.c === c).sort((a, b) => a.n - b.n);
+                startSession(list, `第${String(c).padStart(2, "0")}章 ${CH_TITLES[c]}`, { keepOrder: true });
+            }
+            function startRandom() {
+                const pool = [...QS];
+                for (let i = pool.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [pool[i], pool[j]] = [pool[j], pool[i]];
+                }
+                startSession(pool.slice(0, S.settings.count || 20), "随机练习");
+            }
+            function startUnanswered() {
+                const un = QS.filter((q) => !S.answers[keyOf(q)]);
+                const pool = (un.length ? un : [...QS]).slice();
+                for (let i = pool.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [pool[i], pool[j]] = [pool[j], pool[i]];
+                }
+                startSession(pool.slice(0, S.settings.count || 20), un.length ? "智能推进 · 新题" : "随机练习");
+            }
+            function openWrong() {
+                const w = QS.filter((q) => S.wrong[keyOf(q)]);
+                startSession(w, "错题重练");
+            }
+            function reviewWrong() {
+                const wrongInSess = sess.list
+                    .filter((it) => {
+                        const r = S.answers[keyOf(it.q)];
+                        return r && !r.ok;
+                    })
+                    .map((it) => it.q);
+                if (!wrongInSess.length) {
+                    alert("本轮全部答对，太棒了 🎉");
+                    quitQuiz();
+                    return;
+                }
+                startSession(wrongInSess, "本轮错题回顾", { review: true });
+            }
+            function quitQuiz() {
+                clearAutoNext();
+                sess = null;
+                show("view-home");
+                renderHome();
+            }
+
+            /* ---------- answering ---------- */
+            function pick(i) {
+                const it = cur();
+                if (!it || it.done) return;
+                if (S.settings.instant == 1) {
+                    grade(i);
+                } else {
+                    it.pick = i;
+                    renderOptions();
+                    document.getElementById("submit-row").classList.remove("hidden");
+                }
+            }
+            function submitPick() {
+                const it = cur();
+                if (it && it.pick != null) {
+                    grade(it.pick);
+                }
+            }
+            function grade(pickIdx) {
+                const it = cur();
+                const q = it.q;
+                const realOpt = it.map[pickIdx];
+                const ok = realOpt === q.a;
+                it.done = true;
+                it.lastPick = pickIdx;
+                const k = keyOf(q);
+                const prev = S.answers[k];
+                const rec = { ok, tries: (prev ? prev.tries : 0) + 1, t: Date.now() };
+                S.answers[k] = rec;
+                if (ok) {
+                    delete S.wrong[k];
+                } else {
+                    S.wrong[k] = (S.wrong[k] || 0) + 1;
+                }
+                save();
+                renderFeedback();
+                renderSheet();
+                updateTop();
+                if (ok) scheduleAutoNext(); // 答对：短暂停留后自动下一题；答错：停在解析页
+            }
+            /* auto advance after grading (correct answers only) */
+            let autoTimer = null,
+                cdTimer = null,
+                cdEnd = 0;
+            function clearAutoNext() {
+                if (autoTimer) {
+                    clearTimeout(autoTimer);
+                    autoTimer = null;
+                }
+                if (cdTimer) {
+                    clearInterval(cdTimer);
+                    cdTimer = null;
+                }
+                updateRevealHead();
+                updateNextBtn();
+            }
+            function scheduleAutoNext() {
+                clearAutoNext();
+                const delay = S.settings.autoNext === 0 ? 0 : S.settings.autoNext || 1600;
+                if (!delay || sess.reviewOnly) return;
+                const idxAtGrade = sess.idx;
+                cdEnd = Date.now() + delay;
+                autoTimer = setTimeout(() => {
+                    autoTimer = null;
+                    if (cdTimer) {
+                        clearInterval(cdTimer);
+                        cdTimer = null;
+                    }
+                    if (sess && sess.idx === idxAtGrade) move(1);
+                }, delay);
+                cdTimer = setInterval(updateRevealHead, 80);
+                updateRevealHead();
+                updateNextBtn();
+            }
+            function updateNextBtn() {
+                const btn = document.getElementById("btn-next");
+                if (!sess) return;
+                if (autoTimer) {
+                    btn.textContent = "暂停自动跳转 ✋";
+                    btn.title = "点击可停下来细看解析";
+                } else {
+                    btn.textContent = sess.idx === sess.list.length - 1 ? "完成 ✓" : "继续 →";
+                    btn.title = "";
+                }
+            }
+            function onNextClick() {
+                // while auto-advance is pending, the button acts as "cancel"
+                if (autoTimer) {
+                    clearAutoNext();
+                    return;
+                }
+                move(1);
+            }
+            function cur() {
+                return sess ? sess.list[sess.idx] : null;
+            }
+            function move(d) {
+                if (!sess) return;
+                const n = sess.idx + d;
+                clearAutoNext();
+                if (n >= sess.list.length) {
+                    finish();
+                    return;
+                }
+                if (n < 0) return;
+                sess.idx = n;
+                render();
+            }
+            function jump(i) {
+                clearAutoNext();
+                sess.idx = i;
+                render();
+            }
+            function finish() {
+                const done = sess.list.filter((it) => it.done);
+                const right = done.filter((it) => S.answers[keyOf(it.q)].ok).length;
+                const pct = done.length ? Math.round((right / done.length) * 100) : 0;
+                document.getElementById("r-score").textContent = pct + "%";
+                document.getElementById("r-detail").textContent =
+                    `${sess.title} · 作答 ${done.length}/${sess.list.length} 题，正确 ${right} 题` +
+                    (pct >= 80 ? "，非常棒！" : pct >= 60 ? "，继续加油！" : "，建议回看教材相关章节 💪");
+                show("view-result");
+            }
+
+            /* ---------- rendering ---------- */
+            function show(id) {
+                ["view-home", "view-quiz", "view-result"].forEach((v) =>
+                    document.getElementById(v).classList.toggle("hidden", v !== id),
+                );
+                window.scrollTo(0, 0);
+            }
+            const LETTERS = ["A", "B", "C", "D"];
+            function render() {
+                const it = cur();
+                const q = it.q;
+                const card = document.querySelector(".qcard");
+                card.classList.remove("in");
+                void card.offsetWidth;
+                card.classList.add("in");
+                document.getElementById("q-tag").textContent = `${sess.title} · 原题号 ${q.n}`;
+                document.getElementById("q-stem").textContent = q.s;
+                document.getElementById("nav-row").classList.toggle("hidden", !it.done);
+                renderOptions();
+                renderFeedback();
+                updateTop();
+                renderSheet();
+            }
+            function renderOptions() {
+                const it = cur();
+                const q = it.q;
+                const box = document.getElementById("q-opts");
+                box.innerHTML = "";
+                it.map.forEach((origIdx, dispIdx) => {
+                    const div = document.createElement("div");
+                    div.className = "opt";
+                    div.textContent = "";
+                    const l = document.createElement("span");
+                    l.className = "letter";
+                    l.textContent = LETTERS[dispIdx];
+                    const t = document.createElement("span");
+                    t.textContent = q.o[origIdx];
+                    div.append(l, t);
+                    if (!it.done && it.pick === dispIdx) div.classList.add("picked");
+                    if (it.done) {
+                        if (origIdx === q.a) div.classList.add("correct");
+                        else if (it.lastPick === dispIdx) div.classList.add("wrong");
+                        else div.classList.add("dim");
+                    }
+                    div.onclick = () => pick(dispIdx);
+                    box.appendChild(div);
+                });
+                document
+                    .getElementById("submit-row")
+                    .classList.toggle("hidden", !(S.settings.instant != 1 && !it.done && it.pick != null));
+            }
+            function renderFeedback() {
+                const it = cur();
+                const q = it.q;
+                const fb = document.getElementById("q-feedback");
+                document.getElementById("q-opts").style.display = it.done ? "none" : "";
+                document.getElementById("submit-row").classList.add("hidden");
+                document.getElementById("nav-row").classList.toggle("hidden", !it.done);
+                if (!it.done) {
+                    fb.innerHTML = "";
+                    return;
+                }
+                const pickedOrig = it.map[it.lastPick];
+                const ok = pickedOrig === q.a;
+                fb.innerHTML = `<div class="reveal-wrap">
+    <div class="reveal-head ${ok ? "ok" : "bad"}" id="reveal-head"></div>
+    <div class="reveal-body"><b>解析：</b>${q.e ? esc(q.e) : "（本题原书无解析）"}</div>
+    ${ok ? "" : '<div class="reveal-hint">答错了也别急，读懂解析后点「继续」或按 Enter ↵</div>'}
+  </div>`;
+                updateRevealHead();
+            }
+            function updateRevealHead() {
+                const head = document.getElementById("reveal-head");
+                if (!head) return;
+                const it = cur();
+                if (!it || !it.done) return;
+                const pickedOrig = it.map[it.lastPick];
+                const ok = pickedOrig === it.q.a;
+                let right = `正确答案 ${LETTERS[it.q.a]} · ${it.q.o[it.q.a]}`;
+                right = right.length > 42 ? right.slice(0, 42) + "…" : right;
+                if (ok && autoTimer) {
+                    const remain = Math.max(0, cdEnd - Date.now());
+                    head.innerHTML = `<span>✅ 回答正确！</span><span class="countdown"><svg class="cd-ring" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="3"/><circle cx="12" cy="12" r="9" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-dasharray="${(2 * Math.PI * 9).toFixed(1)}" stroke-dashoffset="${(2 * Math.PI * 9 * (1 - remain / (S.settings.autoNext || 1600))).toFixed(1)}" transform="rotate(-90 12 12)"/></svg>${(remain / 1000).toFixed(1)}s 后自动下一题 <button class="cancel-cd" onclick="clearAutoNext()">暂停</button></span>`;
+                } else if (ok) {
+                    head.innerHTML = `<span>✅ 回答正确！</span><span class="countdown">${esc(right)}</span>`;
+                } else {
+                    head.innerHTML = `<span>❌ 答错了，正确答案 ${LETTERS[it.q.a]}</span><span class="countdown">${esc(right)}</span>`;
+                }
+            }
+            function esc(s) {
+                return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            }
+            function updateTop() {
+                if (!sess) return;
+                const done = sess.list.filter((it) => it.done).length;
+                document.getElementById("q-progress").textContent =
+                    `${sess.title} · 第 ${sess.idx + 1} / ${sess.list.length} 题`;
+                document.getElementById("q-barfill").style.width = (done / sess.list.length) * 100 + "%";
+                document.getElementById("btn-prev").disabled = sess.idx === 0;
+                updateNextBtn();
+            }
+            function toggleSheet() {
+                document.getElementById("sheet").classList.toggle("hidden");
+                renderSheet();
+            }
+            function renderSheet() {
+                const sh = document.getElementById("sheet");
+                if (sh.classList.contains("hidden")) return;
+                sh.innerHTML = "";
+                sess.list.forEach((it, i) => {
+                    const d = document.createElement("div");
+                    d.className = "dot";
+                    d.textContent = i + 1;
+                    const r = S.answers[keyOf(it.q)];
+                    if (it.done && r) {
+                        d.classList.add(r.ok ? "ok" : "bad");
+                    }
+                    if (i === sess.idx) d.classList.add("cur");
+                    d.onclick = () => jump(i);
+                    sh.appendChild(d);
+                });
+            }
+
+            /* ---------- home ---------- */
+            function renderHome() {
+                document.getElementById("st-total").textContent = QS.length.toLocaleString();
+                const answered = Object.keys(S.answers).length;
+                const right = Object.values(S.answers).filter((a) => a.ok).length;
+                document.getElementById("st-done").textContent = answered.toLocaleString();
+                document.getElementById("st-acc").textContent = answered
+                    ? Math.round((right / answered) * 100) + "%"
+                    : "--";
+                document.getElementById("st-wrong").textContent = Object.keys(S.wrong).length;
+                const list = document.getElementById("chapter-list");
+                list.innerHTML = "";
+                const byCh = {};
+                QS.forEach((q) => {
+                    (byCh[q.c] = byCh[q.c] || []).push(q);
+                });
+                Object.keys(byCh)
+                    .map(Number)
+                    .sort((a, b) => a - b)
+                    .forEach((c) => {
+                        const qs = byCh[c];
+                        const done = qs.filter((q) => S.answers[keyOf(q)]).length;
+                        const right = qs.filter((q) => S.answers[keyOf(q)] && S.answers[keyOf(q)].ok).length;
+                        const el = document.createElement("div");
+                        el.className = "chap-card";
+                        el.innerHTML = `<div class="name">第${String(c).padStart(2, "0")}章 ${esc(CH_TITLES[c] || "")}</div>
+      <div class="meta"><span>${qs.length} 题</span><span>${done ? `已做 ${done} · 正确率 ${Math.round((right / done) * 100)}%` : "未开始"}</span></div>
+      <div class="bar"><i style="width:${qs.length ? (done / qs.length) * 100 : 0}%"></i></div>`;
+                        el.onclick = () => startChapter(c);
+                        list.appendChild(el);
+                    });
+            }
+
+            /* ---------- settings ---------- */
+            const settings = document.getElementById("settings");
+            function syncSettingsUI() {
+                setVal("set-count", S.settings.count);
+                setVal("set-shuffle", String(S.settings.shuffle));
+                setVal("set-instant", String(S.settings.instant));
+                setVal("set-autonext", String(S.settings.autoNext == null ? 1600 : S.settings.autoNext));
+            }
+            function setVal(id, v) {
+                const e = document.getElementById(id);
+                if (e) e.value = v;
+            }
+            settings.addEventListener("change", (e) => {
+                const t = e.target;
+                if (t.id === "set-count") S.settings.count = Math.max(5, Math.min(200, +t.value || 20));
+                if (t.id === "set-shuffle") S.settings.shuffle = +t.value;
+                if (t.id === "set-instant") S.settings.instant = +t.value;
+                if (t.id === "set-autonext") S.settings.autoNext = +t.value;
+                save();
+            });
+            function exportProgress() {
+                const blob = new Blob([JSON.stringify(S)], { type: "application/json" });
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = "答题进度备份.json";
+                a.click();
+            }
+            function importProgress() {
+                const inp = document.createElement("input");
+                inp.type = "file";
+                inp.accept = ".json";
+                inp.onchange = () => {
+                    const f = inp.files[0];
+                    if (!f) return;
+                    const r = new FileReader();
+                    r.onload = () => {
+                        try {
+                            const d = JSON.parse(r.result);
+                            if (d.answers) {
+                                S = d;
+                                save();
+                                renderHome();
+                                alert("导入成功");
+                            }
+                        } catch (e) {
+                            alert("文件格式不正确");
+                        }
+                    };
+                    r.readAsText(f);
+                };
+                inp.click();
+            }
+            function resetProgress() {
+                if (confirm("确定清空所有答题记录？此操作不可恢复。")) {
+                    S = { answers: {}, wrong: {}, settings: S.settings };
+                    save();
+                    renderHome();
+                }
+            }
+
+            /* ---------- keyboard ---------- */
+            document.addEventListener("keydown", (e) => {
+                if (settings.open) return;
+                if (!sess || document.getElementById("view-quiz").classList.contains("hidden")) return;
+                const it = cur();
+                const k = e.key.toUpperCase();
+                if ("ABCD".includes(k) && !it.done) {
+                    pick("ABCD".indexOf(k));
+                } else if (e.key === "Enter") {
+                    if (!it.done && it.pick != null) submitPick();
+                    else if (it.done) onNextClick();
+                } else if (e.key === "ArrowLeft") move(-1);
+                else if (e.key === "ArrowRight") move(1);
+            });
+
+            renderHome();
+            if (!window.QUIZ_DATA) alert("题库文件 questions.js 缺失，请与 index.html 放在同一目录。");
+        </script>
+    </body>
+</html>
