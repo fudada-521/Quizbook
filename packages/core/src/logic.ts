@@ -90,11 +90,46 @@ export function shouldAutoAdvance(
 export function normalizeState(raw: unknown): PersistedState {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Partial<PersistedState>;
   return {
-    schemaVersion: r.schemaVersion ?? SCHEMA_VERSION,
+    schemaVersion: SCHEMA_VERSION,
     answers: r.answers ?? {},
     wrong: r.wrong ?? {},
+    favorites: r.favorites ?? {},
     settings: { ...DEFAULT_SETTINGS, ...(r.settings ?? {}) },
   };
+}
+
+/** 是否已收藏 */
+export function isFavorite(
+  state: PersistedState,
+  q: Pick<Question, 'c' | 'n'>,
+): boolean {
+  return Object.prototype.hasOwnProperty.call(state.favorites, qkey(q));
+}
+
+/** 切换收藏，返回切换后的收藏状态 */
+export function toggleFavorite(
+  state: PersistedState,
+  q: Pick<Question, 'c' | 'n'>,
+  now = Date.now(),
+): boolean {
+  const k = qkey(q);
+  if (isFavorite(state, q)) {
+    delete state.favorites[k];
+    return false;
+  }
+  state.favorites[k] = now;
+  return true;
+}
+
+/** 收藏的题目，按收藏时间从新到旧 */
+export function favoriteQuestions(
+  data: QuizData,
+  state: PersistedState,
+): Question[] {
+  const favs = state.favorites;
+  return data.questions
+    .filter((q) => isFavorite(state, q))
+    .sort((a, b) => (favs[qkey(b)] ?? 0) - (favs[qkey(a)] ?? 0));
 }
 
 /** 错题本题目（当前仍有错误记录的题目） */

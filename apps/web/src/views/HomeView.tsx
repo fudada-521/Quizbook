@@ -1,11 +1,27 @@
+import { favoriteQuestions } from '@quiz/core';
 import { useQuiz } from '../store/QuizStore';
+import { Icon } from '../components/Icon';
 
 export function HomeView() {
-  const { data, state, startChapter, startRandom, startUnanswered, startWrong } = useQuiz();
+  const {
+    data,
+    state,
+    settings,
+    resume,
+    resumeSession,
+    discardResume,
+    startChapter,
+    startRandom,
+    startUnanswered,
+    startWrong,
+    startFavorites,
+  } = useQuiz();
 
   const total = data.questions.length;
   const answered = Object.keys(state.answers).length;
   const right = Object.values(state.answers).filter((a) => a.ok).length;
+  const wrongCount = Object.keys(state.wrong).length;
+  const favCount = favoriteQuestions(data, state).length;
   const acc = answered ? Math.round((right / answered) * 100) + '%' : '--';
 
   const byCh: Record<number, typeof data.questions> = {};
@@ -13,52 +29,165 @@ export function HomeView() {
     (byCh[q.c] = byCh[q.c] || []).push(q);
   });
 
-  const openSettings = () => {
-    (document.getElementById('settings') as HTMLDialogElement | null)?.showModal();
+  const restart = () => {
+    discardResume();
+    startUnanswered();
   };
 
   return (
-    <div>
-      <div className="stats-row">
-        <div className="stat"><b>{total.toLocaleString()}</b><span>题库总题数</span></div>
-        <div className="stat"><b>{answered.toLocaleString()}</b><span>已作答</span></div>
-        <div className="stat"><b>{acc}</b><span>总体正确率</span></div>
-        <div className="stat"><b>{Object.keys(state.wrong).length}</b><span>错题本</span></div>
-      </div>
+    <div className="home">
+      <header className="page-head">
+        <p className="eyebrow">信息系统项目管理师 · 综合知识</p>
+        <h1>保持节奏，继续推进。</h1>
+        <p className="page-sub">
+          已作答 {answered.toLocaleString()} / {total.toLocaleString()} 题 · 正确率 {acc}
+        </p>
+      </header>
 
-      <div className="section-title">练习模式</div>
-      <div className="modes">
-        <div className="mode-card" onClick={startRandom}>
-          <div className="ico">🔀</div><div className="t">随机练习</div><div className="d">全库随机抽题，默认 20 题</div>
-        </div>
-        <div className="mode-card" onClick={startWrong}>
-          <div className="ico">📕</div><div className="t">错题重练</div><div className="d">只刷答错过的题目</div>
-        </div>
-        <div className="mode-card" onClick={startUnanswered}>
-          <div className="ico">🧭</div><div className="t">智能推进</div><div className="d">优先做从未答过的题</div>
-        </div>
-        <div className="mode-card" onClick={openSettings}>
-          <div className="ico">⚙️</div><div className="t">设置 / 数据</div><div className="d">题量、乱序、导出记录</div>
-        </div>
-      </div>
-
-      <div className="section-title">按章节练习（顺序模式）</div>
-      <div className="chapters">
-        {Object.keys(byCh).map(Number).sort((a, b) => a - b).map((c) => {
-          const qs = byCh[c];
-          const done = qs.filter((q) => state.answers[`${q.c}-${q.n}`]).length;
-          const r = qs.filter((q) => state.answers[`${q.c}-${q.n}`]?.ok).length;
-          return (
-            <div className="chap-card" key={c} onClick={() => startChapter(c)}>
-              <div className="name">第{String(c).padStart(2, '0')}章 {data.chapters[String(c)] ?? ''}</div>
-              <div className="meta">
-                <span>{qs.length} 题</span>
-                <span>{done ? `已做 ${done} · 正确率 ${Math.round((r / done) * 100)}%` : '未开始'}</span>
-              </div>
-              <div className="bar"><i style={{ width: qs.length ? (done / qs.length) * 100 + '%' : '0%' }} /></div>
+      <div className="home-grid">
+        <section className="continue-card home-hero">
+          <div className="continue-main">
+            <p className="eyebrow accent">{resume ? '未完成练习' : '准备开始'}</p>
+            <h2 className="continue-title">{resume ? resume.title : '智能推进 · 新题优先'}</h2>
+            <p className="continue-meta">
+              {resume
+                ? `第 ${resume.idx + 1} / ${resume.total} 题 · 已完成 ${resume.done} 题`
+                : `优先未做过的题 · 每组 ${settings.count} 题`}
+            </p>
+            <div className="progress">
+              <i
+                style={{
+                  width: `${
+                    resume
+                      ? (resume.done / resume.total) * 100
+                      : total
+                        ? (answered / total) * 100
+                        : 0
+                  }%`,
+                }}
+              />
             </div>
-          );
-        })}
+            <div className="continue-actions">
+              <button
+                className="btn primary lg"
+                onClick={resume ? resumeSession : startUnanswered}
+              >
+                {resume ? '继续练习' : '开始练习'}
+                <Icon name="arrow-right" size={16} />
+              </button>
+              {resume && (
+                <button className="btn ghost" onClick={restart}>
+                  重新开始一组
+                </button>
+              )}
+            </div>
+          </div>
+          {answered > 0 && (
+            <div className="continue-side">
+              <b>{acc}</b>
+              <span>总体正确率</span>
+            </div>
+          )}
+        </section>
+
+        <aside className="home-aside">
+          <section className="panel">
+            <div className="panel-head">
+              <h2>学习概览</h2>
+            </div>
+            <div className="stat-grid">
+              <div className="stat-cell">
+                <b>{answered.toLocaleString()}</b>
+                <span>已作答</span>
+              </div>
+              <div className="stat-cell">
+                <b>{acc}</b>
+                <span>正确率</span>
+              </div>
+              <div className="stat-cell">
+                <b>{wrongCount}</b>
+                <span>错题</span>
+              </div>
+            </div>
+          </section>
+
+          <section className="panel">
+            <div className="panel-head">
+              <h2>练习方式</h2>
+            </div>
+            <div className="mode-list">
+              <button className="mode-row" onClick={startRandom}>
+                <span className="mode-icon">
+                  <Icon name="shuffle" size={17} />
+                </span>
+                <span className="mode-label">随机练习</span>
+                <span className="mode-desc">{settings.count} 题</span>
+                <Icon name="chevron-right" size={15} className="chev" />
+              </button>
+              <button className="mode-row" onClick={startUnanswered}>
+                <span className="mode-icon">
+                  <Icon name="compass" size={17} />
+                </span>
+                <span className="mode-label">智能推进</span>
+                <span className="mode-desc">未做优先</span>
+                <Icon name="chevron-right" size={15} className="chev" />
+              </button>
+              <button className="mode-row" onClick={startWrong}>
+                <span className="mode-icon">
+                  <Icon name="book" size={17} />
+                </span>
+                <span className="mode-label">错题重练</span>
+                <span className="mode-desc">{wrongCount ? `${wrongCount} 道` : '暂无'}</span>
+                <Icon name="chevron-right" size={15} className="chev" />
+              </button>
+              <button className="mode-row" onClick={startFavorites}>
+                <span className="mode-icon">
+                  <Icon name="star" size={17} />
+                </span>
+                <span className="mode-label">收藏练习</span>
+                <span className="mode-desc">{favCount ? `${favCount} 道` : '暂无'}</span>
+                <Icon name="chevron-right" size={15} className="chev" />
+              </button>
+            </div>
+          </section>
+        </aside>
+
+        <section className="chapters-panel home-chapters">
+          <div className="section-head">
+            <h2>按章节练习</h2>
+            <span>{Object.keys(byCh).length} 章 · {total.toLocaleString()} 题</span>
+          </div>
+          <div className="chapter-list">
+            {Object.keys(byCh)
+              .map(Number)
+              .sort((a, b) => a - b)
+              .map((c) => {
+                const qs = byCh[c];
+                const done = qs.filter((q) => state.answers[`${q.c}-${q.n}`]).length;
+                const r = qs.filter((q) => state.answers[`${q.c}-${q.n}`]?.ok).length;
+                const pct = done ? Math.round((r / done) * 100) : 0;
+                return (
+                  <button className="chapter-row" key={c} onClick={() => startChapter(c)}>
+                    <span className="chapter-index">{String(c).padStart(2, '0')}</span>
+                    <span className="chapter-main">
+                      <span className="chapter-name">{data.chapters[String(c)] ?? `第${c}章`}</span>
+                      <span className="chapter-meta">
+                        <span>{qs.length} 题</span>
+                        <span>{done ? `已做 ${done}` : '未开始'}</span>
+                      </span>
+                      {done > 0 && (
+                        <span className="progress thin">
+                          <i style={{ width: `${qs.length ? (done / qs.length) * 100 : 0}%` }} />
+                        </span>
+                      )}
+                    </span>
+                    <span className="chapter-pct">{done ? `${pct}%` : ''}</span>
+                    <Icon name="chevron-right" size={15} className="chev" />
+                  </button>
+                );
+              })}
+          </div>
+        </section>
       </div>
     </div>
   );

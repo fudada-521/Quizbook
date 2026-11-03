@@ -1,11 +1,24 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuiz } from '../store/QuizStore';
-import { qkey, type SessionItem } from '@quiz/core';
+import { isFavorite, qkey, type SessionItem } from '@quiz/core';
+import { Icon } from '../components/Icon';
 
 const LETTERS = ['A', 'B', 'C', 'D'] as const;
 
 export function QuizView() {
-  const { app, state, settings, pick, next, prev, jump, quit, toggleSheet, setAutoPending, tickNow } = useQuiz();
+  const {
+    app,
+    state,
+    settings,
+    pick,
+    next,
+    prev,
+    jump,
+    quit,
+    toggleSheet,
+    setAutoPending,
+    toggleFavorite,
+  } = useQuiz();
   const sess = app.session;
   const it = sess?.list[sess.idx];
 
@@ -13,6 +26,13 @@ export function QuizView() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!sess || !it) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target && /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName)) return;
+      // Enter 交给获得焦点的按钮自身处理，避免与全局快捷键重复触发
+      if (e.key === 'Enter' && target?.tagName === 'BUTTON') return;
+      if (document.querySelector('dialog[open]')) return;
+
       const k = e.key.toUpperCase();
       if ('ABCD'.includes(k) && !it.done) pick('ABCD'.indexOf(k));
       else if (e.key === 'Enter') {
@@ -23,44 +43,79 @@ export function QuizView() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [sess, it, pick, next, prev, settings.instant, setAutoPending, tickNow]);
+  }, [sess, it, pick, next, prev, settings.instant]);
 
   if (!sess || !it) return null;
   const done = sess.list.filter((x) => x.done).length;
   const isLast = sess.idx === sess.list.length - 1;
+  const fav = isFavorite(state, it.q);
 
   return (
-    <div>
-      <div className="quiz-top">
-        <div className="row">
-          <button className="btn" onClick={quit}>← 退出</button>
-          <div className="progress-info">{sess.title} · 第 {sess.idx + 1} / {sess.list.length} 题</div>
-          <button className="btn" onClick={toggleSheet}>{app.sheetOpen ? '收起答题卡' : '答题卡'}</button>
+    <div className="quiz-page">
+      <div className="quiz-bar">
+        <div className="quiz-bar-row">
+          <button className="btn ghost sm" onClick={quit}>
+            <Icon name="arrow-left" size={16} />
+            退出
+          </button>
+          <div className="quiz-title">
+            <strong>{sess.title}</strong>
+            <span className="count">
+              {sess.idx + 1} / {sess.list.length}
+            </span>
+          </div>
+          <button className="btn ghost sm" onClick={toggleSheet}>
+            <Icon name="grid" size={16} />
+            {app.sheetOpen ? '收起' : '答题卡'}
+          </button>
         </div>
-        <div className="qbar"><i style={{ width: (done / sess.list.length) * 100 + '%' }} /></div>
+        <div className="progress thin accent">
+          <i style={{ width: `${(done / sess.list.length) * 100}%` }} />
+        </div>
         {app.sheetOpen && <AnswerSheet />}
       </div>
 
-      <div className="qcard in" key={sess.idx}>
-        <span className="qtag">{sess.title} · 原题号 {it.q.n}</span>
-        <div className="stem">{it.q.s}</div>
+      <article className="question-card" key={sess.idx}>
+        <div className="q-head">
+          <p className="q-meta">
+            {sess.title} · 原题 {it.q.n}
+          </p>
+          <button
+            className={`fav-btn${fav ? ' active' : ''}`}
+            onClick={() => toggleFavorite(it.q)}
+            aria-pressed={fav}
+            aria-label={fav ? '取消收藏' : '收藏题目'}
+            title={fav ? '取消收藏' : '收藏题目'}
+          >
+            <Icon name="star" size={16} />
+            <span>{fav ? '已收藏' : '收藏'}</span>
+          </button>
+        </div>
+        <h2 className="stem">{it.q.s}</h2>
         <Options item={it} />
+
         {!it.done && settings.instant === 0 && it.pick != null && (
           <div className="submit-row">
-            <button className="btn primary" style={{ width: '100%', padding: 11 }} onClick={() => pick(it.pick!)}>
-              确 认 答 案
+            <button className="btn primary" onClick={() => pick(it.pick!)}>
+              确认答案
             </button>
           </div>
         )}
+
         {it.done && <Reveal item={it} />}
 
-        <div className="nav-row">
-          <button className="btn" disabled={sess.idx === 0} onClick={prev}>上一题</button>
+        <div className="quiz-nav">
+          <button className="btn ghost" disabled={sess.idx === 0} onClick={prev}>
+            上一题
+          </button>
           <button className="btn primary" onClick={next}>
-            {isLast ? '完成 ✓' : '继续 →'}
+            {isLast ? '完成' : '下一题'}
+            <Icon name="arrow-right" size={16} />
           </button>
         </div>
-      </div>
+
+        <p className="shortcut-hint">A–D 选择 · Enter 继续 · ← → 翻题</p>
+      </article>
     </div>
   );
 }
@@ -68,18 +123,19 @@ export function QuizView() {
 function Options({ item }: { item: SessionItem }) {
   const { settings, pick } = useQuiz();
   return (
-    <div>
+    <div className="options">
       {item.map.map((origIdx, dispIdx) => {
-        let cls = 'opt';
-        let mark: string | null = null;
+        let cls = 'option';
+        let mark: { icon: 'check' | 'x'; text: string } | null = null;
         if (item.done) {
+          cls += ' done';
           // 解析页：标出正确答案（绿）与自己选错的那项（红），其余淡化
           if (origIdx === item.q.a) {
             cls += ' correct';
-            mark = '✓ 正确答案';
+            mark = { icon: 'check', text: '正确答案' };
           } else if (dispIdx === item.lastPick) {
             cls += ' wrong';
-            mark = '✗ 你的选择';
+            mark = { icon: 'x', text: '你的选择' };
           } else {
             cls += ' dim';
           }
@@ -91,11 +147,15 @@ function Options({ item }: { item: SessionItem }) {
             key={dispIdx}
             className={cls}
             onClick={item.done ? undefined : () => pick(dispIdx)}
-            style={item.done ? { cursor: 'default' } : undefined}
           >
             <span className="letter">{LETTERS[dispIdx]}</span>
-            <span className="opt-text">{item.q.o[origIdx]}</span>
-            {mark && <span className="opt-mark">{mark}</span>}
+            <span className="text">{item.q.o[origIdx]}</span>
+            {mark && (
+              <span className="mark">
+                <Icon name={mark.icon} size={13} />
+                {mark.text}
+              </span>
+            )}
           </div>
         );
       })}
@@ -105,10 +165,9 @@ function Options({ item }: { item: SessionItem }) {
 
 /** 百词斩式解析卡片 + 答对倒计时自动跳转 */
 function Reveal({ item }: { item: SessionItem }) {
-  const { settings, next, setAutoPending, app } = useQuiz();
+  const { settings, next, setAutoPending } = useQuiz();
   const pickedOrig = item.map[item.lastPick];
   const ok = pickedOrig === item.q.a;
-  const right = item.q.o[item.q.a];
 
   const [remainMs, setRemainMs] = useState(settings.autoNext);
   const [paused, setPaused] = useState(false);
@@ -142,42 +201,66 @@ function Reveal({ item }: { item: SessionItem }) {
 
   const secs = (remainMs / 1000).toFixed(1);
   const progress = total > 0 ? remainMs / total : 0;
-  const R = 9;
+  const R = 8;
   const C = 2 * Math.PI * R;
   // 乱序模式下 q.a 是原始下标，需换算为当前屏幕上显示的字母位置
   const correctDispIdx = item.map.indexOf(item.q.a);
 
   return (
-    <div className="reveal-wrap">
-      <div className={`reveal-head ${ok ? 'ok' : 'bad'}`}>
-        <span>{ok ? '✅ 回答正确！' : `❌ 答错了，正确答案 ${LETTERS[correctDispIdx] ?? ''}`}</span>
+    <div className={`reveal ${ok ? 'ok' : 'bad'}`}>
+      <div className="reveal-head">
+        <span className="reveal-status">
+          <Icon name={ok ? 'check' : 'x'} size={16} />
+          {ok ? '回答正确' : '回答错误'}
+        </span>
         {ok && shouldAuto ? (
           <span className="countdown">
             <svg className="cd-ring" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r={R} fill="none" stroke="rgba(255,255,255,.35)" strokeWidth="3" />
               <circle
-                cx="12" cy="12" r={R} fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round"
-                strokeDasharray={C.toFixed(1)} strokeDashoffset={(C * (1 - progress)).toFixed(1)}
+                cx="12"
+                cy="12"
+                r={R}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                className="cd-track"
+              />
+              <circle
+                cx="12"
+                cy="12"
+                r={R}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeDasharray={C.toFixed(1)}
+                strokeDashoffset={(C * (1 - progress)).toFixed(1)}
                 transform="rotate(-90 12 12)"
               />
             </svg>
-            {secs}s 后自动下一题
-            <button className="cancel-cd" onClick={() => setPaused(true)}>暂停</button>
+            {secs}s
+            <button className="chip" onClick={() => setPaused(true)}>
+              暂停
+            </button>
           </span>
         ) : ok && paused ? (
           <span className="countdown">
-            已暂停 · <button className="cancel-cd" onClick={() => next()}>继续 →</button>
+            已暂停
+            <button className="chip" onClick={() => next()}>
+              下一题
+            </button>
           </span>
-        ) : ok ? (
-          <span className="countdown">{truncate(right)}</span>
         ) : (
-          <span className="countdown">{truncate(right)}</span>
+          <span className="answer-ref">正确答案 {LETTERS[correctDispIdx] ?? ''}</span>
         )}
       </div>
       <div className="reveal-body">
-        <b>解析：</b>{item.q.e || '（本题原书无解析）'}
+        <span className="label">解析</span>
+        <p>{item.q.e || '（本题原书无解析）'}</p>
       </div>
-      {!ok && <div className="reveal-hint">答错了也别急，读懂解析后点「继续」或按 Enter ↵</div>}
+      {!ok && (
+        <p className="reveal-hint">读懂解析后，点「下一题」或按 Enter 继续</p>
+      )}
     </div>
   );
 }
@@ -186,23 +269,37 @@ function AnswerSheet() {
   const { app, state, jump, toggleSheet } = useQuiz();
   const sess = app.session;
   if (!sess) return null;
+  const done = sess.list.filter((it) => it.done).length;
+
   return (
     <div className="answer-sheet">
-      {sess.list.map((it, i) => {
-        const r = state.answers[qkey(it.q)];
-        let cls = 'dot';
-        if (it.done && r) cls += r.ok ? ' ok' : ' bad';
-        if (i === sess.idx) cls += ' cur';
-        return (
-          <div key={i} className={cls} onClick={() => { jump(i); toggleSheet(); }}>
-            {i + 1}
-          </div>
-        );
-      })}
+      <div className="answer-sheet-head">
+        <span>答题卡</span>
+        <span>
+          已答 {done} / {sess.list.length}
+        </span>
+      </div>
+      <div className="sheet-grid">
+        {sess.list.map((it, i) => {
+          const r = state.answers[qkey(it.q)];
+          let cls = 'dot';
+          if (it.done && r) cls += r.ok ? ' ok' : ' bad';
+          if (i === sess.idx) cls += ' cur';
+          return (
+            <button
+              type="button"
+              key={i}
+              className={cls}
+              onClick={() => {
+                jump(i);
+                toggleSheet();
+              }}
+            >
+              {i + 1}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
-}
-
-function truncate(s: string, n = 42): string {
-  return s.length > n ? s.slice(0, n) + '…' : s;
 }

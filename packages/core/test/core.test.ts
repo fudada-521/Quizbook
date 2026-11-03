@@ -1,4 +1,4 @@
-import { createSession, gradeAnswer, normalizeState, shouldAutoAdvance, wrongQuestions, unansweredQuestions, questionsOfChapter, qkey, DEFAULT_SETTINGS, type QuizData } from '../src/index.ts';
+import { createSession, gradeAnswer, normalizeState, shouldAutoAdvance, wrongQuestions, unansweredQuestions, questionsOfChapter, qkey, isFavorite, toggleFavorite, favoriteQuestions, DEFAULT_SETTINGS, SCHEMA_VERSION, type QuizData } from '../src/index.ts';
 
 const data: QuizData = {
   generatedFrom: 'test',
@@ -23,6 +23,11 @@ ok(JSON.stringify(sortedMap)==='[0,1,2,3]', 'map is permutation');
 
 const st = normalizeState({});
 ok(st.settings.count===DEFAULT_SETTINGS.count && Object.keys(st.answers).length===0, 'normalize defaults');
+ok(st.schemaVersion===SCHEMA_VERSION && Object.keys(st.favorites).length===0, 'normalize favorites + schema');
+
+// 旧版（schemaVersion 1）数据迁移后补全 favorites
+const migrated = normalizeState({ schemaVersion: 1, answers: {}, wrong: {}, settings: {} });
+ok(migrated.schemaVersion===SCHEMA_VERSION && migrated.favorites != null, 'v1 migration adds favorites');
 
 const state = normalizeState({});
 const pickCorrect = item.map.indexOf(item.q.a);
@@ -47,6 +52,16 @@ const wq = wrongQuestions(data, state);
 ok(wq.length===1 && qkey(wq[0])==='1-2', 'wrongQuestions');
 const uq = unansweredQuestions(data, state);
 ok(uq.length===1 && qkey(uq[0])==='2-1', 'unansweredQuestions');
+
+// 收藏：切换、时间排序、与答题状态互不影响
+const favState = normalizeState({});
+ok(!isFavorite(favState, data.questions[0]), 'not favorite initially');
+ok(toggleFavorite(favState, data.questions[0], 100)===true && isFavorite(favState, data.questions[0]), 'add favorite');
+ok(toggleFavorite(favState, data.questions[2], 200)===true, 'add second favorite');
+ok(favState.answers[qkey(data.questions[0])] == null, 'favorite does not touch answers');
+const favs = favoriteQuestions(data, favState);
+ok(favs.length===2 && qkey(favs[0])==='2-1' && qkey(favs[1])==='1-1', 'favorites newest first');
+ok(toggleFavorite(favState, data.questions[0], 300)===false && !isFavorite(favState, data.questions[0]), 'remove favorite');
 
 console.log(`\n${passes} passed, ${fails} failed`);
 process.exit(fails?1:0);

@@ -52,6 +52,7 @@ export interface PersistedState {
   schemaVersion: number;
   answers: Record<string, AnswerRecord>;
   wrong: Record<string, number>; // 键 → 错误次数
+  favorites: Record<string, number>; // 键 → 收藏时间戳
   settings: Settings;
 }
 
@@ -82,8 +83,8 @@ export const DEFAULT_SETTINGS: Settings = {
   autoNext: 1600,
 };
 
-/** 进度存储当前 schema 版本；跨设备同步时据此做迁移 */
-export const SCHEMA_VERSION = 1;
+/** 进度存储当前 schema 版本；跨设备同步时据此做迁移（v2 增加 favorites） */
+export const SCHEMA_VERSION = 2;
 
 export function qkey(q: Pick<Question, 'c' | 'n'> | Question): string {
   return `${q.c}-${q.n}`;

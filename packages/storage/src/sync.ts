@@ -24,6 +24,7 @@ export function parseFromSync(text: string): PersistedState | null {
         schemaVersion: obj.schemaVersion ?? 1,
         answers: obj.answers,
         wrong: obj.wrong ?? {},
+        favorites: obj.favorites ?? {},
         settings: obj.settings ?? {},
       };
     }

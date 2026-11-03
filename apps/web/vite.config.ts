@@ -18,8 +18,8 @@ export default defineConfig({
         short_name: '知题',
         description: '刷题·即时判分·错题本（2210 题）',
         lang: 'zh-CN',
-        theme_color: '#3b6ef5',
-        background_color: '#f4f6fa',
+        theme_color: '#f6f6f3',
+        background_color: '#f6f6f3',
         display: 'standalone',
         start_url: '.',
         icons: [

@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
-import { QuizData, normalizeState } from '@quiz/core';
+import { useMemo } from 'react';
+import { QuizData } from '@quiz/core';
 import { createLocalStorageStore, DEFAULT_SYNC_BACKEND } from '@quiz/storage/web';
 import { QuizProvider, useQuiz } from './store/QuizStore';
 import { HomeView } from './views/HomeView';
 import { QuizView } from './views/QuizView';
 import { ResultView } from './views/ResultView';
+import { FavoritesView } from './views/FavoritesView';
 import { SettingsDialog } from './views/SettingsDialog';
+import { Icon } from './components/Icon';
 import rawData from '../../../data/questions.json';
 
 export default function App() {
@@ -26,24 +28,61 @@ export default function App() {
   );
 }
 
+function openSettings() {
+  (document.getElementById('settings') as HTMLDialogElement | null)?.showModal();
+}
+
 function Shell() {
-  const { app } = useQuiz();
+  const { app, setView } = useQuiz();
+  const inQuiz = app.view === 'quiz';
+
   return (
-    <div className="wrap">
-      <header>
-        <h1>🎯 知题 · 答题练习</h1>
-        <p>选择后立即判分并显示解析 · 支持章节 / 随机 / 错题重练</p>
-      </header>
-      {app.view === 'home' && <HomeView />}
-      {app.view === 'quiz' && <QuizView />}
-      {app.view === 'result' && <ResultView />}
+    <div className="app-shell">
+      {!inQuiz && (
+        <header className="app-head">
+          <button className="brand" onClick={() => setView('home')} aria-label="返回首页">
+            <span className="brand-mark">知</span>
+            <span className="brand-name">知题</span>
+            <span className="brand-rule" />
+            <span className="brand-sub">综合知识</span>
+          </button>
+          <div className="header-actions">
+            <button
+              className={`icon-btn${app.view === 'favorites' ? ' active' : ''}`}
+              onClick={() => setView('favorites')}
+              aria-label="收藏夹"
+              title="收藏夹"
+            >
+              <Icon name="star" />
+            </button>
+            <button className="icon-btn" onClick={openSettings} aria-label="设置与数据" title="设置与数据">
+              <Icon name="settings" />
+            </button>
+          </div>
+        </header>
+      )}
+
+      <main className={`app-main${inQuiz ? ' quiz-main' : ''}`}>
+        {app.view === 'home' && <HomeView />}
+        {app.view === 'quiz' && <QuizView />}
+        {app.view === 'result' && <ResultView />}
+        {app.view === 'favorites' && <FavoritesView />}
+      </main>
+
+      {app.view === 'home' && <Footer />}
       <SettingsDialog />
-      <footer>
-        快捷键：<kbd>A</kbd>-<kbd>D</kbd> 选择选项 · <kbd>Enter</kbd> 确认/继续 ·{' '}
-        <kbd>←</kbd>/<kbd>→</kbd> 翻题 · 进度自动保存在本机
-        <br />
-        题目文字由扫描版 PDF 经 OCR 识别生成，个别字词可能存在识别误差，请以官方教材为准。
-      </footer>
     </div>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="app-foot">
+      <p className="shortcut-hint">
+        快捷键 <kbd>A</kbd>–<kbd>D</kbd> 选择 · <kbd>Enter</kbd> 确认/继续 · <kbd>←</kbd>
+        <kbd>→</kbd> 翻题
+      </p>
+      <p>题目文字由扫描版教材经 OCR 识别生成，个别字词可能存在误差，请以官方教材为准。</p>
+    </footer>
   );
 }
