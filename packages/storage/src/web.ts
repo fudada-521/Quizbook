@@ -4,7 +4,9 @@
 import { PersistedState, normalizeState } from '@quiz/core';
 import { ProgressStore, NoopSyncBackend } from './index';
 
-const KEY = 'gaoxiang_quiz_v1';
+const KEY = 'quizbook_quiz_v1';
+/** 旧品牌时期使用的键，首次加载时自动迁移到新键 */
+const LEGACY_KEY = 'gaoxiang_quiz_v1';
 
 export const createLocalStorageStore = (storage?: Storage): ProgressStore => {
   const s = storage ?? (typeof localStorage !== 'undefined' ? localStorage : null);
@@ -14,7 +16,15 @@ export const createLocalStorageStore = (storage?: Storage): ProgressStore => {
       if (!s) return null;
       try {
         const raw = s.getItem(KEY);
-        return raw ? normalizeState(JSON.parse(raw)) : null;
+        if (raw) return normalizeState(JSON.parse(raw));
+
+        // 旧键迁移：解析成功后再写入新键并删除旧键，避免数据损坏时丢失原数据
+        const legacy = s.getItem(LEGACY_KEY);
+        if (!legacy) return null;
+        const state = normalizeState(JSON.parse(legacy));
+        s.setItem(KEY, JSON.stringify(state));
+        s.removeItem(LEGACY_KEY);
+        return state;
       } catch {
         return null;
       }

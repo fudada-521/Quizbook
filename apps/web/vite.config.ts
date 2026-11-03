@@ -14,8 +14,8 @@ export default defineConfig({
       injectRegister: 'script',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: '知题',
-        short_name: '知题',
+        name: '题本 Quizbook',
+        short_name: '题本',
         description: '刷题·即时判分·错题本（2210 题）',
         lang: 'zh-CN',
         theme_color: '#f6f6f3',

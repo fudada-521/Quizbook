@@ -41,8 +41,8 @@ function Shell() {
       {!inQuiz && (
         <header className="app-head">
           <button className="brand" onClick={() => setView('home')} aria-label="返回首页">
-            <span className="brand-mark">知</span>
-            <span className="brand-name">知题</span>
+            <span className="brand-mark">Q</span>
+            <span className="brand-name">题本</span>
             <span className="brand-rule" />
             <span className="brand-sub">综合知识</span>
           </button>

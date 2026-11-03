@@ -1,4 +1,4 @@
-# 知题 · 答题练习（跨平台）
+# 题本 Quizbook · 答题练习（跨平台）
 
 软考·信息系统项目管理师 综合知识刷题应用。
 一套 React 代码，同时产出 **网页 / 桌面 App / 手机 App**。
@@ -83,7 +83,7 @@ gradle assembleDebug            # 或 ./gradlew assembleDebug
 - **`@quiz/storage`**：`ProgressStore` 接口（`load`/`save`/`subscribe`）+ `SyncBackend` 接口（`pull`/`push`）。
   Web 用 `localStorage`（`@quiz/storage/web`），桌面/移动可注入文件或原生存储实现，云同步实现 `SyncBackend` 即可接入。
 - **`@quiz/web`**：React UI，通过 `QuizStore`（Context + hook）封装状态；极简工具风界面（浅色/深色自动跟随系统）、百词斩式答题卡片、答对自动跳转（答错停留）、章节进度、错题本、收藏夹、题目心得、答题卡、键盘快捷键。
-- **断点续做**：未完成的练习会话保存在本机（`gaoxiang_quiz_session_v1`），退出或重新打开后可回到原题继续。
+- **断点续做**：未完成的练习会话保存在本机（`quizbook_quiz_session_v1`），退出或重新打开后可回到原题继续。
 
 ## 功能
 

@@ -14,7 +14,7 @@ export function SettingsDialog() {
     const a = document.createElement('a');
     const url = URL.createObjectURL(blob);
     a.href = url;
-    a.download = `知题进度-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `题本进度-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };

@@ -4,7 +4,9 @@
  */
 import { qkey, type Question, type QuizData, type QuizSession, type SessionItem } from '@quiz/core';
 
-const KEY = 'gaoxiang_quiz_session_v1';
+const KEY = 'quizbook_quiz_session_v1';
+/** 旧品牌时期的会话键，读取时自动迁移 */
+const LEGACY_KEY = 'gaoxiang_quiz_session_v1';
 
 interface StoredItem {
   k: string;
@@ -68,7 +70,12 @@ export function loadSession(data: QuizData): QuizSession | null {
   const s = storage();
   if (!s) return null;
   try {
-    const raw = s.getItem(KEY);
+    let raw = s.getItem(KEY);
+    let fromLegacy = false;
+    if (!raw) {
+      raw = s.getItem(LEGACY_KEY);
+      fromLegacy = raw != null;
+    }
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<StoredSession>;
     if (parsed.v !== 1 || !Array.isArray(parsed.items) || parsed.items.length === 0) {
@@ -91,12 +98,24 @@ export function loadSession(data: QuizData): QuizSession | null {
     }
 
     const idx = Math.min(Math.max(parsed.idx ?? 0, 0), list.length - 1);
-    return {
+    const session: QuizSession = {
       title: typeof parsed.title === 'string' ? parsed.title : '继续练习',
       reviewOnly: !!parsed.reviewOnly,
       idx,
       list,
     };
+
+    // 旧键迁移：确认快照可用后再写入新键，失败不影响本次继续练习
+    if (fromLegacy) {
+      try {
+        s.setItem(KEY, raw);
+        s.removeItem(LEGACY_KEY);
+      } catch {
+        // 隐私模式或存储空间不足时忽略
+      }
+    }
+
+    return session;
   } catch {
     return null;
   }
@@ -104,7 +123,9 @@ export function loadSession(data: QuizData): QuizSession | null {
 
 export function clearSavedSession(): void {
   try {
-    storage()?.removeItem(KEY);
+    const s = storage();
+    s?.removeItem(KEY);
+    s?.removeItem(LEGACY_KEY);
   } catch {
     // ignore
   }

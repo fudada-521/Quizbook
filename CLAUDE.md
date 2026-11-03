@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概览
 
-「知题」是软考·信息系统项目管理师（综合知识）刷题应用。一套 React + Vite 代码同时产出网页、Tauri 桌面端和 Capacitor 移动端。pnpm monorepo，Node >= 20，包管理器固定为 pnpm@10.32.1。
+「题本 Quizbook」是软考·信息系统项目管理师（综合知识）刷题应用。一套 React + Vite 代码同时产出网页、Tauri 桌面端和 Capacitor 移动端。pnpm monorepo，Node >= 20，包管理器固定为 pnpm@10.32.1。
 
 ## 常用命令
 
@@ -32,14 +32,14 @@ pnpm mobile:android   # 打开 Android Studio / Gradle 工程
 
 - `data/questions.json` 是唯一题库数据源（2210 题）。它由 `apps/web/src/App.tsx` 直接 `import`（依赖 `resolveJsonModule`）打进 Web bundle，因此三端共享同一份数据；改题库后必须重新 `pnpm build`，桌面/移动端也需要重新 sync/打包。`.history/` 里的旧 `questions.js` 只是编辑器历史，不要恢复使用。
 - `packages/core`：平台无关的纯函数领域逻辑（判分、抽题、错题本、收藏、题目心得、进度、schema 兼容），不依赖 DOM 或框架。
-- `packages/storage`：`ProgressStore`（`load`/`save`/`subscribe`）与 `SyncBackend`（`pull`/`push`）接口及适配器。`src/web.ts` 是 localStorage 实现，键名 `gaoxiang_quiz_v1`；`src/sync.ts` 是手动导入/导出的序列化辅助。云同步目前是 `NoopSyncBackend` 占位。
+- `packages/storage`：`ProgressStore`（`load`/`save`/`subscribe`）与 `SyncBackend`（`pull`/`push`）接口及适配器。`src/web.ts` 是 localStorage 实现，键名 `quizbook_quiz_v1`（首次加载自动迁移旧键 `gaoxiang_quiz_v1`）；`src/sync.ts` 是手动导入/导出的序列化辅助。云同步目前是 `NoopSyncBackend` 占位。
 - 所有 workspace 包都通过 `package.json` 的 `main`/`exports` 直接暴露 `src/*.ts` 源码，没有包级编译步骤；Vite、tsx、tsconfig paths 直接消费 TS 源码。不要为它们增加 `dist` 构建产物。
 - 三端目前共用 `apps/web` 的 localStorage 存储：桌面与移动端尚未接文件/原生存储（`TODO.md` 有明确待办）。桌面端 `src-tauri` 没有自定义 Rust command，`frontendDist` 指向 `../web/dist`；移动端 `webDir` 同样指向 `../web/dist`。
 
 ### Web 应用
 
 - `apps/web/src/store/QuizStore.tsx` 是唯一状态中枢：`useReducer` 管理视图/会话/答题卡（`AppState`），`useState` 管理持久化进度（`PersistedState`），通过 Context + `useQuiz()` 暴露。
-- 断点续做由 `store/sessionPersistence.ts` 负责：会话快照存 localStorage 键 `gaoxiang_quiz_session_v1`，只保存题目键 `${c}-${n}` 与作答状态，加载时按当前题库重新关联。会话在答题中持续写入，进入结算页或导入/清空进度时清除；答题中退出则保留，首页据此显示「继续练习」。
+- 断点续做由 `store/sessionPersistence.ts` 负责：会话快照存 localStorage 键 `quizbook_quiz_session_v1`（首次读取自动迁移旧键），只保存题目键 `${c}-${n}` 与作答状态，加载时按当前题库重新关联。会话在答题中持续写入，进入结算页或导入/清空进度时清除；答题中退出则保留，首页据此显示「继续练习」。
 - 关键设计：`@quiz/core` 的 `gradeAnswer()` 会**原地修改** `PersistedState` 和 `SessionItem`（设置 `done`、`lastPick`）。QuizStore 因此用 `persistRef` 持有最新进度、修改后 `setPersisted({...persistRef.current})` 触发刷新。改动状态管理时要保持这个“可变 core + 不可变 React 快照”的约定。
 - 视图切换在 `App.tsx` 中按 `app.view` 渲染 `HomeView` / `QuizView` / `ResultView` / `FavoritesView`；`SettingsDialog` 是常驻的 `<dialog>`。收藏夹详情弹窗由 `FavoritesView` 自行管理，打开时用 `showModal()` 并把焦点放在对话框容器上。
 - 题目心得统一由 `components/QuestionNotes.tsx` 渲染，答题解析（`Reveal`）与收藏详情复用。解析页传入 `onComposeStart`，用户聚焦输入框即暂停本题自动跳转倒计时。
