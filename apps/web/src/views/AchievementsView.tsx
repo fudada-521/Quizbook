@@ -31,13 +31,12 @@ export function AchievementsView() {
       </button>
 
       <header className="page-head">
-        <p className="eyebrow">成就</p>
         <h1>
           已解锁 {unlocked} / {list.length}
         </h1>
         <p className="page-sub">持续练习，把徽章一个个点亮。</p>
         <div className="progress achievement-overall">
-          <i style={{ width: `${(unlocked / list.length) * 100}%` }} />
+          <i style={{ transform: `scaleX(${unlocked / list.length})` }} />
         </div>
       </header>
 
@@ -76,7 +75,7 @@ export function AchievementsView() {
                         </span>
                         <span className="achievement-desc">{item.description}</span>
                         <span className="progress thin">
-                          <i style={{ width: `${pct}%` }} />
+                          <i style={{ transform: `scaleX(${pct / 100})` }} />
                         </span>
                       </span>
                       <span className="achievement-value">

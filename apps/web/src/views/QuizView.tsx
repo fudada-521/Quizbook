@@ -25,7 +25,13 @@ export function QuizView() {
   const it = sess?.list[sess.idx];
   const deadline = sess?.durationMs && sess.startedAt ? sess.startedAt + sess.durationMs : null;
   const [remainingMs, setRemainingMs] = useState(0);
+  const [paused, setPaused] = useState(false);
   const expiredRef = useRef(false);
+
+  // 切换题目时恢复自动跳转
+  useEffect(() => {
+    setPaused(false);
+  }, [sess?.idx]);
 
   // 限时挑战 / 模拟考倒计时，到点自动交卷
   useEffect(() => {
@@ -98,7 +104,7 @@ export function QuizView() {
           </button>
         </div>
         <div className="progress thin accent">
-          <i style={{ width: `${(done / sess.list.length) * 100}%` }} />
+          <i style={{ transform: `scaleX(${done / sess.list.length})` }} />
         </div>
         {app.sheetOpen && <AnswerSheet />}
       </div>
@@ -130,7 +136,9 @@ export function QuizView() {
           </div>
         )}
 
-        {it.done && <Reveal item={it} />}
+        {it.done && (
+          <Reveal item={it} paused={paused} onPause={() => setPaused(true)} />
+        )}
 
         <div className="quiz-nav">
           <button className="btn ghost" disabled={sess.idx === 0} onClick={prev}>
@@ -142,8 +150,16 @@ export function QuizView() {
           </button>
         </div>
 
-        <p className="shortcut-hint">A–D 选择 · Enter 继续 · ← → 翻题</p>
+        <p className="shortcut-hint">A、B、C、D 选择；Enter 继续；← → 翻题</p>
       </article>
+
+      {it.done && (
+        <QuestionNotes
+          className="notes-card"
+          question={it.q}
+          onComposeStart={() => setPaused(true)}
+        />
+      )}
     </div>
   );
 }
@@ -202,13 +218,20 @@ function Options({ item }: { item: SessionItem }) {
 }
 
 /** 百词斩式解析卡片 + 答对倒计时自动跳转 */
-function Reveal({ item }: { item: SessionItem }) {
+function Reveal({
+  item,
+  paused,
+  onPause,
+}: {
+  item: SessionItem;
+  paused: boolean;
+  onPause: () => void;
+}) {
   const { settings, next, setAutoPending } = useQuiz();
   const pickedOrig = item.map[item.lastPick];
   const ok = pickedOrig === item.q.a;
 
   const [remainMs, setRemainMs] = useState(settings.autoNext);
-  const [paused, setPaused] = useState(false);
 
   const shouldAuto = ok && settings.autoNext > 0 && !paused;
   const total = settings.autoNext;
@@ -253,7 +276,7 @@ function Reveal({ item }: { item: SessionItem }) {
         </span>
         {ok && shouldAuto ? (
           <span className="countdown">
-            <svg className="cd-ring" viewBox="0 0 24 24">
+            <svg className="cd-ring" viewBox="0 0 24 24" aria-hidden="true">
               <circle
                 cx="12"
                 cy="12"
@@ -277,7 +300,7 @@ function Reveal({ item }: { item: SessionItem }) {
               />
             </svg>
             {secs}s
-            <button className="chip" onClick={() => setPaused(true)}>
+            <button className="chip" onClick={onPause}>
               暂停
             </button>
           </span>
@@ -299,7 +322,6 @@ function Reveal({ item }: { item: SessionItem }) {
       {!ok && (
         <p className="reveal-hint">读懂解析后，点「下一题」或按 Enter 继续</p>
       )}
-      <QuestionNotes question={item.q} onComposeStart={() => setPaused(true)} />
     </div>
   );
 }

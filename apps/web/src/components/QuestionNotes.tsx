@@ -6,10 +6,12 @@ import { Icon } from './Icon';
 export function QuestionNotes({
   question,
   onComposeStart,
+  className,
 }: {
   question: Question;
   /** 答题解析页传入：开始写心得时取消自动跳题 */
   onComposeStart?: () => void;
+  className?: string;
 }) {
   const { state, addNote } = useQuiz();
   const notes = notesFor(state, question);
@@ -29,7 +31,10 @@ export function QuestionNotes({
   };
 
   return (
-    <section className="question-notes" aria-label="我的心得">
+    <section
+      className={`question-notes${className ? ` ${className}` : ''}`}
+      aria-label="我的心得"
+    >
       <div className="notes-head">
         <span className="notes-title">
           <Icon name="pen" size={14} />

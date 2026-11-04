@@ -42,7 +42,6 @@ export function FavoritesView() {
 
       <header className="fav-head">
         <div>
-          <p className="eyebrow">收藏夹</p>
           <h1>收藏的题目</h1>
           <p className="page-sub">
             共 {favorites.length} 道 · 按收藏时间从新到旧
@@ -100,11 +99,11 @@ export function FavoritesView() {
           <>
             <div className="dialog-head">
               <div>
-                <p className="eyebrow">
+                <h2 id="fav-detail-title">题目详情</h2>
+                <p className="fav-dialog-meta">
                   第{String(detail.c).padStart(2, '0')}章 {chapterTitle(data, detail.c)} · 原题{' '}
                   {detail.n}
                 </p>
-                <h2 id="fav-detail-title">题目详情</h2>
               </div>
               <button className="icon-btn" onClick={closeDetail} aria-label="关闭">
                 <Icon name="x" size={17} />

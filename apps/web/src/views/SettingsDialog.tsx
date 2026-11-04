@@ -208,7 +208,7 @@ export function SettingsDialog() {
         <div className="setting-row">
           <div className="setting-copy">
             <label htmlFor="set-shuffle">选项乱序</label>
-            <p>打乱 A–D 的位置，避免死记选项</p>
+            <p>打乱选项顺序，避免死记选项</p>
           </div>
           <div className="setting-control">
             <select

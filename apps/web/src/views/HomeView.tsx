@@ -55,7 +55,6 @@ export function HomeView() {
   return (
     <div className="home">
       <header className="page-head">
-        <p className="eyebrow">信息系统项目管理师 · 综合知识</p>
         <h1>保持节奏，继续推进。</h1>
         <p className="page-sub">
           已作答 {answered.toLocaleString()} / {total.toLocaleString()} 题 · 正确率 {acc}
@@ -75,13 +74,13 @@ export function HomeView() {
             <div className="progress">
               <i
                 style={{
-                  width: `${
+                  transform: `scaleX(${
                     resume
-                      ? (resume.done / resume.total) * 100
+                      ? resume.done / resume.total
                       : total
-                        ? (answered / total) * 100
+                        ? answered / total
                         : 0
-                  }%`,
+                  })`,
                 }}
               />
             </div>
@@ -151,7 +150,7 @@ export function HomeView() {
                   <Icon name="clock" size={17} />
                 </span>
                 <span className="mode-label">限时挑战</span>
-                <span className="mode-desc">{TIMED_COUNT} 题 · 10 分钟</span>
+                <span className="mode-desc">{TIMED_COUNT} 题，10 分钟</span>
                 <Icon name="chevron-right" size={15} className="chev" />
               </button>
               <button className="mode-row" onClick={startExam}>
@@ -159,7 +158,7 @@ export function HomeView() {
                   <Icon name="target" size={17} />
                 </span>
                 <span className="mode-label">模拟考</span>
-                <span className="mode-desc">{EXAM_COUNT} 题 · 150 分钟</span>
+                <span className="mode-desc">{EXAM_COUNT} 题，150 分钟</span>
                 <Icon name="chevron-right" size={15} className="chev" />
               </button>
             </div>
@@ -175,7 +174,7 @@ export function HomeView() {
                   成就 {unlockedCount} / {achievements.length}
                 </strong>
                 <span className="progress thin">
-                  <i style={{ width: `${(unlockedCount / achievements.length) * 100}%` }} />
+                  <i style={{ transform: `scaleX(${unlockedCount / achievements.length})` }} />
                 </span>
               </span>
               <Icon name="chevron-right" size={15} className="chev" />
@@ -248,7 +247,7 @@ export function HomeView() {
                       </span>
                       {done > 0 && (
                         <span className="progress thin">
-                          <i style={{ width: `${qs.length ? (done / qs.length) * 100 : 0}%` }} />
+                          <i style={{ transform: `scaleX(${qs.length ? done / qs.length : 0})` }} />
                         </span>
                       )}
                     </span>

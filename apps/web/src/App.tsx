@@ -131,7 +131,8 @@ function Footer() {
   return (
     <footer className="app-foot">
       <p className="shortcut-hint">
-        快捷键 <kbd>A</kbd>–<kbd>D</kbd> 选择 · <kbd>Enter</kbd> 确认/继续 · <kbd>←</kbd>
+        快捷键 <kbd>A</kbd>、<kbd>B</kbd>、<kbd>C</kbd>、<kbd>D</kbd> 选择；<kbd>Enter</kbd>{' '}
+        确认或继续；<kbd>←</kbd>
         <kbd>→</kbd> 翻题
       </p>
       <p>题目文字由扫描版教材经 OCR 识别生成，个别字词可能存在误差，请以官方教材为准。</p>
