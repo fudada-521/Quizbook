@@ -1,4 +1,11 @@
-import { achievementProgress, type AchievementCategory } from '@quiz/core';
+import { useState } from 'react';
+import {
+  achievementProgress,
+  SERIES_LABEL,
+  TIER_LABEL,
+  type AchievementCategory,
+  type AchievementStatus,
+} from '@quiz/core';
 import { useQuiz } from '../store/QuizStore';
 import { Icon } from '../components/Icon';
 
@@ -7,29 +14,124 @@ const CATEGORY_LABEL: Record<AchievementCategory, string> = {
   habit: '习惯',
   collection: '收藏与心得',
   challenge: '挑战',
+  accuracy: '准确率',
+  hidden: '隐藏成就',
 };
 
-const CATEGORY_ICON: Record<AchievementCategory, 'compass' | 'flame' | 'star' | 'target'> = {
+const CATEGORY_ICON: Record<
+  AchievementCategory,
+  'compass' | 'flame' | 'star' | 'target' | 'check' | 'lock'
+> = {
   progress: 'compass',
   habit: 'flame',
   collection: 'star',
   challenge: 'target',
+  accuracy: 'check',
+  hidden: 'lock',
 };
 
-const CATEGORY_ORDER: AchievementCategory[] = ['progress', 'habit', 'collection', 'challenge'];
+const CATEGORY_ORDER: AchievementCategory[] = [
+  'progress',
+  'habit',
+  'collection',
+  'challenge',
+  'accuracy',
+  'hidden',
+];
+
+interface SeriesGroup {
+  key: string;
+  label: string | null;
+  items: AchievementStatus[];
+}
+
+/** 同一系列的成就归为一组；无系列的成就单独成组 */
+function groupBySeries(items: AchievementStatus[]): SeriesGroup[] {
+  const groups: SeriesGroup[] = [];
+  const index = new Map<string, number>();
+  for (const item of items) {
+    if (!item.series) {
+      groups.push({ key: `single:${item.id}`, label: null, items: [item] });
+      continue;
+    }
+    const existing = index.get(item.series);
+    if (existing === undefined) {
+      index.set(item.series, groups.length);
+      groups.push({
+        key: item.series,
+        label: SERIES_LABEL[item.series] ?? item.series,
+        items: [item],
+      });
+    } else {
+      groups[existing].items.push(item);
+    }
+  }
+  return groups;
+}
+
+function AchievementCard({
+  item,
+  category,
+}: {
+  item: AchievementStatus;
+  category: AchievementCategory;
+}) {
+  const secret = Boolean(item.hidden && !item.unlocked);
+  const current = Math.min(item.current, item.target);
+  const pct = item.target ? Math.min(100, (current / item.target) * 100) : 100;
+
+  return (
+    <div className={`achievement-card${item.unlocked ? ' unlocked' : ''}${secret ? ' secret' : ''}`}>
+      <span className="achievement-icon">
+        <Icon
+          name={secret ? 'lock' : category === 'hidden' ? 'trophy' : CATEGORY_ICON[category]}
+          size={18}
+        />
+      </span>
+      <span className="achievement-main">
+        <span className="achievement-title">
+          <strong>{secret ? '？？？' : item.title}</strong>
+          {!secret && item.tier && (
+            <span className={`achievement-tier tier-${item.tier}`}>{TIER_LABEL[item.tier]}</span>
+          )}
+          {item.unlocked && <span className="achievement-tag">已解锁</span>}
+        </span>
+        <span className="achievement-desc">
+          {secret ? item.hint ?? '达成隐藏条件后揭晓' : item.description}
+        </span>
+        {!secret && (
+          <span className="progress thin">
+            <i style={{ transform: `scaleX(${pct / 100})` }} />
+          </span>
+        )}
+      </span>
+      <span className="achievement-value">
+        {secret
+          ? '？？？'
+          : item.unlockedAt
+            ? new Date(item.unlockedAt).toLocaleDateString('zh-CN')
+            : `${current} / ${item.target}${item.unit ?? ''}`}
+      </span>
+    </div>
+  );
+}
 
 export function AchievementsView() {
-  const { data, state, setView } = useQuiz();
+  const { data, state } = useQuiz();
   const list = achievementProgress(state, data);
   const unlocked = list.filter((item) => item.unlocked).length;
 
+  const categories = CATEGORY_ORDER.map((category) => ({
+    category,
+    items: list.filter((item) => item.category === category),
+  })).filter((entry) => entry.items.length > 0);
+
+  const [active, setActive] = useState<AchievementCategory>(categories[0]?.category ?? 'progress');
+  const activeItems =
+    categories.find((entry) => entry.category === active)?.items ?? categories[0]?.items ?? [];
+
   return (
     <div className="achievements-page">
-      <button className="btn ghost sm back-btn" onClick={() => setView('home')}>
-        <Icon name="arrow-left" size={16} />
-        返回首页
-      </button>
-
       <header className="page-head">
         <h1>
           已解锁 {unlocked} / {list.length}
@@ -40,57 +142,51 @@ export function AchievementsView() {
         </div>
       </header>
 
-      <div className="achievement-groups">
-        {CATEGORY_ORDER.map((category) => {
-          const items = list.filter((item) => item.category === category);
-          if (!items.length) return null;
-          return (
-            <section className="panel" key={category}>
-              <div className="panel-head">
-                <h2>
-                  <Icon name={CATEGORY_ICON[category]} size={16} />
-                  {CATEGORY_LABEL[category]}
-                </h2>
-                <span>
-                  {items.filter((item) => item.unlocked).length} / {items.length}
-                </span>
-              </div>
-
-              <div className="achievement-list">
-                {items.map((item) => {
-                  const current = Math.min(item.current, item.target);
-                  const pct = item.target ? Math.min(100, (current / item.target) * 100) : 100;
-                  return (
-                    <div
-                      className={`achievement-card${item.unlocked ? ' unlocked' : ''}`}
-                      key={item.id}
-                    >
-                      <span className="achievement-icon">
-                        <Icon name={CATEGORY_ICON[category]} size={18} />
-                      </span>
-                      <span className="achievement-main">
-                        <span className="achievement-title">
-                          <strong>{item.title}</strong>
-                          {item.unlocked && <span className="achievement-tag">已解锁</span>}
-                        </span>
-                        <span className="achievement-desc">{item.description}</span>
-                        <span className="progress thin">
-                          <i style={{ transform: `scaleX(${pct / 100})` }} />
-                        </span>
-                      </span>
-                      <span className="achievement-value">
-                        {item.unlockedAt
-                          ? new Date(item.unlockedAt).toLocaleDateString('zh-CN')
-                          : `${current} / ${item.target}${item.unit ?? ''}`}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })}
+      <div className="achievement-tabs" role="tablist" aria-label="成就分类">
+        {categories.map(({ category, items }) => (
+          <button
+            key={category}
+            role="tab"
+            aria-selected={active === category}
+            className={`achievement-tab${active === category ? ' active' : ''}`}
+            onClick={() => setActive(category)}
+          >
+            <Icon name={CATEGORY_ICON[category]} size={15} />
+            {CATEGORY_LABEL[category]}
+            <span className="achievement-tab-count">
+              {items.filter((item) => item.unlocked).length}/{items.length}
+            </span>
+          </button>
+        ))}
       </div>
+
+      <section
+        className="panel achievement-panel"
+        role="tabpanel"
+        key={active}
+        aria-label={CATEGORY_LABEL[active]}
+      >
+        <div className="achievement-list">
+          {groupBySeries(activeItems).map((group) => {
+            const groupUnlocked = group.items.filter((item) => item.unlocked).length;
+            return (
+              <div className="achievement-series" key={group.key}>
+                {group.label && (
+                  <div className="achievement-series-head">
+                    <span>{group.label}</span>
+                    <span>
+                      {groupUnlocked} / {group.items.length}
+                    </span>
+                  </div>
+                )}
+                {group.items.map((item) => (
+                  <AchievementCard item={item} category={active} key={item.id} />
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      </section>
     </div>
   );
 }

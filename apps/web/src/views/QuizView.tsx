@@ -120,9 +120,6 @@ export function QuizView() {
             {app.sheetOpen ? '收起' : '答题卡'}
           </button>
         </div>
-        <div className="progress thin accent">
-          <i style={{ transform: `scaleX(${done / total})` }} />
-        </div>
         {app.sheetOpen && (
           <div className="quiz-sheet-mobile">
             <AnswerSheet />

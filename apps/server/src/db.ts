@@ -18,15 +18,39 @@ db.exec(`
   PRAGMA journal_mode = WAL;
   PRAGMA foreign_keys = ON;
   PRAGMA busy_timeout = 5000;
+`);
 
+/**
+ * 旧版 GitHub 认证的用户表没有 password_hash。
+ * 按要求清空重建：删掉整套旧认证数据（用户、token、设备码、进度快照、成就），
+ * 只执行一次，之后由新 schema 接管。
+ */
+{
+  const usersTable = db
+    .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'users'")
+    .get() as { name: string } | undefined;
+  if (usersTable) {
+    const columns = db.prepare('PRAGMA table_info(users)').all() as { name: string }[];
+    if (!columns.some((column) => column.name === 'password_hash')) {
+      db.exec(`
+        DROP TABLE IF EXISTS user_achievements;
+        DROP TABLE IF EXISTS user_states;
+        DROP TABLE IF EXISTS device_codes;
+        DROP TABLE IF EXISTS auth_tokens;
+        DROP TABLE IF EXISTS users;
+      `);
+    }
+  }
+}
+
+db.exec(`
   CREATE TABLE IF NOT EXISTS users (
-    id          TEXT PRIMARY KEY,
-    github_id   TEXT UNIQUE,
-    login       TEXT NOT NULL,
-    name        TEXT,
-    avatar_url  TEXT,
-    created_at  INTEGER NOT NULL,
-    updated_at  INTEGER NOT NULL
+    id            TEXT PRIMARY KEY,
+    username      TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    name          TEXT,
+    password_hash TEXT NOT NULL,
+    created_at    INTEGER NOT NULL,
+    updated_at    INTEGER NOT NULL
   );
 
   CREATE TABLE IF NOT EXISTS auth_tokens (
@@ -40,18 +64,6 @@ db.exec(`
   );
 
   CREATE INDEX IF NOT EXISTS idx_auth_tokens_user ON auth_tokens(user_id);
-
-  -- 设备码授权（App 轮询换取 token）。device_code 只存哈希；
-  -- raw_token 仅在授权后短暂保存，供客户端领取一次，领取后立即清空。
-  CREATE TABLE IF NOT EXISTS device_codes (
-    id         TEXT PRIMARY KEY,
-    user_code  TEXT NOT NULL UNIQUE,
-    status     TEXT NOT NULL DEFAULT 'pending',
-    user_id    TEXT,
-    raw_token  TEXT,
-    created_at INTEGER NOT NULL,
-    expires_at INTEGER NOT NULL
-  );
 
   CREATE TABLE IF NOT EXISTS user_states (
     user_id    TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -71,61 +83,56 @@ db.exec(`
 
 export interface User {
   id: string;
-  githubId: string | null;
-  login: string;
+  username: string;
   name: string | null;
-  avatarUrl: string | null;
   createdAt: number;
 }
 
 interface UserRow {
   id: string;
-  github_id: string | null;
-  login: string;
+  username: string;
   name: string | null;
-  avatar_url: string | null;
+  password_hash: string;
   created_at: number;
 }
 
 function toUser(row: UserRow): User {
   return {
     id: row.id,
-    githubId: row.github_id,
-    login: row.login,
+    username: row.username,
     name: row.name,
-    avatarUrl: row.avatar_url,
     createdAt: row.created_at,
   };
 }
 
-export function upsertGithubUser(input: {
-  githubId: string;
-  login: string;
+export interface UserRecord extends User {
+  passwordHash: string;
+}
+
+export function createUser(input: {
+  username: string;
   name?: string | null;
-  avatarUrl?: string | null;
+  passwordHash: string;
 }): User {
   const now = Date.now();
-  const existing = db
-    .prepare('SELECT * FROM users WHERE github_id = ?')
-    .get(input.githubId) as UserRow | undefined;
-
-  if (existing) {
-    db.prepare(
-      'UPDATE users SET login = ?, name = ?, avatar_url = ?, updated_at = ? WHERE id = ?',
-    ).run(input.login, input.name ?? null, input.avatarUrl ?? null, now, existing.id);
-    return toUser({ ...existing, login: input.login, name: input.name ?? null, avatar_url: input.avatarUrl ?? null });
-  }
-
   const id = crypto.randomUUID();
   db.prepare(
-    'INSERT INTO users (id, github_id, login, name, avatar_url, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-  ).run(id, input.githubId, input.login, input.name ?? null, input.avatarUrl ?? null, now, now);
-  return { id, githubId: input.githubId, login: input.login, name: input.name ?? null, avatarUrl: input.avatarUrl ?? null, createdAt: now };
+    'INSERT INTO users (id, username, name, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+  ).run(id, input.username, input.name ?? null, input.passwordHash, now, now);
+  return { id, username: input.username, name: input.name ?? null, createdAt: now };
 }
 
 export function findUserById(id: string): User | null {
   const row = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as UserRow | undefined;
   return row ? toUser(row) : null;
+}
+
+/** 登录校验需要密码哈希；只在服务端内部使用，不对外返回 */
+export function findUserRecordByUsername(username: string): UserRecord | null {
+  const row = db
+    .prepare('SELECT * FROM users WHERE username = ? COLLATE NOCASE')
+    .get(username) as UserRow | undefined;
+  return row ? { ...toUser(row), passwordHash: row.password_hash } : null;
 }
 
 export interface StoredState {

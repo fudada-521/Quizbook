@@ -7,7 +7,7 @@ import { QuestionNotes } from '../components/QuestionNotes';
 const LETTERS = ['A', 'B', 'C', 'D'] as const;
 
 export function FavoritesView() {
-  const { data, state, setView, startFavorites, startUnanswered, toggleFavorite } = useQuiz();
+  const { data, state, startFavorites, startUnanswered, toggleFavorite } = useQuiz();
   const favorites = favoriteQuestions(data, state);
   const [detail, setDetail] = useState<Question | null>(null);
   const dlgRef = useRef<HTMLDialogElement>(null);
@@ -35,11 +35,6 @@ export function FavoritesView() {
 
   return (
     <div className="favorites-page">
-      <button className="back-link" onClick={() => setView('home')}>
-        <Icon name="arrow-left" size={15} />
-        返回首页
-      </button>
-
       <header className="fav-head">
         <div>
           <h1>收藏的题目</h1>

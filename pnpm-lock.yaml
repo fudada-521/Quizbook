@@ -55,9 +55,6 @@ importers:
       '@fastify/cors':
         specifier: ^11.1.0
         version: 11.4.0
-      '@fastify/formbody':
-        specifier: ^8.0.2
-        version: 8.0.2
       '@fastify/static':
         specifier: ^8.3.0
         version: 8.3.0
@@ -992,9 +989,6 @@ packages:
 
   '@fastify/fast-json-stringify-compiler@5.1.1':
     resolution: {integrity: sha512-pyxRKk7UpUnnrztP9pF4+ZYxusEQ4LifTyzRdiXmyql1QezNHxO02D25MVU2o4kMeAMYWAjG6RKRlojgkbiDAw==}
-
-  '@fastify/formbody@8.0.2':
-    resolution: {integrity: sha512-84v5J2KrkXzjgBpYnaNRPqwgMsmY7ZDjuj0YVuMR3NXCJRCgKEZy/taSP1wUYGn0onfxJpLyRGDLa+NMaDJtnA==}
 
   '@fastify/forwarded@3.1.2':
     resolution: {integrity: sha512-89WiRG+hW3VQSfCwg4Hb8b43PeyEX15K5+lEfsZ4EUth/FyOjS/lv8HsVuswUNXWiSnxMGNouE/fq/0w3VumHQ==}
@@ -3624,11 +3618,6 @@ snapshots:
   '@fastify/fast-json-stringify-compiler@5.1.1':
     dependencies:
       fast-json-stringify: 7.2.1
-
-  '@fastify/formbody@8.0.2':
-    dependencies:
-      fast-querystring: 1.1.2
-      fastify-plugin: 5.1.0
 
   '@fastify/forwarded@3.1.2': {}
 

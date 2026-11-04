@@ -1527,26 +1527,6 @@ kbd {
   animation: questionIn var(--dur-short) var(--ease-out);
 }
 
-.back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  margin-left: -6px;
-  padding: 5px 6px;
-  border: 0;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--color-muted);
-  font-size: 12px;
-  transition: background var(--dur-micro) var(--ease-out),
-    color var(--dur-micro) var(--ease-out);
-}
-
-.back-link:hover {
-  background: var(--surface-panel-2);
-  color: var(--color-ink);
-}
-
 .fav-head {
   display: flex;
   align-items: flex-end;
@@ -1763,27 +1743,180 @@ kbd {
 }
 
 /* ============================================================
-   设置弹窗
+   模态弹窗与背景滚动
    ============================================================ */
 
-dialog#settings {
-  width: min(540px, calc(100% - 32px));
-  max-height: calc(100dvh - 48px);
-  padding: 0;
-  border: 1px solid var(--color-rule);
-  border-radius: var(--radius-card);
-  background: var(--color-paper-2);
+/* 任意模态 <dialog> 打开时锁住页面滚动（配合 App.tsx 的 useDialogScrollLock） */
+html.has-open-dialog,
+html.has-open-dialog body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* 弹窗内容滑到边界后不再把滚动链传给背后的页面（iOS 尤其需要） */
+dialog {
+  overscroll-behavior: contain;
+}
+
+/* ============================================================
+   设置页
+   ============================================================ */
+
+.settings-page {
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+  padding-top: 10px;
+  animation: questionIn var(--dur-short) var(--ease-out);
+}
+
+.settings-head {
+  padding: var(--space-lg) 0;
+}
+
+.settings-head h1 {
+  font-size: 32px;
+  line-height: 1.15;
+}
+
+.settings-head .page-sub {
+  margin-top: 10px;
+}
+
+.settings-layout {
+  display: grid;
+  grid-template-columns: 224px minmax(0, 1fr);
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+.settings-nav {
+  position: sticky;
+  top: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-inner);
+  background: transparent;
+  color: var(--color-ink-2);
+  text-align: left;
+  transition: background var(--dur-micro) var(--ease-out),
+    border-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out);
+}
+
+.settings-nav-item:hover {
+  background: var(--surface-panel-2);
   color: var(--color-ink);
-  box-shadow: var(--shadow-dialog);
-  overflow: auto;
 }
 
-dialog#settings[open] {
-  animation: dialogIn var(--dur-short) var(--ease-out);
+.settings-nav-item.active {
+  border-color: var(--color-rule);
+  background: var(--surface-panel);
+  color: var(--color-ink);
+  box-shadow: var(--edge-light), var(--shadow-card);
 }
 
-dialog#settings::backdrop {
-  background: var(--backdrop);
+.settings-nav-item > svg:first-child {
+  flex: none;
+  color: var(--color-muted);
+}
+
+.settings-nav-item.active > svg:first-child {
+  color: var(--color-accent);
+}
+
+.settings-nav-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.settings-nav-copy strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.settings-nav-copy small {
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 11px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.settings-nav-item .chev {
+  flex: none;
+  opacity: 0;
+  transition: opacity var(--dur-micro) var(--ease-out);
+}
+
+.settings-nav-item.active .chev {
+  opacity: 0.6;
+}
+
+.settings-content {
+  min-width: 0;
+  animation: questionIn var(--dur-short) var(--ease-out);
+}
+
+.settings-panel {
+  padding: 20px 22px;
+}
+
+.settings-panel .panel-head {
+  margin-bottom: var(--space-xs);
+}
+
+.settings-group-title {
+  margin: var(--space-md) 0 0;
+  color: var(--color-muted);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  line-height: 1.3;
+}
+
+.settings-group-title + .setting-row {
+  border-top: 0;
+}
+
+.settings-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  margin: 0 0 var(--space-sm);
+  border: 1px solid var(--color-rule-2);
+  border-radius: var(--radius-inner);
+  background: var(--color-rule-2);
+}
+
+.settings-stats > div {
+  padding: 12px 14px;
+  background: var(--surface-well);
+}
+
+.settings-stats dt {
+  color: var(--color-muted);
+  font-size: 11.5px;
+}
+
+.settings-stats dd {
+  margin: 2px 0 0;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
 
 .dialog-head {
@@ -2015,38 +2148,52 @@ dialog#settings::backdrop {
   gap: var(--space-xs);
 }
 
-.device-panel {
-  margin: var(--space-2xs) 0 var(--space-sm);
-  padding: var(--space-sm) 14px;
+.auth-form {
+  padding: var(--space-sm) 0 var(--space-2xs);
+  border-bottom: 1px solid var(--color-rule-2);
+}
+
+.auth-hint {
+  margin-bottom: var(--space-sm);
+  color: var(--color-ink-2);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.auth-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+
+.auth-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.auth-fields label > span {
+  color: var(--color-muted);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.auth-fields input {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
   border: 1px solid var(--color-rule);
   border-radius: var(--radius-inner);
   background: var(--surface-well);
-  color: var(--color-ink);
+  font-size: 13px;
 }
 
-.device-panel > p {
-  color: var(--color-ink-2);
-  font-size: 12px;
-}
-
-.device-code {
-  margin: var(--space-xs) 0;
-  padding: 10px;
-  border: 1px solid var(--color-rule);
-  border-radius: var(--radius-inner);
-  background: var(--color-paper-2);
-  font-family: var(--font-mono);
-  font-size: 22px;
-  letter-spacing: 0.14em;
-  text-align: center;
-  user-select: all;
-}
-
-.device-actions {
+.auth-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-xs);
+  margin-top: var(--space-sm);
 }
 
 .cloud-error {
@@ -2101,25 +2248,150 @@ dialog#settings::backdrop {
   margin: 0 auto;
 }
 
-.back-btn {
-  margin: var(--space-2xs) 0 0 calc(var(--space-2xs) * -1);
-}
-
 .achievement-overall {
   max-width: 260px;
   margin-top: 14px;
 }
 
-.achievement-groups {
+.achievement-tabs {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
+  gap: 3px;
+  overflow-x: auto;
   margin-top: 18px;
+  padding: 3px;
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-pill);
+  background: var(--surface-well);
+  scrollbar-width: none;
+}
+
+.achievement-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.achievement-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 0 auto;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-ink-2);
+  font-size: 12.5px;
+  white-space: nowrap;
+  transition: background var(--dur-micro) var(--ease-out),
+    border-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out);
+}
+
+.achievement-tab:hover {
+  background: var(--surface-panel-2);
+  color: var(--color-ink);
+}
+
+.achievement-tab.active {
+  border-color: var(--color-rule);
+  background: var(--surface-panel);
+  color: var(--color-ink);
+  box-shadow: var(--edge-light), var(--shadow-card);
+}
+
+.achievement-tab > svg {
+  flex: none;
+  color: var(--color-muted);
+}
+
+.achievement-tab.active > svg {
+  color: var(--color-accent);
+}
+
+.achievement-tab-count {
+  color: var(--color-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.achievement-tab.active .achievement-tab-count {
+  color: var(--accent-text);
+}
+
+.achievement-panel {
+  margin-top: var(--space-sm);
+  animation: questionIn var(--dur-short) var(--ease-out);
 }
 
 .achievement-list {
   display: flex;
   flex-direction: column;
+}
+
+.achievement-series {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--color-rule-2);
+}
+
+.achievement-series:first-child {
+  border-top: 0;
+}
+
+.achievement-series-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  padding: var(--space-xs) 0 2px;
+  color: var(--color-muted);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.achievement-series-head span:first-child {
+  color: var(--color-ink-2);
+  font-weight: 500;
+}
+
+.achievement-series-head + .achievement-card {
+  border-top: 0;
+}
+
+.achievement-tier {
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklab, var(--color-ink) 7%, transparent);
+  color: var(--color-muted);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.achievement-tier.tier-2 {
+  background: color-mix(in oklab, var(--color-ink) 10%, transparent);
+}
+
+.achievement-tier.tier-3 {
+  background: color-mix(in oklab, var(--color-ink) 13%, transparent);
+}
+
+.achievement-tier.tier-4 {
+  background: color-mix(in oklab, var(--color-ink) 16%, transparent);
+}
+
+.achievement-tier.tier-5 {
+  background: color-mix(in oklab, var(--color-ink) 20%, transparent);
+  color: var(--color-ink-2);
+}
+
+.achievement-card.secret .achievement-icon {
+  border: 1px dashed var(--color-rule);
+  background: transparent;
+}
+
+.achievement-card.secret .achievement-title strong {
+  letter-spacing: 0.12em;
 }
 
 .achievement-card {
@@ -2649,6 +2921,62 @@ dialog#settings::backdrop {
   .achievement-value {
     display: none;
   }
+
+  .settings-head {
+    padding: 20px 0;
+  }
+
+  .settings-head h1 {
+    font-size: 28px;
+  }
+
+  .settings-layout {
+    display: block;
+  }
+
+  /* 手机端改为横向分段导航，内容纵向展开 */
+  .settings-nav {
+    position: static;
+    flex-direction: row;
+    gap: 4px;
+    overflow-x: auto;
+    margin-bottom: var(--space-md);
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .settings-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .settings-nav-item {
+    flex: 1 0 auto;
+    justify-content: center;
+    width: auto;
+    padding: 9px 12px;
+    border-color: var(--color-rule-2);
+  }
+
+  .settings-nav-copy small,
+  .settings-nav-item .chev {
+    display: none;
+  }
+
+  .settings-panel {
+    padding: 18px;
+  }
+
+  .setting-row {
+    gap: 12px;
+  }
+
+  .setting-control select {
+    min-width: 128px;
+  }
+
+  .auth-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 600px) {
@@ -2739,6 +3067,14 @@ dialog#settings::backdrop {
 
   .result-actions .btn {
     flex: 1;
+  }
+
+  .achievement-tab {
+    padding: 0 10px;
+  }
+
+  .achievement-tab > svg {
+    display: none;
   }
 }
 

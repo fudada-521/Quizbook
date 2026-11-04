@@ -1,4 +1,4 @@
-import { createSession, gradeAnswer, normalizeState, shouldAutoAdvance, wrongQuestions, unansweredQuestions, questionsOfChapter, qkey, isFavorite, toggleFavorite, favoriteQuestions, notesFor, addQuestionNote, mergeStates, dailyQuestions, scoreSession, makeChallengeRecord, achievementProgress, evaluateAchievements, resetProgressState, gradeAnswer as grade, DEFAULT_SETTINGS, SCHEMA_VERSION, dateKey, type QuizData, type PersistedState } from '../src/index.ts';
+import { createSession, gradeAnswer, normalizeState, shouldAutoAdvance, wrongQuestions, unansweredQuestions, questionsOfChapter, qkey, isFavorite, toggleFavorite, favoriteQuestions, notesFor, addQuestionNote, mergeStates, dailyQuestions, scoreSession, makeChallengeRecord, ACHIEVEMENTS, achievementStats, achievementProgress, evaluateAchievements, resetProgressState, gradeAnswer as grade, DEFAULT_SETTINGS, SCHEMA_VERSION, dateKey, type QuizData, type PersistedState } from '../src/index.ts';
 
 const data: QuizData = {
   generatedFrom: 'test',
@@ -188,6 +188,112 @@ ok(!unlocked.streak_7, 'streak_7 not unlocked');
 const progress = achievementProgress(achState, data);
 const firstSteps = progress.find((p) => p.id === 'first_steps')!;
 ok(firstSteps.unlocked && firstSteps.current === 3, 'achievement progress value');
+
+// 成就目录：40+ 条、id 唯一、含分级与隐藏成就
+ok(ACHIEVEMENTS.length >= 40, 'achievement catalog has 40+ entries');
+ok(new Set(ACHIEVEMENTS.map((item) => item.id)).size === ACHIEVEMENTS.length, 'achievement ids unique');
+ok(ACHIEVEMENTS.filter((item) => item.hidden).length >= 3, 'has hidden achievements');
+ok(ACHIEVEMENTS.some((item) => item.tier === 5), 'has diamond tier');
+
+// 用于统计类成就的较大题库（30 章 × 10 题）
+const bigQuestions = Array.from({ length: 300 }, (_, i) => ({
+  c: Math.floor(i / 10) + 1,
+  n: (i % 10) + 1,
+  s: `题${i}`,
+  o: ['A', 'B', 'C', 'D'] as [string, string, string, string],
+  a: 0,
+  e: '',
+}));
+const bigData: QuizData = {
+  generatedFrom: 'test-big',
+  chapters: Object.fromEntries(
+    Array.from({ length: 30 }, (_, i) => [String(i + 1), `第${i + 1}章`]),
+  ),
+  questions: bigQuestions,
+};
+
+// 综合统计：题量、正确率、周末/深夜/大满贯与速度类
+const richAnswers: Record<string, { ok: boolean; tries: number; t: number }> = {};
+const richWrong: Record<string, number> = {};
+const nightTime = new Date(2026, 10, 7, 2, 0, 0).getTime();
+for (let i = 0; i < 200; i++) {
+  const q = bigData.questions[i];
+  const correct = i < 170;
+  richAnswers[qkey(q)] = { ok: correct, tries: 1, t: nightTime };
+  if (!correct) richWrong[qkey(q)] = 1;
+}
+const richState = normalizeState({
+  answers: richAnswers,
+  wrong: richWrong,
+  daily: {
+    '2026-11-07': { date: '2026-11-07', answered: 100, correct: 85, completed: false, t: 1 },
+    '2026-11-08': { date: '2026-11-08', answered: 100, correct: 85, completed: true, t: 2 },
+  },
+  challenges: [
+    {
+      id: 'timed-fast',
+      kind: 'timed',
+      date: '2026-11-08',
+      score: 20,
+      total: 20,
+      durationMs: 5 * 60 * 1000,
+      finishedAt: 3,
+    },
+    {
+      id: 'exam-70',
+      kind: 'exam',
+      date: '2026-11-08',
+      score: 70,
+      total: 75,
+      durationMs: 60 * 60 * 1000,
+      finishedAt: 4,
+      passed: true,
+    },
+  ],
+});
+const richStats = achievementStats(richState, bigData);
+ok(richStats.answered === 200 && richStats.correct === 170, 'stats count answers');
+ok(richStats.accuracy === 85, 'stats accuracy');
+ok(richStats.totalAttempts === 200 && richStats.studyDays === 2, 'stats volume and study days');
+ok(richStats.maxDailyAnswered === 100, 'stats max daily answered');
+ok(richStats.timedPerfect && richStats.timedFast, 'stats timed perfect and fast');
+ok(richStats.examsPassed === 1 && richStats.examBestScore === 70, 'stats exam scores');
+ok(richStats.weekendWarrior && richStats.nightOwl, 'stats weekend warrior and night owl');
+ok(!richStats.earlyBird && richStats.grandSlam, 'stats grand slam');
+
+const richUnlocked = evaluateAchievements(richState, bigData, 5000);
+ok(Boolean(richUnlocked.correct_50), 'achievement correct_50');
+ok(Boolean(richUnlocked.accuracy_80_100), 'achievement accuracy_80_100');
+ok(Boolean(richUnlocked.accuracy_85_200), 'achievement accuracy_85_200');
+ok(!richUnlocked.accuracy_90_300, 'accuracy_90_300 needs more answers');
+ok(Boolean(richUnlocked.timed_fast), 'achievement timed_fast');
+ok(Boolean(richUnlocked.exam_60), 'achievement exam_60');
+ok(Boolean(richUnlocked.night_owl), 'hidden night_owl');
+ok(Boolean(richUnlocked.weekend_warrior), 'hidden weekend_warrior');
+ok(Boolean(richUnlocked.marathon_day), 'hidden marathon_day');
+ok(Boolean(richUnlocked.grand_slam), 'hidden grand_slam');
+ok(!richUnlocked.early_bird, 'hidden early_bird not unlocked');
+ok(!richUnlocked.no_wrong_100, 'no_wrong_100 needs a clean record');
+
+// 零错题成就：答满 100 题且全部答对
+const cleanAnswers: Record<string, { ok: boolean; tries: number; t: number }> = {};
+for (const q of bigData.questions.slice(0, 100)) {
+  cleanAnswers[qkey(q)] = { ok: true, tries: 1, t: 6000 };
+}
+const cleanUnlocked = evaluateAchievements(normalizeState({ answers: cleanAnswers }), bigData, 6000);
+ok(Boolean(cleanUnlocked.no_wrong_100), 'achievement no_wrong_100');
+
+// 动态目标：全题库/全章节的 target 来自题库规模
+const dynamicTargets = achievementProgress(normalizeState({}), bigData);
+ok(
+  dynamicTargets.find((item) => item.id === 'correct_all')?.target === bigData.questions.length,
+  'correct_all target follows question count',
+);
+ok(
+  dynamicTargets.find((item) => item.id === 'chapter_all')?.target ===
+    Object.keys(bigData.chapters).length,
+  'chapter_all target follows chapter count',
+);
 
 // ---------- 清空记录 ----------
 const resetState = resetProgressState(achState, 3000);

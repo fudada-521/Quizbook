@@ -65,7 +65,7 @@ import {
 import { clearSavedSession, loadSession, saveSession } from './sessionPersistence';
 import { emitAnswerFeedback } from '../feedback';
 
-export type View = 'home' | 'quiz' | 'result' | 'favorites' | 'achievements';
+export type View = 'home' | 'quiz' | 'result' | 'favorites' | 'achievements' | 'settings';
 
 /** 翻题离开时清掉“刚判分”标记，回看已答题不再触发自动跳转 */
 function clearFresh(session: QuizSession | null | undefined): void {
@@ -88,8 +88,6 @@ export interface CloudState {
   serverUrl: string;
   lastSyncAt: number | null;
   error: string | null;
-  /** 设备码登录进行中的验证码 */
-  pendingDevice: { userCode: string; verificationUrl: string; expiresAt: number } | null;
 }
 
 interface AppState {
@@ -225,12 +223,11 @@ export interface QuizApp {
   setAutoPending: (p: boolean) => void;
   tickNow: () => void;
   // 云端
-  login: () => Promise<void>;
-  cancelLogin: () => void;
+  login: (username: string, password: string) => Promise<void>;
+  register: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   syncNow: () => Promise<void>;
   setServerUrl: (url: string) => void;
-  openVerificationPage: () => void;
   dismissAchievements: () => void;
 }
 
@@ -251,16 +248,13 @@ function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : '同步失败';
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function openExternal(url: string): void {
-  try {
-    window.open(url, '_blank', 'noopener,noreferrer');
-  } catch {
-    // 某些 WebView 不允许 window.open，用户仍可从设置页复制链接
+/** 登录/注册错误：服务端已返回可直接展示的中文提示 */
+function authErrorMessage(err: unknown): string {
+  if (err instanceof ApiError) {
+    if (err.status === 0) return '无法连接服务器，请检查地址与网络';
+    return err.message;
   }
+  return err instanceof Error ? err.message : '登录失败';
 }
 
 export function QuizProvider(props: {
@@ -302,7 +296,6 @@ export function QuizProvider(props: {
     serverUrl: loadServerUrl(),
     lastSyncAt: null,
     error: null,
-    pendingDevice: null,
   }));
 
   const loadedRef = useRef(false);
@@ -310,7 +303,6 @@ export function QuizProvider(props: {
   const syncVersionRef = useRef(0);
   const lastPushedRef = useRef('');
   const syncRunningRef = useRef(false);
-  const loginRunRef = useRef(0);
 
   // 答题过程中持续保存会话快照；本轮结束（结算页）即清除，答题中退出则保留供下次继续
   useEffect(() => {
@@ -469,76 +461,49 @@ export function QuizProvider(props: {
     return () => window.clearTimeout(timer);
   }, [persisted, pushSnapshot]);
 
-  const login = useCallback(async () => {
-    const runId = ++loginRunRef.current;
-    const serverUrl = cloud.serverUrl;
-    setCloud((c) => ({ ...c, phase: 'signing-in', error: null, pendingDevice: null }));
-    try {
-      const client = new CloudClient(serverUrl);
-      const start = await client.startDevice();
-      if (loginRunRef.current !== runId) return;
-      const pending = {
-        userCode: start.userCode,
-        verificationUrl: start.verificationUrl,
-        expiresAt: Date.now() + start.expiresIn * 1000,
-      };
-      setCloud((c) => ({ ...c, pendingDevice: pending }));
-      openExternal(start.verificationUrl);
-
-      const interval = Math.max(2, start.interval || 2) * 1000;
-      while (loginRunRef.current === runId && Date.now() < pending.expiresAt) {
-        await delay(interval);
-        if (loginRunRef.current !== runId) return;
-        let poll;
-        try {
-          poll = await client.pollDevice(start.deviceCode);
-        } catch {
-          continue;
-        }
-        if (poll.status === 'authorized') {
-          const auth: StoredAuth = {
-            token: poll.token,
-            user: poll.user,
-            serverUrl,
-            savedAt: Date.now(),
-          };
-          authStore.save(auth);
-          sessionRef.current = auth;
-          setCloud((c) => ({
-            ...c,
-            phase: 'syncing',
-            user: poll.user,
-            pendingDevice: null,
-            error: null,
-          }));
-          await syncWithAuth(auth);
-          return;
-        }
-        if (poll.status === 'expired') break;
-      }
-      if (loginRunRef.current === runId) {
+  const authenticate = useCallback(
+    async (mode: 'login' | 'register', username: string, password: string) => {
+      const serverUrl = cloud.serverUrl;
+      setCloud((c) => ({ ...c, phase: 'signing-in', error: null }));
+      try {
+        const client = new CloudClient(serverUrl);
+        const result =
+          mode === 'login'
+            ? await client.login(username, password)
+            : await client.register(username, password);
+        const auth: StoredAuth = {
+          token: result.token,
+          user: result.user,
+          serverUrl,
+          savedAt: Date.now(),
+        };
+        authStore.save(auth);
+        sessionRef.current = auth;
+        setCloud((c) => ({ ...c, phase: 'syncing', user: result.user, error: null }));
+        await syncWithAuth(auth);
+      } catch (err) {
         setCloud((c) => ({
           ...c,
-          phase: 'signed-out',
-          pendingDevice: null,
-          error: '登录码已过期，请重试',
+          phase: c.user ? 'synced' : 'error',
+          error: authErrorMessage(err),
         }));
       }
-    } catch (err) {
-      if (loginRunRef.current === runId) {
-        setCloud((c) => ({ ...c, phase: 'error', pendingDevice: null, error: errorMessage(err) }));
-      }
-    }
-  }, [authStore, cloud.serverUrl, syncWithAuth]);
+    },
+    [authStore, cloud.serverUrl, syncWithAuth],
+  );
 
-  const cancelLogin = useCallback(() => {
-    loginRunRef.current += 1;
-    setCloud((c) => ({ ...c, phase: c.user ? 'synced' : 'signed-out', pendingDevice: null }));
-  }, []);
+  const login = useCallback(
+    (username: string, password: string) => authenticate('login', username, password),
+    [authenticate],
+  );
+
+  const register = useCallback(
+    (username: string, password: string) => authenticate('register', username, password),
+    [authenticate],
+  );
 
   const logout = useCallback(async () => {
     const auth = sessionRef.current;
-    loginRunRef.current += 1;
     sessionRef.current = null;
     authStore.clear();
     lastPushedRef.current = '';
@@ -546,7 +511,6 @@ export function QuizProvider(props: {
       ...c,
       phase: 'signed-out',
       user: null,
-      pendingDevice: null,
       lastSyncAt: null,
       error: null,
     }));
@@ -572,17 +536,12 @@ export function QuizProvider(props: {
         serverUrl: normalized,
         phase: 'signed-out',
         user: null,
-        pendingDevice: null,
         lastSyncAt: null,
         error: null,
       }));
     },
     [authStore],
   );
-
-  const openVerificationPage = useCallback(() => {
-    if (cloud.pendingDevice) openExternal(cloud.pendingDevice.verificationUrl);
-  }, [cloud.pendingDevice]);
 
   // ---------- 设置 ----------
 
@@ -876,11 +835,10 @@ export function QuizProvider(props: {
       setAutoPending,
       tickNow,
       login,
-      cancelLogin,
+      register,
       logout,
       syncNow,
       setServerUrl,
-      openVerificationPage,
       dismissAchievements,
     }),
     [
@@ -889,7 +847,7 @@ export function QuizProvider(props: {
       startChapter, startRandom, startUnanswered, startWrong, startFavorites, startDaily, startTimed, startExam,
       reviewWrong, toggleFavorite, addNote, startSessionRaw,
       grade, pick, move, jump, next, prev, quit, finish, setView, toggleSheet, setAutoPending, tickNow,
-      login, cancelLogin, logout, syncNow, setServerUrl, openVerificationPage, dismissAchievements,
+      login, register, logout, syncNow, setServerUrl, dismissAchievements,
     ],
   );
 

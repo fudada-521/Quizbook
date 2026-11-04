@@ -7,7 +7,7 @@ import { QuizView } from './views/QuizView';
 import { ResultView } from './views/ResultView';
 import { FavoritesView } from './views/FavoritesView';
 import { AchievementsView } from './views/AchievementsView';
-import { SettingsDialog } from './views/SettingsDialog';
+import { SettingsView } from './views/SettingsView';
 import { Icon } from './components/Icon';
 import { WaterLight } from './components/WaterLight';
 import rawData from '../../../data/questions.json';
@@ -30,13 +30,39 @@ export default function App() {
   );
 }
 
-function openSettings() {
-  (document.getElementById('settings') as HTMLDialogElement | null)?.showModal();
+/**
+ * 任意模态 <dialog> 打开时锁住页面滚动。
+ * 原生 showModal 不会阻止 iOS WKWebView 的滑动透传，这里统一在 <html> 上打标记，
+ * 样式负责 overflow 锁定与 overscroll-behavior，避免弹窗内滑到底后带着首页一起滚。
+ */
+function useDialogScrollLock() {
+  useEffect(() => {
+    const root = document.documentElement;
+    const sync = () => {
+      root.classList.toggle('has-open-dialog', Boolean(document.querySelector('dialog[open]')));
+    };
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['open'],
+    });
+    return () => {
+      observer.disconnect();
+      root.classList.remove('has-open-dialog');
+    };
+  }, []);
 }
 
 function Shell() {
   const { app, setView, cloud } = useQuiz();
   const inQuiz = app.view === 'quiz';
+
+  const openSettings = () => setView('settings');
+
+  useDialogScrollLock();
 
   return (
     <div className="app-shell" data-view={app.view}>
@@ -72,12 +98,17 @@ function Shell() {
               className={`icon-btn cloud-btn${cloud.user ? ' active' : ''}`}
               onClick={openSettings}
               aria-label="账号与同步"
-              title={cloud.user ? `已登录 ${cloud.user.login}` : '未登录 · 点击设置'}
+              title={cloud.user ? `已登录 ${cloud.user.username}` : '未登录 · 点击设置'}
             >
               <Icon name="cloud" />
               <span className={`cloud-dot ${cloud.phase}`} />
             </button>
-            <button className="icon-btn" onClick={openSettings} aria-label="设置与数据" title="设置与数据">
+            <button
+              className={`icon-btn${app.view === 'settings' ? ' active' : ''}`}
+              onClick={openSettings}
+              aria-label="设置与数据"
+              title="设置与数据"
+            >
               <Icon name="settings" />
             </button>
           </div>
@@ -90,10 +121,10 @@ function Shell() {
         {app.view === 'result' && <ResultView />}
         {app.view === 'favorites' && <FavoritesView />}
         {app.view === 'achievements' && <AchievementsView />}
+        {app.view === 'settings' && <SettingsView />}
       </main>
 
       {app.view === 'home' && <Footer />}
-      <SettingsDialog />
       <AchievementToast />
     </div>
   );

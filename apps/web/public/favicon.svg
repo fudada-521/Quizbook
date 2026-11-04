@@ -1,7 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="题本 Quizbook">
-  <rect width="512" height="512" rx="116" fill="#1a1a18"/>
-  <g fill="none" stroke="#f6f6f3" stroke-width="50" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="218" cy="226" r="106"/>
-    <path d="M301 309 L340 350 L414 270"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+<defs><radialGradient id="glow" cx="50%" cy="44%" r="34%">
+      <stop offset="0%" stop-color="#ff6b2c" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#ff6b2c" stop-opacity="0"/>
+    </radialGradient><clipPath id="r16"><rect width="1024" height="1024" rx="170"/></clipPath></defs>
+<g clip-path="url(#r16)"><rect width="1024" height="1024" fill="#1a1a18"/><!-- 烟羽 -->
+  <g fill="#3a3d45">
+    <circle cx="500" cy="300" r="40"/>
+    <circle cx="542" cy="250" r="32"/>
+    <circle cx="494" cy="206" r="25"/>
+    <circle cx="538" cy="170" r="17"/>
   </g>
+
+  <!-- 山体 -->
+  <path d="M427 364 L597 364 L892 840 L132 840 Z" fill="#4a4d56"/>
+  <path d="M512 364 L597 364 L892 840 L512 840 Z" fill="#2e3037"/>
+
+  <!-- 火山口 -->
+  <ellipse cx="512" cy="364" rx="96" ry="28" fill="#202227"/>
+  <ellipse cx="512" cy="362" rx="72" ry="18" fill="#ff7a33"/>
+  <ellipse cx="494" cy="358" rx="38" ry="9" fill="#ffab55"/>
+
+  <!-- 熔岩流 -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M512 372 C526 470 470 520 500 600 C524 668 562 716 606 800"
+          stroke="#ff6b2c" stroke-width="54"/>
+    <path d="M498 376 C470 460 452 530 430 610 C414 668 402 730 398 800"
+          stroke="#e2541c" stroke-width="26"/>
+    <path d="M512 386 C518 456 486 506 502 560 C514 600 532 638 552 686"
+          stroke="#ffb347" stroke-width="18"/>
+  </g>
+
+  <!-- 山脚熔岩 -->
+  <ellipse cx="512" cy="842" rx="298" ry="26" fill="#e2541c"/>
+  <ellipse cx="512" cy="836" rx="206" ry="14" fill="#ff7a33"/>
+
+  <!-- 火星 -->
+  <g fill="#ffc46b">
+    <circle cx="424" cy="322" r="6"/>
+    <circle cx="600" cy="330" r="5"/>
+    <circle cx="626" cy="298" r="4"/>
+    <circle cx="560" cy="304" r="3"/>
+  </g></g>
 </svg>

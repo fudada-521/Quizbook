@@ -1,14 +1,39 @@
 /**
- * 认证：不透明 Bearer token + 设备码授权。
- * - token 只保存 SHA-256 哈希，原文只在签发/领取时出现；
- * - 设备码授权让 Web / Tauri / Capacitor 三端统一走系统浏览器登录，
- *   不需要各平台各自处理 OAuth 回调。
+ * 认证：用户名 + 密码登录，签发不透明 Bearer token。
+ * - 密码用 scrypt 加盐哈希存储，校验使用恒定时间比较；
+ * - token 只保存 SHA-256 哈希，原文只在签发时出现；
+ * - 不依赖 Cookie，Web / Tauri / Capacitor 三端通用。
  */
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
-import { db, findUserById, upsertGithubUser, type User } from './db';
+import { createHash, randomBytes, randomUUID, scrypt, timingSafeEqual } from 'node:crypto';
+import { db, findUserById, type User } from './db';
 import { env } from './env';
 
-const USER_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const SCRYPT_KEYLEN = 64;
+
+function scryptAsync(password: string, salt: Buffer, keylen: number): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    scrypt(password, salt, keylen, (err, derived) => {
+      if (err) reject(err);
+      else resolve(derived);
+    });
+  });
+}
+
+/** 生成 `scrypt$<salt>$<hash>` 形式的密码哈希 */
+export async function hashPassword(password: string): Promise<string> {
+  const salt = randomBytes(16);
+  const derived = await scryptAsync(password, salt, SCRYPT_KEYLEN);
+  return `scrypt$${salt.toString('base64url')}$${derived.toString('base64url')}`;
+}
+
+export async function verifyPassword(password: string, stored: string): Promise<boolean> {
+  const [scheme, saltText, hashText] = stored.split('$');
+  if (scheme !== 'scrypt' || !saltText || !hashText) return false;
+  const salt = Buffer.from(saltText, 'base64url');
+  const expected = Buffer.from(hashText, 'base64url');
+  const actual = await scryptAsync(password, salt, expected.length);
+  return actual.length === expected.length && timingSafeEqual(actual, expected);
+}
 
 export function sha256(value: string): string {
   return createHash('sha256').update(value).digest('hex');
@@ -16,21 +41,6 @@ export function sha256(value: string): string {
 
 export function newToken(): string {
   return `qbk_${randomBytes(32).toString('base64url')}`;
-}
-
-/** 生成 XXXX-XXXX 形式、去掉易混淆字符的用户码 */
-export function newUserCode(): string {
-  const bytes = randomBytes(8);
-  let out = '';
-  for (let i = 0; i < 8; i++) {
-    out += USER_CODE_ALPHABET[bytes[i] % USER_CODE_ALPHABET.length];
-    if (i === 3) out += '-';
-  }
-  return out;
-}
-
-export function normalizeUserCode(input: string): string {
-  return input.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').replace(/(.{4})(.{1,4})/, '$1-$2');
 }
 
 /** 为用户签发 token，返回明文（仅此一次） */
@@ -47,7 +57,7 @@ export function revokeToken(raw: string): void {
   db.prepare('UPDATE auth_tokens SET revoked_at = ? WHERE token_hash = ?').run(Date.now(), sha256(raw));
 }
 
-/** 根据 Bearer token 找用户；无效/过期/吊销返回 null */
+/** 根据 Bearer token 找用户；无效、过期或吊销返回 null */
 export function userFromToken(raw: string): User | null {
   if (!raw) return null;
   const row = db
@@ -61,107 +71,6 @@ export function userFromToken(raw: string): User | null {
   if (!row) return null;
   db.prepare('UPDATE auth_tokens SET last_used_at = ? WHERE token_hash = ?').run(Date.now(), sha256(raw));
   return findUserById(row.user_id);
-}
-
-export interface DeviceCode {
-  id: string;
-  userCode: string;
-  status: 'pending' | 'authorized';
-  userId: string | null;
-  rawToken: string | null;
-  createdAt: number;
-  expiresAt: number;
-}
-
-interface DeviceRow {
-  id: string;
-  user_code: string;
-  status: string;
-  user_id: string | null;
-  raw_token: string | null;
-  created_at: number;
-  expires_at: number;
-}
-
-function toDeviceCode(row: DeviceRow): DeviceCode {
-  return {
-    id: row.id,
-    userCode: row.user_code,
-    status: row.status === 'authorized' ? 'authorized' : 'pending',
-    userId: row.user_id,
-    rawToken: row.raw_token,
-    createdAt: row.created_at,
-    expiresAt: row.expires_at,
-  };
-}
-
-/** 清理过期设备码（懒清理，启动与每次轮询时调用） */
-export function purgeExpiredDeviceCodes(now = Date.now()): void {
-  db.prepare('DELETE FROM device_codes WHERE expires_at < ?').run(now);
-}
-
-export function createDeviceCode(): { deviceCode: string; userCode: string; expiresAt: number } {
-  purgeExpiredDeviceCodes();
-  const deviceCode = randomBytes(32).toString('base64url');
-  const now = Date.now();
-  const expiresAt = now + env.deviceCodeTtlSeconds * 1000;
-
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const userCode = newUserCode();
-    try {
-      db.prepare(
-        'INSERT INTO device_codes (id, user_code, status, created_at, expires_at) VALUES (?, ?, ?, ?, ?)',
-      ).run(sha256(deviceCode), userCode, 'pending', now, expiresAt);
-      return { deviceCode, userCode, expiresAt };
-    } catch {
-      // user_code 撞车，换一个重试
-    }
-  }
-  throw new Error('无法生成设备码');
-}
-
-export function findDeviceByUserCode(userCode: string): DeviceCode | null {
-  const row = db
-    .prepare('SELECT * FROM device_codes WHERE user_code = ?')
-    .get(normalizeUserCode(userCode)) as DeviceRow | undefined;
-  return row ? toDeviceCode(row) : null;
-}
-
-export function findDeviceByDeviceCode(deviceCode: string): DeviceCode | null {
-  const row = db
-    .prepare('SELECT * FROM device_codes WHERE id = ?')
-    .get(sha256(deviceCode)) as DeviceRow | undefined;
-  return row ? toDeviceCode(row) : null;
-}
-
-/** 授权：记录用户并暂存明文 token，等待 App 轮询领取 */
-export function authorizeDeviceCode(userCode: string, userId: string, rawToken: string): boolean {
-  const result = db
-    .prepare(
-      `UPDATE device_codes SET status = 'authorized', user_id = ?, raw_token = ?
-       WHERE user_code = ? AND status = 'pending' AND expires_at > ?`,
-    )
-    .run(userId, rawToken, normalizeUserCode(userCode), Date.now());
-  return Number(result.changes) === 1;
-}
-
-/** App 领取 token：一次性删除记录 */
-export function consumeAuthorizedDeviceCode(deviceCode: string): { rawToken: string; user: User } | null {
-  const code = findDeviceByDeviceCode(deviceCode);
-  if (!code || code.status !== 'authorized' || !code.userId || !code.rawToken) return null;
-  const user = findUserById(code.userId);
-  if (!user) return null;
-  db.prepare('DELETE FROM device_codes WHERE id = ?').run(code.id);
-  return { rawToken: code.rawToken, user };
-}
-
-/** 开发登录：未配置 GitHub 时使用的固定账号 */
-export function devUser(): User {
-  return upsertGithubUser({
-    githubId: 'dev-local',
-    login: 'dev',
-    name: '本地开发账号',
-  });
 }
 
 export type { User };

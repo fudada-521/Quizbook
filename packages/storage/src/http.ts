@@ -1,14 +1,13 @@
 /**
- * 云端 API 客户端：设备码登录 + 进度同步 + 成就查询。
+ * 云端 API 客户端：账号密码登录 + 进度同步 + 成就查询。
  * 只依赖 fetch，浏览器 / Tauri / Capacitor 通用。
  */
 import type { PersistedState } from '@quiz/core';
 
 export interface AuthUser {
   id: string;
-  login: string;
+  username: string;
   name: string | null;
-  avatarUrl: string | null;
 }
 
 export interface StoredAuth {
@@ -18,18 +17,10 @@ export interface StoredAuth {
   savedAt: number;
 }
 
-export interface DeviceStart {
-  deviceCode: string;
-  userCode: string;
-  verificationUrl: string;
-  expiresIn: number;
-  interval: number;
+export interface AuthResult {
+  token: string;
+  user: AuthUser;
 }
-
-export type DevicePoll =
-  | { status: 'pending'; interval?: number }
-  | { status: 'expired' }
-  | { status: 'authorized'; token: string; user: AuthUser };
 
 export interface RemoteState {
   state: PersistedState | null;
@@ -46,8 +37,7 @@ export interface PushResult {
 
 export interface ServerConfig {
   authEnabled: boolean;
-  githubEnabled: boolean;
-  devLogin: boolean;
+  registerEnabled: boolean;
   publicUrl: string;
 }
 
@@ -117,14 +107,17 @@ export class CloudClient {
     return request<ServerConfig>(this.url('/api/config'));
   }
 
-  startDevice(): Promise<DeviceStart> {
-    return request<DeviceStart>(this.url('/api/auth/device/start'), { method: 'POST', body: '{}' });
+  login(username: string, password: string): Promise<AuthResult> {
+    return request<AuthResult>(this.url('/api/auth/login'), {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
   }
 
-  pollDevice(deviceCode: string): Promise<DevicePoll> {
-    return request<DevicePoll>(this.url('/api/auth/device/poll'), {
+  register(username: string, password: string): Promise<AuthResult> {
+    return request<AuthResult>(this.url('/api/auth/register'), {
       method: 'POST',
-      body: JSON.stringify({ deviceCode }),
+      body: JSON.stringify({ username, password }),
     });
   }
 

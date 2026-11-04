@@ -7,10 +7,8 @@ import { existsSync } from 'node:fs';
 import { extname, resolve } from 'node:path';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import formbody from '@fastify/formbody';
 import fastifyStatic from '@fastify/static';
-import { env, githubEnabled } from './env';
-import { purgeExpiredDeviceCodes } from './auth';
+import { env } from './env';
 import { registerRoutes } from './routes';
 
 const app = Fastify({
@@ -24,8 +22,6 @@ await app.register(cors, {
   allowedHeaders: ['Content-Type', 'Authorization'],
   maxAge: 86400,
 });
-
-await app.register(formbody);
 
 registerRoutes(app);
 
@@ -48,7 +44,7 @@ app.setNotFoundHandler(async (req, reply) => {
   const url = req.raw.url ?? '/';
   const pathname = url.split('?')[0];
 
-  if (pathname.startsWith('/api/') || pathname.startsWith('/auth/')) {
+  if (pathname.startsWith('/api/')) {
     return reply.code(404).send({ error: 'not_found' });
   }
   if (!hasWebDist || (req.method !== 'GET' && req.method !== 'HEAD')) {
@@ -65,22 +61,15 @@ app.setNotFoundHandler(async (req, reply) => {
   }
 });
 
-purgeExpiredDeviceCodes();
-
 try {
   await app.listen({ port: env.port, host: env.host });
   app.log.info(
     {
       publicUrl: env.publicUrl,
-      githubEnabled,
-      devLogin: env.devLogin,
       dbPath: env.dbPath,
     },
     'quizbook-server 已启动',
   );
-  if (!githubEnabled && env.devLogin) {
-    app.log.warn('未配置 GitHub OAuth，当前仅支持开发模式登录（DEV_LOGIN=1）');
-  }
 } catch (err) {
   app.log.error(err);
   process.exit(1);

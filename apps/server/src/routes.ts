@@ -1,8 +1,8 @@
 /**
  * HTTP 路由：
- *   - 设备码授权（三端统一登录）
- *   - GitHub OAuth 回调
- *   - 进度同步（乐观并发 + 冲突回传，合并逻辑 P1 接入）
+ *   - 用户名 + 密码注册 / 登录
+ *   - 进度同步（始终与服务端快照合并）
+ *   - 成就查询
  */
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
@@ -12,23 +12,17 @@ import {
   normalizeState,
   type PersistedState,
 } from '@quiz/core';
-import { env, githubEnabled } from './env';
+import { env } from './env';
 import { quizData } from './questions';
 import {
-  authorizeDeviceCode,
-  consumeAuthorizedDeviceCode,
-  createDeviceCode,
-  devUser,
-  findDeviceByDeviceCode,
-  findDeviceByUserCode,
+  hashPassword,
   issueToken,
   revokeToken,
   userFromToken,
+  verifyPassword,
   type User,
 } from './auth';
-import { upsertGithubUser, loadState, saveState } from './db';
-import { exchangeGithubCode, fetchGithubUser, githubAuthorizeUrl } from './github';
-import { devicePage, donePage, errorPage } from './pages';
+import { createUser, findUserRecordByUsername, loadState, saveState } from './db';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -38,11 +32,7 @@ declare module 'fastify' {
 }
 
 function publicUser(user: User) {
-  return { id: user.id, login: user.login, name: user.name, avatarUrl: user.avatarUrl };
-}
-
-function sendHtml(reply: FastifyReply, html: string, status = 200) {
-  return reply.code(status).type('text/html; charset=utf-8').send(html);
+  return { id: user.id, username: user.username, name: user.name };
 }
 
 async function requireUser(req: FastifyRequest, reply: FastifyReply) {
@@ -64,6 +54,47 @@ function isPersistedState(value: unknown): value is PersistedState {
   );
 }
 
+// ---------- 登录失败限流（内存实现，按 IP 计数） ----------
+
+const ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
+const MAX_ATTEMPTS = 20;
+const attempts = new Map<string, { count: number; resetAt: number }>();
+
+function isRateLimited(key: string): boolean {
+  const now = Date.now();
+  const entry = attempts.get(key);
+  if (!entry || entry.resetAt <= now) {
+    if (entry) attempts.delete(key);
+    return false;
+  }
+  return entry.count >= MAX_ATTEMPTS;
+}
+
+function recordFailure(key: string): void {
+  const now = Date.now();
+  const entry = attempts.get(key);
+  if (!entry || entry.resetAt <= now) {
+    attempts.set(key, { count: 1, resetAt: now + ATTEMPT_WINDOW_MS });
+    return;
+  }
+  entry.count += 1;
+}
+
+function clearFailures(key: string): void {
+  attempts.delete(key);
+}
+
+const USERNAME_RE = /^[a-zA-Z0-9_.-]{3,32}$/;
+
+function validateCredentials(username: string, password: string): string | null {
+  if (!USERNAME_RE.test(username)) {
+    return '用户名需为 3–32 位字母、数字、下划线、点或短横线';
+  }
+  if (password.length < 8) return '密码至少 8 位';
+  if (password.length > 128) return '密码过长';
+  return null;
+}
+
 export function registerRoutes(app: FastifyInstance): void {
   // ---------- 基础信息 ----------
 
@@ -71,127 +102,69 @@ export function registerRoutes(app: FastifyInstance): void {
 
   app.get('/api/config', async () => ({
     authEnabled: true,
-    githubEnabled,
-    devLogin: env.devLogin,
+    registerEnabled: true,
     publicUrl: env.publicUrl,
   }));
 
-  // ---------- 设备码授权 ----------
+  // ---------- 注册 / 登录 ----------
 
-  app.post('/api/auth/device/start', async (_req, reply) => {
-    const { deviceCode, userCode, expiresAt } = createDeviceCode();
-    return reply.send({
-      deviceCode,
-      userCode,
-      verificationUrl: `${env.publicUrl}/auth/device?code=${encodeURIComponent(userCode)}`,
-      expiresIn: Math.max(0, Math.round((expiresAt - Date.now()) / 1000)),
-      interval: 2,
-    });
-  });
-
-  app.post<{ Body: { deviceCode?: string } }>('/api/auth/device/poll', async (req, reply) => {
-    const deviceCode = req.body?.deviceCode;
-    if (!deviceCode) return reply.code(400).send({ error: 'missing_device_code' });
-
-    const code = findDeviceByDeviceCode(deviceCode);
-    if (!code) return reply.code(404).send({ error: 'invalid_device_code' });
-    if (code.expiresAt < Date.now()) {
-      return reply.send({ status: 'expired' });
-    }
-    if (code.status === 'pending') {
-      return reply.send({ status: 'pending', interval: 2 });
-    }
-
-    const consumed = consumeAuthorizedDeviceCode(deviceCode);
-    if (!consumed) return reply.code(404).send({ error: 'invalid_device_code' });
-    return reply.send({
-      status: 'authorized',
-      token: consumed.rawToken,
-      user: publicUser(consumed.user),
-    });
-  });
-
-  // 用户码验证页：用户在这里确认登录
-  app.get<{ Querystring: { code?: string } }>('/auth/device', async (req, reply) => {
-    const userCode = req.query.code ?? '';
-    const code = userCode ? findDeviceByUserCode(userCode) : null;
-    if (!code) return sendHtml(reply, errorPage('验证码无效，请回到应用重新发起登录。'), 400);
-
-    const expired = code.expiresAt < Date.now();
-    if (!expired && code.status === 'authorized') {
-      return sendHtml(reply, devicePage({
-        userCode: code.userCode,
-        expired: false,
-        authorized: true,
-        githubEnabled,
-        devLogin: env.devLogin,
-      }));
-    }
-    return sendHtml(reply, devicePage({
-      userCode: code.userCode,
-      expired,
-      authorized: false,
-      githubEnabled,
-      devLogin: env.devLogin,
-    }), expired ? 410 : 200);
-  });
-
-  // 开发模式：不经过 GitHub，直接绑定固定开发账号
-  app.post<{ Body: { code?: string } }>('/auth/device/approve', async (req, reply) => {
-    if (!env.devLogin) return reply.code(403).send({ error: 'dev_login_disabled' });
-    const userCode = req.body?.code ?? '';
-    const code = findDeviceByUserCode(userCode);
-    if (!code || code.status !== 'pending' || code.expiresAt < Date.now()) {
-      return sendHtml(reply, errorPage('验证码无效或已过期。'), 400);
-    }
-    const user = devUser();
-    const rawToken = issueToken(user.id, 'dev-device');
-    authorizeDeviceCode(code.userCode, user.id, rawToken);
-    return reply.redirect('/auth/done');
-  });
-
-  // 把验证码交给 GitHub OAuth
-  app.get<{ Querystring: { code?: string } }>('/auth/github/start', async (req, reply) => {
-    if (!githubEnabled) return sendHtml(reply, errorPage('服务端尚未配置 GitHub 登录。'), 503);
-    const code = findDeviceByUserCode(req.query.code ?? '');
-    if (!code || code.status !== 'pending' || code.expiresAt < Date.now()) {
-      return sendHtml(reply, errorPage('验证码无效或已过期。'), 400);
-    }
-    return reply.redirect(githubAuthorizeUrl(code.userCode));
-  });
-
-  app.get<{ Querystring: { code?: string; state?: string; error?: string; error_description?: string } }>(
-    '/api/auth/github/callback',
+  app.post<{ Body: { username?: string; password?: string } }>(
+    '/api/auth/register',
     async (req, reply) => {
-      const { code, state, error, error_description } = req.query;
-      if (error) return sendHtml(reply, errorPage(error_description || error), 400);
-      if (!code || !state) return sendHtml(reply, errorPage('GitHub 回调缺少参数。'), 400);
+      const username = (req.body?.username ?? '').trim();
+      const password = req.body?.password ?? '';
+      const key = `register:${req.ip}`;
 
-      const device = findDeviceByUserCode(state);
-      if (!device || device.expiresAt < Date.now()) {
-        return sendHtml(reply, errorPage('登录会话已过期，请回到应用重试。'), 400);
+      if (isRateLimited(key)) {
+        return reply.code(429).send({ error: '尝试次数过多，请稍后再试' });
       }
+      const invalid = validateCredentials(username, password);
+      if (invalid) return reply.code(400).send({ error: invalid });
 
+      const passwordHash = await hashPassword(password);
+      let user: User;
       try {
-        const accessToken = await exchangeGithubCode(code);
-        const ghUser = await fetchGithubUser(accessToken);
-        const user = upsertGithubUser({
-          githubId: String(ghUser.id),
-          login: ghUser.login,
-          name: ghUser.name,
-          avatarUrl: ghUser.avatar_url,
-        });
-        const rawToken = issueToken(user.id, `github:${ghUser.login}`);
-        authorizeDeviceCode(device.userCode, user.id, rawToken);
-        return reply.redirect('/auth/done');
-      } catch (err) {
-        req.log.error({ err }, 'GitHub OAuth 失败');
-        return sendHtml(reply, errorPage('GitHub 授权失败，请稍后重试。'), 502);
+        user = createUser({ username, passwordHash });
+      } catch {
+        // UNIQUE 约束：并发注册同名账号
+        recordFailure(key);
+        return reply.code(409).send({ error: '用户名已被占用' });
       }
+
+      clearFailures(key);
+      return reply.send({ token: issueToken(user.id, 'password'), user: publicUser(user) });
     },
   );
 
-  app.get('/auth/done', async (_req, reply) => sendHtml(reply, donePage()));
+  app.post<{ Body: { username?: string; password?: string } }>(
+    '/api/auth/login',
+    async (req, reply) => {
+      const username = (req.body?.username ?? '').trim();
+      const password = req.body?.password ?? '';
+      const key = `login:${req.ip}`;
+
+      if (isRateLimited(key)) {
+        return reply.code(429).send({ error: '尝试次数过多，请稍后再试' });
+      }
+
+      const record = username ? findUserRecordByUsername(username) : null;
+      // 用户不存在时也跑一次 scrypt，避免通过响应时间枚举用户名
+      const valid = record
+        ? await verifyPassword(password, record.passwordHash)
+        : ((await hashPassword(password)), false);
+
+      if (!record || !valid) {
+        recordFailure(key);
+        return reply.code(401).send({ error: '用户名或密码错误' });
+      }
+
+      clearFailures(key);
+      return reply.send({
+        token: issueToken(record.id, 'password'),
+        user: publicUser(record),
+      });
+    },
+  );
 
   // ---------- 当前用户 ----------
 

@@ -45,7 +45,7 @@
 - [x] 后端 P0：`apps/server`（Fastify + node:sqlite、设备码登录、GitHub OAuth、Bearer 鉴权、进度同步接口、本地开发登录）
 - [x] 云同步 P1/P2：schema v4、`mergeStates()` 多端合并（answers/wrong/favorites/notes/settings/daily/challenges/achievements + resetAt）、`CloudClient` + token 存取、登录/同步 UI、1.2s 防抖自动推送与启动拉取
 - [x] 挑战模式：每日一练（10 题）、限时挑战（20 题/10 分钟）、模拟考（75 题/150 分钟，45 分及格），确定性抽题与计时自动交卷
-- [x] 成就系统：10 个核心成就（进度/习惯/收藏/挑战），本地即时解锁 + 服务端权威校验，成就页与解锁提示
+- [x] 成就系统：50 个成就（进度/习惯/收藏/挑战/准确率/隐藏），分级系列展示 + 隐藏成就提示，本地即时解锁 + 服务端权威校验，成就页与解锁提示
 - [x] 部署产物：`apps/server/Dockerfile`、`deploy/docker-compose.yml`、`Caddyfile`、`.env.example`、`scripts/backup.sh`
 - [x] 题库从 `questions.js` 转为 `data/questions.json`（唯一数据源）
 - [x] 抽出 `@quiz/core`（判分/抽题/错题/收藏/心得/进度纯函数 + 29 个单测）
