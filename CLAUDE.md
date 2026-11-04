@@ -20,6 +20,7 @@ pnpm desktop:build    # Tauri 打包（自动先构建 Web）
 pnpm mobile:sync      # 构建 Web 后 cap sync（同步到 ios/ 与 android/）
 pnpm mobile:ios       # 打开 Xcode 工程
 pnpm mobile:android   # 打开 Android Studio / Gradle 工程
+pnpm server:dev       # 后端本地开发（Fastify，默认 http://127.0.0.1:8787）
 ```
 
 - 单测没有测试框架，也没有按用例过滤的参数：入口是 `packages/core/test/core.test.ts`，用 `tsx` 直接运行并靠 `ok()/fails` 计数、`process.exit` 返回退出码。运行单个包用 `pnpm --filter @quiz/core test`，或 `pnpm exec tsx packages/core/test/core.test.ts`。新增用例直接写进该文件。
@@ -32,8 +33,9 @@ pnpm mobile:android   # 打开 Android Studio / Gradle 工程
 
 - `data/questions.json` 是唯一题库数据源（2210 题）。它由 `apps/web/src/App.tsx` 直接 `import`（依赖 `resolveJsonModule`）打进 Web bundle，因此三端共享同一份数据；改题库后必须重新 `pnpm build`，桌面/移动端也需要重新 sync/打包。`.history/` 里的旧 `questions.js` 只是编辑器历史，不要恢复使用。
 - `packages/core`：平台无关的纯函数领域逻辑（判分、抽题、错题本、收藏、题目心得、进度、schema 兼容），不依赖 DOM 或框架。
-- `packages/storage`：`ProgressStore`（`load`/`save`/`subscribe`）与 `SyncBackend`（`pull`/`push`）接口及适配器。`src/web.ts` 是 localStorage 实现，键名 `quizbook_quiz_v1`（首次加载自动迁移旧键 `gaoxiang_quiz_v1`）；`src/sync.ts` 是手动导入/导出的序列化辅助。云同步目前是 `NoopSyncBackend` 占位。
+- `packages/storage`：`ProgressStore`（`load`/`save`/`subscribe`）与 `SyncBackend` 接口及适配器。`src/web.ts` 是 localStorage 实现，键名 `quizbook_quiz_v1`（首次加载自动迁移旧键 `gaoxiang_quiz_v1`）；`src/sync.ts` 是手动导入/导出的序列化辅助；`src/http.ts` 是云同步客户端 `CloudClient`（设备码登录、`pull`/`push`、成就），`src/auth.ts` 存 token（`quizbook_auth_v1`）与服务器地址（`quizbook_server_v1`）。
 - 所有 workspace 包都通过 `package.json` 的 `main`/`exports` 直接暴露 `src/*.ts` 源码，没有包级编译步骤；Vite、tsx、tsconfig paths 直接消费 TS 源码。不要为它们增加 `dist` 构建产物。
+- `apps/server`：Fastify + TypeScript 后端（`pnpm server:dev`）。使用 Node 24 内置 `node:sqlite`，无需原生依赖。登录采用**设备码授权**（三端统一走系统浏览器）：`POST /api/auth/device/start` → 用户打开 `/auth/device?code=...` → 完成 GitHub OAuth（或 `DEV_LOGIN=1` 开发登录）→ App 轮询 `/api/auth/device/poll` 取回一次性 token。token 只存 SHA-256 哈希。进度按用户存一份 JSON 快照 + `version`；`PUT /api/sync` 不再拒绝旧版本，而是用 `@quiz/core` 的 `mergeStates()` 与远端快照合并（`baseVersion` 仅供诊断），并顺带执行成就权威校验。部署产物在 `apps/server/Dockerfile` 与 `apps/server/deploy/`（compose + Caddy）。配置见 `apps/server/.env.example`；`apps/server/data/` 与 `.env` 已 gitignore。
 - 三端目前共用 `apps/web` 的 localStorage 存储：桌面与移动端尚未接文件/原生存储（`TODO.md` 有明确待办）。桌面端 `src-tauri` 没有自定义 Rust command，`frontendDist` 指向 `../web/dist`；移动端 `webDir` 同样指向 `../web/dist`。
 
 ### Web 应用
@@ -52,7 +54,9 @@ pnpm mobile:android   # 打开 Android Studio / Gradle 工程
 - `chapters` 在 JSON 中键为字符串，读取时统一用 `String(c)`。
 - 题号存在刻意间断：多空题被剔除，不要为了“连续”而重排 `n`。
 - 选项乱序通过 `SessionItem.map`（显示下标 → 原始下标）实现；渲染与判分必须经 `map` 换算，`q.a` 始终是原始下标。
-- 进度 schema 当前为 `schemaVersion: 3`（v2 新增 `favorites`，v3 新增 `notes`），`normalizeState()` 负责旧数据兜底。改动 `PersistedState` 结构时需同步迁移逻辑并提升版本号。
+- 进度 schema 当前为 `schemaVersion: 4`（v2 `favorites`，v3 `notes`，v4 `daily`/`challenges`/`achievements`/`favoriteRemovals`/`settingsAt`/`resetAt`），`normalizeState()` 负责旧数据兜底。改动 `PersistedState` 结构时需同步迁移逻辑并提升版本号。
+- 多端合并集中在 `packages/core/src/merge.ts` 的 `mergeStates(a, b)`，客户端启动/登录时与服务端共用同一实现；不要另写一套合并规则。删除收藏靠 `favoriteRemovals` 墓碑，清空记录靠 `resetAt` 纪元，二者不可省略。
+- 挑战模式常量与确定性抽题在 `packages/core/src/challenges.ts`（每日一练 10 题、限时 20 题/10 分钟、模拟考 75 题/150 分钟/45 分及格）；成就在 `packages/core/src/achievements.ts`，本地即时解锁，服务端同步时权威复核。
 - `favorites` 是 `题目键 → 收藏时间戳` 的映射；`favoriteQuestions()` 按收藏时间从新到旧返回，`toggleFavorite()` 原地修改状态。收藏专项练习使用全部收藏题；「清空记录」通过 `resetProgress` 保留 `favorites`。
 - `notes` 是 `题目键 → QuestionNote[]` 的心得时间线，只追加、不修改也不删除；`notesFor()` 返回旧→新数组，`addQuestionNote()` 负责去空白并生成题内唯一 id。UI 展示时反转数组使最新在前；「清空记录」同样保留 `notes`。
 - 答对后自动跳转的条件集中在 `shouldAutoAdvance()`：答对、`autoNext > 0`、非错题回顾模式，三者同时满足。

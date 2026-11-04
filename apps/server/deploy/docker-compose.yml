@@ -1,0 +1,42 @@
+name: quizbook
+
+services:
+  server:
+    build:
+      context: ../../..
+      dockerfile: apps/server/Dockerfile
+    restart: unless-stopped
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8787
+      PUBLIC_URL: ${PUBLIC_URL:?请在 .env 中设置 PUBLIC_URL}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      DEV_LOGIN: '0'
+      DB_PATH: /data/quizbook.db
+      # 允许 App / 原生壳的跨域请求；使用 Bearer token，不依赖 Cookie
+      CORS_ORIGIN: '*'
+    volumes:
+      - quizbook-data:/data
+    expose:
+      - '8787'
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      DOMAIN: ${DOMAIN:?请在 .env 中设置 DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - server
+
+volumes:
+  quizbook-data:
+  caddy-data:
+  caddy-config:

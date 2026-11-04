@@ -1,6 +1,9 @@
 /**
  * 应用状态：把 core 领域逻辑 + storage 适配封装成 React 可用的 hook。
  * 采用 useReducer + context，无额外状态库依赖。
+ *
+ * 同步策略：本地优先。所有修改先写本地并立即生效；登录后由后台在防抖窗口内
+ * 把本地快照推给服务端，服务端合并后返回权威快照，客户端再落盘。
  */
 import {
   createContext,
@@ -17,8 +20,22 @@ import {
   QuizData,
   PersistedState,
   QuizSession,
+  SessionMode,
   DEFAULT_SETTINGS,
-  SCHEMA_VERSION,
+  DAILY_COUNT,
+  TIMED_COUNT,
+  TIMED_DURATION_MS,
+  EXAM_COUNT,
+  EXAM_DURATION_MS,
+  normalizeState,
+  resetProgressState,
+  mergeStates,
+  applyAchievements,
+  dailyQuestions,
+  randomQuestions,
+  makeChallengeRecord,
+  recordChallenge,
+  markDailyCompleted,
   createSession,
   gradeAnswer,
   shouldAutoAdvance,
@@ -29,19 +46,43 @@ import {
   toggleFavorite as toggleFavoriteInState,
   addQuestionNote,
   qkey,
+  dateKey,
   type Settings,
   type Question,
 } from '@quiz/core';
 import { ProgressStore, SyncBackend } from '@quiz/storage';
+import {
+  ApiError,
+  CloudClient,
+  type AuthUser,
+  type StoredAuth,
+} from '@quiz/storage/http';
+import {
+  createLocalAuthStore,
+  loadServerUrl,
+  saveServerUrl,
+} from '@quiz/storage/auth';
 import { clearSavedSession, loadSession, saveSession } from './sessionPersistence';
 
-export type View = 'home' | 'quiz' | 'result' | 'favorites';
+export type View = 'home' | 'quiz' | 'result' | 'favorites' | 'achievements';
 
 export interface ResumeSummary {
   title: string;
   idx: number;
   total: number;
   done: number;
+}
+
+export type CloudPhase = 'signed-out' | 'signing-in' | 'syncing' | 'synced' | 'offline' | 'error';
+
+export interface CloudState {
+  phase: CloudPhase;
+  user: AuthUser | null;
+  serverUrl: string;
+  lastSyncAt: number | null;
+  error: string | null;
+  /** 设备码登录进行中的验证码 */
+  pendingDevice: { userCode: string; verificationUrl: string; expiresAt: number } | null;
 }
 
 interface AppState {
@@ -124,6 +165,10 @@ export interface QuizApp {
   settings: Settings;
   store: ProgressStore;
   sync: SyncBackend;
+  /** 云端登录与同步状态 */
+  cloud: CloudState;
+  /** 刚解锁的成就（用于弹提示） */
+  newAchievements: string[];
   /** 未完成的练习会话（用于首页「继续练习」） */
   resume: ResumeSummary | null;
   resumeSession: () => void;
@@ -139,10 +184,25 @@ export interface QuizApp {
   startUnanswered: () => void;
   startWrong: () => void;
   startFavorites: () => void;
+  startDaily: () => void;
+  startTimed: () => void;
+  startExam: () => void;
   reviewWrong: () => void;
   toggleFavorite: (q: Question) => void;
   addNote: (q: Question, text: string) => void;
-  startSessionRaw: (list: Parameters<typeof createSession>[0], title: string, opts?: { shuffle?: boolean; reviewOnly?: boolean }) => void;
+  startSessionRaw: (
+    list: Question[],
+    title: string,
+    opts?: {
+      shuffle?: boolean;
+      reviewOnly?: boolean;
+      mode?: SessionMode;
+      startedAt?: number;
+      durationMs?: number;
+      date?: string;
+      seed?: number;
+    },
+  ) => void;
   grade: (pickIdx: number) => void;
   pick: (pickIdx: number) => void;
   move: (d: number) => void;
@@ -157,6 +217,14 @@ export interface QuizApp {
   // 倒计时
   setAutoPending: (p: boolean) => void;
   tickNow: () => void;
+  // 云端
+  login: () => Promise<void>;
+  cancelLogin: () => void;
+  logout: () => Promise<void>;
+  syncNow: () => Promise<void>;
+  setServerUrl: (url: string) => void;
+  openVerificationPage: () => void;
+  dismissAchievements: () => void;
 }
 
 const Ctx = createContext<QuizApp | null>(null);
@@ -167,6 +235,27 @@ export function useQuiz(): QuizApp {
   return v;
 }
 
+function errorMessage(err: unknown): string {
+  if (err instanceof ApiError) {
+    if (err.status === 0) return '无法连接服务器，数据仍保存在本机';
+    if (err.status === 401) return '登录已失效，请重新登录';
+    return err.message;
+  }
+  return err instanceof Error ? err.message : '同步失败';
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function openExternal(url: string): void {
+  try {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  } catch {
+    // 某些 WebView 不允许 window.open，用户仍可从设置页复制链接
+  }
+}
+
 export function QuizProvider(props: {
   data: QuizData;
   store: ProgressStore;
@@ -174,28 +263,47 @@ export function QuizProvider(props: {
   children: ReactNode;
 }) {
   const { data, store, sync } = props;
-  const [persisted, setPersistedRaw] = useState<PersistedState>({
-    schemaVersion: SCHEMA_VERSION,
-    answers: {},
-    wrong: {},
-    favorites: {},
-    notes: {},
-    settings: DEFAULT_SETTINGS,
-  });
-  const setPersisted = useCallback((next: PersistedState | ((prev: PersistedState) => PersistedState)) => {
-    setPersistedRaw((prev) => {
-      const v = typeof next === 'function' ? (next as (p: PersistedState) => PersistedState)(prev) : next;
-      return {
-        ...v,
-        answers: { ...v.answers },
-        wrong: { ...v.wrong },
-        favorites: { ...v.favorites },
-        notes: { ...v.notes },
-      };
-    });
-  }, []);
+  const authStore = useMemo(() => createLocalAuthStore(), []);
+
+  const [persisted, setPersistedRaw] = useState<PersistedState>(() => normalizeState({}));
+  const setPersisted = useCallback(
+    (next: PersistedState | ((prev: PersistedState) => PersistedState)) => {
+      setPersistedRaw((prev) => {
+        const v = typeof next === 'function' ? (next as (p: PersistedState) => PersistedState)(prev) : next;
+        return {
+          ...v,
+          answers: { ...v.answers },
+          wrong: { ...v.wrong },
+          favorites: { ...v.favorites },
+          favoriteRemovals: { ...v.favoriteRemovals },
+          notes: { ...v.notes },
+          daily: { ...v.daily },
+          challenges: [...v.challenges],
+          achievements: { ...v.achievements },
+        };
+      });
+    },
+    [],
+  );
   const [app, dispatch] = useReducer(reducer, initialState);
   const [savedSession, setSavedSession] = useState<QuizSession | null>(() => loadSession(data));
+  const [newAchievements, setNewAchievements] = useState<string[]>([]);
+
+  const [cloud, setCloud] = useState<CloudState>(() => ({
+    phase: 'signed-out',
+    user: null,
+    serverUrl: loadServerUrl(),
+    lastSyncAt: null,
+    error: null,
+    pendingDevice: null,
+  }));
+
+  const loadedRef = useRef(false);
+  const sessionRef = useRef<StoredAuth | null>(null);
+  const syncVersionRef = useRef(0);
+  const lastPushedRef = useRef('');
+  const syncRunningRef = useRef(false);
+  const loginRunRef = useRef(0);
 
   // 答题过程中持续保存会话快照；本轮结束（结算页）即清除，答题中退出则保留供下次继续
   useEffect(() => {
@@ -208,61 +316,308 @@ export function QuizProvider(props: {
     }
   }, [app.session, app.tick, app.view]);
 
-  // 初始加载进度
-  const loadedRef = useRef(false);
+  // 初始加载：本地快照 →（已登录时）拉取远端并合并 → 回推
   useEffect(() => {
     let alive = true;
     (async () => {
-      const s = await store.load();
-      const merged = s ? { ...s } : null;
-      // 预留云同步：pull 后合并（当前 noop）
-      if (alive && merged) setPersisted(merged);
-      if (alive) loadedRef.current = true;
+      const auth = authStore.load();
+      sessionRef.current = auth;
+      let next: PersistedState | null = await store.load();
+
+      if (auth) {
+        setCloud((c) => ({ ...c, phase: 'syncing', user: auth.user, serverUrl: auth.serverUrl }));
+        try {
+          const client = new CloudClient(auth.serverUrl, auth.token);
+          const remote = await client.pull();
+          const merged = mergeStates(next, remote.state);
+          applyAchievements(merged, data);
+          const pushed = await client.push(merged, remote.version);
+          next = pushed.state;
+          syncVersionRef.current = pushed.version;
+          lastPushedRef.current = JSON.stringify(pushed.state);
+          if (alive) {
+            setCloud((c) => ({
+              ...c,
+              phase: 'synced',
+              user: auth.user,
+              lastSyncAt: Date.now(),
+              error: null,
+            }));
+          }
+        } catch (err) {
+          if (alive) {
+            setCloud((c) => ({ ...c, phase: 'offline', error: errorMessage(err) }));
+          }
+        }
+      }
+
+      if (!alive) return;
+      setPersisted(next ?? normalizeState({}));
+      loadedRef.current = true;
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const persist = useCallback(() => {
-    // 通过一个 ref 保存最新 persisted，避免闭包过期
-    void store.save(persistRef.current);
-  }, [store]);
-
-  // persisted 最新值的 ref（供 persist 与 timer 使用）
+  // 本地持久化
   const persistRef = useRef(persisted);
   useEffect(() => {
     persistRef.current = persisted;
   }, [persisted]);
+
   useEffect(() => {
-    persist();
-  }, [persisted, persist]);
+    if (!loadedRef.current) return;
+    void store.save(persisted);
+  }, [persisted, store]);
+
+  const persist = useCallback(() => {
+    void store.save(persistRef.current);
+  }, [store]);
+
+  // 本地实时评估成就：离线也能解锁，云端同步时会再做一次权威校验
+  useEffect(() => {
+    if (!loadedRef.current) return;
+    const ids = applyAchievements(persistRef.current, data);
+    if (!ids.length) return;
+    setPersisted({ ...persistRef.current });
+    setNewAchievements((prev) => [...prev, ...ids.filter((id) => !prev.includes(id))]);
+  }, [persisted, data, setPersisted]);
+
+  const dismissAchievements = useCallback(() => setNewAchievements([]), []);
+
+  // ---------- 云端同步 ----------
+
+  const syncWithAuth = useCallback(
+    async (auth: StoredAuth) => {
+      if (syncRunningRef.current) return;
+      syncRunningRef.current = true;
+      setCloud((c) => ({ ...c, phase: 'syncing', error: null }));
+      try {
+        const client = new CloudClient(auth.serverUrl, auth.token);
+        const remote = await client.pull();
+        const merged = mergeStates(persistRef.current, remote.state);
+        applyAchievements(merged, data);
+        const pushed = await client.push(merged, remote.version);
+        syncVersionRef.current = pushed.version;
+        lastPushedRef.current = JSON.stringify(pushed.state);
+        setPersisted(pushed.state);
+        setCloud((c) => ({
+          ...c,
+          phase: 'synced',
+          user: auth.user,
+          lastSyncAt: Date.now(),
+          error: null,
+        }));
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          authStore.clear();
+          sessionRef.current = null;
+          setCloud((c) => ({ ...c, phase: 'signed-out', user: null, error: '登录已失效，请重新登录' }));
+        } else {
+          setCloud((c) => ({ ...c, phase: 'offline', error: errorMessage(err) }));
+        }
+      } finally {
+        syncRunningRef.current = false;
+      }
+    },
+    [authStore, data, setPersisted],
+  );
+
+  const pushSnapshot = useCallback(
+    async (snapshot: PersistedState) => {
+      const auth = sessionRef.current;
+      if (!auth) return;
+      if (JSON.stringify(snapshot) === lastPushedRef.current) return;
+      setCloud((c) => ({ ...c, phase: 'syncing', error: null }));
+      try {
+        const client = new CloudClient(auth.serverUrl, auth.token);
+        const pushed = await client.push(snapshot, syncVersionRef.current);
+        syncVersionRef.current = pushed.version;
+        lastPushedRef.current = JSON.stringify(pushed.state);
+        setPersisted(pushed.state);
+        setCloud((c) => ({
+          ...c,
+          phase: 'synced',
+          user: auth.user,
+          lastSyncAt: Date.now(),
+          error: null,
+        }));
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          authStore.clear();
+          sessionRef.current = null;
+          setCloud((c) => ({ ...c, phase: 'signed-out', user: null, error: '登录已失效，请重新登录' }));
+        } else {
+          setCloud((c) => ({ ...c, phase: 'offline', error: errorMessage(err) }));
+        }
+      }
+    },
+    [authStore, setPersisted],
+  );
+
+  // 本地变化后防抖推送
+  useEffect(() => {
+    if (!loadedRef.current || !sessionRef.current) return;
+    if (JSON.stringify(persisted) === lastPushedRef.current) return;
+    const timer = window.setTimeout(() => void pushSnapshot(persisted), 1200);
+    return () => window.clearTimeout(timer);
+  }, [persisted, pushSnapshot]);
+
+  const login = useCallback(async () => {
+    const runId = ++loginRunRef.current;
+    const serverUrl = cloud.serverUrl;
+    setCloud((c) => ({ ...c, phase: 'signing-in', error: null, pendingDevice: null }));
+    try {
+      const client = new CloudClient(serverUrl);
+      const start = await client.startDevice();
+      if (loginRunRef.current !== runId) return;
+      const pending = {
+        userCode: start.userCode,
+        verificationUrl: start.verificationUrl,
+        expiresAt: Date.now() + start.expiresIn * 1000,
+      };
+      setCloud((c) => ({ ...c, pendingDevice: pending }));
+      openExternal(start.verificationUrl);
+
+      const interval = Math.max(2, start.interval || 2) * 1000;
+      while (loginRunRef.current === runId && Date.now() < pending.expiresAt) {
+        await delay(interval);
+        if (loginRunRef.current !== runId) return;
+        let poll;
+        try {
+          poll = await client.pollDevice(start.deviceCode);
+        } catch {
+          continue;
+        }
+        if (poll.status === 'authorized') {
+          const auth: StoredAuth = {
+            token: poll.token,
+            user: poll.user,
+            serverUrl,
+            savedAt: Date.now(),
+          };
+          authStore.save(auth);
+          sessionRef.current = auth;
+          setCloud((c) => ({
+            ...c,
+            phase: 'syncing',
+            user: poll.user,
+            pendingDevice: null,
+            error: null,
+          }));
+          await syncWithAuth(auth);
+          return;
+        }
+        if (poll.status === 'expired') break;
+      }
+      if (loginRunRef.current === runId) {
+        setCloud((c) => ({
+          ...c,
+          phase: 'signed-out',
+          pendingDevice: null,
+          error: '登录码已过期，请重试',
+        }));
+      }
+    } catch (err) {
+      if (loginRunRef.current === runId) {
+        setCloud((c) => ({ ...c, phase: 'error', pendingDevice: null, error: errorMessage(err) }));
+      }
+    }
+  }, [authStore, cloud.serverUrl, syncWithAuth]);
+
+  const cancelLogin = useCallback(() => {
+    loginRunRef.current += 1;
+    setCloud((c) => ({ ...c, phase: c.user ? 'synced' : 'signed-out', pendingDevice: null }));
+  }, []);
+
+  const logout = useCallback(async () => {
+    const auth = sessionRef.current;
+    loginRunRef.current += 1;
+    sessionRef.current = null;
+    authStore.clear();
+    lastPushedRef.current = '';
+    setCloud((c) => ({
+      ...c,
+      phase: 'signed-out',
+      user: null,
+      pendingDevice: null,
+      lastSyncAt: null,
+      error: null,
+    }));
+    if (auth) await new CloudClient(auth.serverUrl, auth.token).logout();
+  }, [authStore]);
+
+  const syncNow = useCallback(async () => {
+    const auth = sessionRef.current;
+    if (auth) await syncWithAuth(auth);
+  }, [syncWithAuth]);
+
+  const setServerUrl = useCallback(
+    (url: string) => {
+      const normalized = url.trim().replace(/\/+$/, '');
+      if (!normalized) return;
+      saveServerUrl(normalized);
+      // token 与服务器绑定，换地址视为退出登录，本地数据保留
+      sessionRef.current = null;
+      authStore.clear();
+      lastPushedRef.current = '';
+      setCloud((c) => ({
+        ...c,
+        serverUrl: normalized,
+        phase: 'signed-out',
+        user: null,
+        pendingDevice: null,
+        lastSyncAt: null,
+        error: null,
+      }));
+    },
+    [authStore],
+  );
+
+  const openVerificationPage = useCallback(() => {
+    if (cloud.pendingDevice) openExternal(cloud.pendingDevice.verificationUrl);
+  }, [cloud.pendingDevice]);
+
+  // ---------- 设置 ----------
 
   const patchSettings = useCallback((patch: Partial<Settings>) => {
-    setPersisted((s: PersistedState) => ({ ...s, settings: { ...s.settings, ...patch } }));
-  }, []);
+    setPersisted((s: PersistedState) => ({
+      ...s,
+      settings: { ...s.settings, ...patch },
+      settingsAt: Date.now(),
+    }));
+  }, [setPersisted]);
 
-  const replaceState = useCallback((s: PersistedState) => {
-    // 导入外部进度后，旧会话里的 done/答案标记可能已失效，直接丢弃
-    clearSavedSession();
-    setSavedSession(null);
-    setPersisted(s);
-  }, []);
+  const replaceState = useCallback(
+    (s: PersistedState) => {
+      clearSavedSession();
+      setSavedSession(null);
+      setPersisted(s);
+    },
+    [setPersisted],
+  );
+
   const resetProgress = useCallback(() => {
     clearSavedSession();
     setSavedSession(null);
-    setPersisted((s: PersistedState) => ({
-      schemaVersion: SCHEMA_VERSION,
-      answers: {},
-      wrong: {},
-      favorites: s.favorites,
-      notes: s.notes,
-      settings: s.settings,
-    }));
-  }, []);
+    setPersisted((s: PersistedState) => resetProgressState(s));
+  }, [setPersisted]);
 
   const setView = useCallback((v: View) => dispatch({ type: 'GOTO', view: v }), []);
 
   const startSessionRaw = useCallback(
-    (list: Question[], title: string, opts: { shuffle?: boolean; reviewOnly?: boolean } = {}) => {
+    (
+      list: Question[],
+      title: string,
+      opts: {
+        shuffle?: boolean;
+        reviewOnly?: boolean;
+        mode?: SessionMode;
+        startedAt?: number;
+        durationMs?: number;
+        date?: string;
+        seed?: number;
+      } = {},
+    ) => {
       clearSavedSession();
       setSavedSession(null);
       const session = createSession(list, title, opts);
@@ -295,7 +650,9 @@ export function QuizProvider(props: {
       [shuffleQs[i], shuffleQs[j]] = [shuffleQs[j], shuffleQs[i]];
     }
     const n = Math.min(persistRef.current.settings.count || 20, shuffleQs.length);
-    startSessionRaw(shuffleQs.slice(0, n), '随机练习', { shuffle: persistRef.current.settings.shuffle === 1 });
+    startSessionRaw(shuffleQs.slice(0, n), '随机练习', {
+      shuffle: persistRef.current.settings.shuffle === 1,
+    });
   }, [data, startSessionRaw]);
   const startUnanswered = useCallback(() => {
     const un = unansweredQuestions(data, persistRef.current);
@@ -305,12 +662,13 @@ export function QuizProvider(props: {
       [pool[i], pool[j]] = [pool[j], pool[i]];
     }
     const n = Math.min(persistRef.current.settings.count || 20, pool.length);
-    startSessionRaw(pool.slice(0, n), un.length ? '智能推进 · 新题' : '随机练习', { shuffle: persistRef.current.settings.shuffle === 1 });
+    startSessionRaw(pool.slice(0, n), un.length ? '智能推进 · 新题' : '随机练习', {
+      shuffle: persistRef.current.settings.shuffle === 1,
+    });
   }, [data, startSessionRaw]);
   const startWrong = useCallback(() => {
     const w = wrongQuestions(data, persistRef.current);
     if (!w.length) {
-      // 无错题
       alert('暂无错题，先去做题吧 🎉');
       return;
     }
@@ -324,23 +682,49 @@ export function QuizProvider(props: {
     }
     startSessionRaw(list, '收藏练习', {});
   }, [data, startSessionRaw]);
-  const toggleFavorite = useCallback((q: Question) => {
-    toggleFavoriteInState(persistRef.current, q);
-    setPersisted({ ...persistRef.current });
-  }, []);
-  const addNote = useCallback((q: Question, text: string) => {
-    const note = addQuestionNote(persistRef.current, q, text);
-    if (!note) return;
-    setPersisted({ ...persistRef.current });
-  }, []);
+
+  const startDaily = useCallback(() => {
+    const date = dateKey();
+    const list = dailyQuestions(data, date, DAILY_COUNT);
+    startSessionRaw(list, '每日一练', { mode: 'daily', date, startedAt: Date.now() });
+  }, [data, startSessionRaw]);
+
+  const startTimed = useCallback(() => {
+    startSessionRaw(randomQuestions(data, TIMED_COUNT), '限时挑战', {
+      mode: 'timed',
+      startedAt: Date.now(),
+      durationMs: TIMED_DURATION_MS,
+    });
+  }, [data, startSessionRaw]);
+
+  const startExam = useCallback(() => {
+    startSessionRaw(randomQuestions(data, EXAM_COUNT), '模拟考', {
+      mode: 'exam',
+      startedAt: Date.now(),
+      durationMs: EXAM_DURATION_MS,
+    });
+  }, [data, startSessionRaw]);
+
+  const toggleFavorite = useCallback(
+    (q: Question) => {
+      toggleFavoriteInState(persistRef.current, q);
+      setPersisted({ ...persistRef.current });
+    },
+    [setPersisted],
+  );
+  const addNote = useCallback(
+    (q: Question, text: string) => {
+      const note = addQuestionNote(persistRef.current, q, text);
+      if (!note) return;
+      setPersisted({ ...persistRef.current });
+    },
+    [setPersisted],
+  );
   const reviewWrong = useCallback(() => {
     const s = app.session;
     if (!s) return;
     const wrong = s.list
-      .filter((it) => {
-        const r = persistRef.current.answers[qkey(it.q)];
-        return r && !r.ok;
-      })
+      .filter((it) => it.done && it.lastPick >= 0 && it.map[it.lastPick] !== it.q.a)
       .map((it) => it.q);
     if (!wrong.length) {
       alert('本轮全部答对，太棒了 🎉');
@@ -363,27 +747,29 @@ export function QuizProvider(props: {
       if (item.done) return;
       const { ok } = gradeAnswer(persistRef.current, item, pickIdx);
       setPersisted({ ...persistRef.current });
-      // 触发会话内视图刷新
       dispatch({ type: 'TICK' });
       if (shouldAutoAdvance(ok, persistRef.current.settings, sess.reviewOnly)) {
         dispatch({ type: 'SET_AUTO_PENDING', pending: true });
       }
     },
-    [],
+    [setPersisted],
   );
 
-  const pick = useCallback((pickIdx: number) => {
-    const sess = appSessionRef.current;
-    if (!sess) return;
-    const item = sess.list[sess.idx];
-    if (item.done) return;
-    if (persistRef.current.settings.instant === 1) {
-      grade(pickIdx);
-    } else {
-      item.pick = pickIdx;
-      dispatch({ type: 'TICK' });
-    }
-  }, [grade]);
+  const pick = useCallback(
+    (pickIdx: number) => {
+      const sess = appSessionRef.current;
+      if (!sess) return;
+      const item = sess.list[sess.idx];
+      if (item.done) return;
+      if (persistRef.current.settings.instant === 1) {
+        grade(pickIdx);
+      } else {
+        item.pick = pickIdx;
+        dispatch({ type: 'TICK' });
+      }
+    },
+    [grade],
+  );
 
   const next = useCallback(() => {
     dispatch({ type: 'SET_AUTO_PENDING', pending: false });
@@ -402,9 +788,27 @@ export function QuizProvider(props: {
     dispatch({ type: 'SET_AUTO_PENDING', pending: false });
     setView('home');
   }, [setView]);
-  const finish = useCallback(() => dispatch({ type: 'FINISH' }), []);
+
+  // 结束本轮：挑战模式写入成绩，每日一练标记完成
+  const finish = useCallback(() => {
+    const sess = appSessionRef.current;
+    if (sess) {
+      const record = makeChallengeRecord(sess);
+      if (record && recordChallenge(persistRef.current, record)) {
+        if (record.kind === 'daily') {
+          markDailyCompleted(persistRef.current, sess.date ?? dateKey());
+        }
+        setPersisted({ ...persistRef.current });
+      }
+    }
+    dispatch({ type: 'FINISH' });
+  }, [setPersisted]);
+
   const toggleSheet = useCallback(() => dispatch({ type: 'TOGGLE_SHEET' }), []);
-  const setAutoPending = useCallback((p: boolean) => dispatch({ type: 'SET_AUTO_PENDING', pending: p }), []);
+  const setAutoPending = useCallback(
+    (p: boolean) => dispatch({ type: 'SET_AUTO_PENDING', pending: p }),
+    [],
+  );
   const tickNow = useCallback(() => dispatch({ type: 'TICK' }), []);
 
   // 会话内的 item 是原地修改的，这里每次渲染重新汇总，避免拿到过期的已完成数量
@@ -425,6 +829,8 @@ export function QuizProvider(props: {
       settings: persisted.settings,
       store,
       sync,
+      cloud,
+      newAchievements,
       resume,
       resumeSession,
       discardResume,
@@ -437,6 +843,9 @@ export function QuizProvider(props: {
       startUnanswered,
       startWrong,
       startFavorites,
+      startDaily,
+      startTimed,
+      startExam,
       reviewWrong,
       toggleFavorite,
       addNote,
@@ -453,12 +862,21 @@ export function QuizProvider(props: {
       toggleSheet,
       setAutoPending,
       tickNow,
+      login,
+      cancelLogin,
+      logout,
+      syncNow,
+      setServerUrl,
+      openVerificationPage,
+      dismissAchievements,
     }),
     [
-      data, persisted, app, store, sync, resume, resumeSession, discardResume,
+      data, persisted, app, store, sync, cloud, newAchievements, resume, resumeSession, discardResume,
       persist, patchSettings, replaceState, resetProgress,
-      startChapter, startRandom, startUnanswered, startWrong, startFavorites, reviewWrong, toggleFavorite, addNote, startSessionRaw,
+      startChapter, startRandom, startUnanswered, startWrong, startFavorites, startDaily, startTimed, startExam,
+      reviewWrong, toggleFavorite, addNote, startSessionRaw,
       grade, pick, move, jump, next, prev, quit, finish, setView, toggleSheet, setAutoPending, tickNow,
+      login, cancelLogin, logout, syncNow, setServerUrl, openVerificationPage, dismissAchievements,
     ],
   );
 

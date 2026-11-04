@@ -2,7 +2,14 @@
  * 未完成练习会话的本地快照。
  * 只保存题目的唯一键与作答状态，不重复存储题干，数据仍以 questions.json 为准。
  */
-import { qkey, type Question, type QuizData, type QuizSession, type SessionItem } from '@quiz/core';
+import {
+  qkey,
+  type Question,
+  type QuizData,
+  type QuizSession,
+  type SessionItem,
+  type SessionMode,
+} from '@quiz/core';
 
 const KEY = 'quizbook_quiz_session_v1';
 /** 旧品牌时期的会话键，读取时自动迁移 */
@@ -17,12 +24,18 @@ interface StoredItem {
 }
 
 interface StoredSession {
-  v: 1;
+  v: 1 | 2;
   title: string;
   reviewOnly: boolean;
   idx: number;
   items: StoredItem[];
   updatedAt: number;
+  /** v2：挑战/模拟考的会话信息 */
+  mode?: SessionMode;
+  startedAt?: number;
+  durationMs?: number;
+  date?: string;
+  seed?: number;
 }
 
 function storage(): Storage | null {
@@ -46,7 +59,7 @@ export function saveSession(session: QuizSession): void {
   const s = storage();
   if (!s) return;
   const payload: StoredSession = {
-    v: 1,
+    v: 2,
     title: session.title,
     reviewOnly: session.reviewOnly,
     idx: session.idx,
@@ -58,6 +71,11 @@ export function saveSession(session: QuizSession): void {
       p: it.pick,
       l: it.lastPick,
     })),
+    mode: session.mode,
+    startedAt: session.startedAt,
+    durationMs: session.durationMs,
+    date: session.date,
+    seed: session.seed,
   };
   try {
     s.setItem(KEY, JSON.stringify(payload));
@@ -78,7 +96,7 @@ export function loadSession(data: QuizData): QuizSession | null {
     }
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<StoredSession>;
-    if (parsed.v !== 1 || !Array.isArray(parsed.items) || parsed.items.length === 0) {
+    if ((parsed.v !== 1 && parsed.v !== 2) || !Array.isArray(parsed.items) || parsed.items.length === 0) {
       return null;
     }
 
@@ -103,6 +121,11 @@ export function loadSession(data: QuizData): QuizSession | null {
       reviewOnly: !!parsed.reviewOnly,
       idx,
       list,
+      mode: parsed.mode,
+      startedAt: typeof parsed.startedAt === 'number' ? parsed.startedAt : undefined,
+      durationMs: typeof parsed.durationMs === 'number' ? parsed.durationMs : undefined,
+      date: typeof parsed.date === 'string' ? parsed.date : undefined,
+      seed: typeof parsed.seed === 'number' ? parsed.seed : undefined,
     };
 
     // 旧键迁移：确认快照可用后再写入新键，失败不影响本次继续练习

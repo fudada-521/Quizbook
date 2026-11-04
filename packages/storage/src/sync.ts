@@ -3,7 +3,7 @@
  * Web 端已有 localStorage + 导出/导入 JSON；此文件提供跨端通用的文件同步辅助。
  */
 
-import { PersistedState } from '@quiz/core';
+import { PersistedState, normalizeState } from '@quiz/core';
 
 /** 将进度序列化为可移植的 JSON 字符串（带版本与时间戳元信息） */
 export function serializeForSync(state: PersistedState): string {
@@ -19,15 +19,8 @@ export function parseFromSync(text: string): PersistedState | null {
   try {
     const obj = JSON.parse(text);
     if (obj && obj.answers && typeof obj.answers === 'object') {
-      // 剥离 _meta 等扩展字段，仅保留核心结构
-      return {
-        schemaVersion: obj.schemaVersion ?? 1,
-        answers: obj.answers,
-        wrong: obj.wrong ?? {},
-        favorites: obj.favorites ?? {},
-        notes: obj.notes ?? {},
-        settings: obj.settings ?? {},
-      };
+      // 剥离 _meta 等扩展字段，并补全缺失字段（含旧版本迁移）
+      return normalizeState(obj);
     }
     return null;
   } catch {

@@ -1,33 +1,72 @@
+import { EXAM_PASS_SCORE, scoreSession, type SessionMode } from '@quiz/core';
 import { useQuiz } from '../store/QuizStore';
-import { qkey } from '@quiz/core';
+
+const MODE_LABEL: Record<SessionMode, string> = {
+  practice: '练习',
+  daily: '每日一练',
+  timed: '限时挑战',
+  exam: '模拟考',
+};
 
 export function ResultView() {
-  const { app, state, quit, reviewWrong } = useQuiz();
+  const { app, quit, reviewWrong } = useQuiz();
   const sess = app.session;
   if (!sess) return null;
 
   const done = sess.list.filter((it) => it.done).length;
-  const right = sess.list.filter((it) => {
-    const r = state.answers[qkey(it.q)];
-    return r && r.ok;
-  }).length;
-  const wrong = done - right;
-  const pct = done ? Math.round((right / done) * 100) : 0;
+  const { score, total } = scoreSession(sess);
+  const wrong = done - score;
+  const pct = total ? Math.round((score / total) * 100) : 0;
+  const mode = sess.mode ?? 'practice';
+  const isExam = mode === 'exam';
+  const passed = isExam && score >= EXAM_PASS_SCORE;
+
   const msg =
-    pct >= 80 ? '掌握得很好，继续保持。' : pct >= 60 ? '基础不错，再巩固一下错题。' : '建议回看教材相关章节。';
+    mode === 'daily'
+      ? '今天的每日一练完成，记得回来保持连续打卡。'
+      : isExam
+        ? passed
+          ? `达到及格线 ${EXAM_PASS_SCORE} 分，继续保持。`
+          : `距离及格线 ${EXAM_PASS_SCORE} 分还差 ${Math.max(0, EXAM_PASS_SCORE - score)} 分，重点回看错题。`
+        : mode === 'timed'
+          ? pct >= 80
+            ? '节奏和准确率都不错。'
+            : '限时下先保证会做的题不丢分。'
+          : pct >= 80
+            ? '掌握得很好，继续保持。'
+            : pct >= 60
+              ? '基础不错，再巩固一下错题。'
+              : '建议回看教材相关章节。';
 
   return (
     <div className="result-page">
-      <p className="eyebrow">{sess.title}</p>
-      <div className="result-score">
-        {pct}
-        <small>%</small>
-      </div>
+      <p className="eyebrow">
+        {sess.title} · {MODE_LABEL[mode]}
+      </p>
+
+      {isExam ? (
+        <div className={`result-score${passed ? ' pass' : ''}`}>
+          {score}
+          <small>/ {total}</small>
+        </div>
+      ) : (
+        <div className="result-score">
+          {pct}
+          <small>%</small>
+        </div>
+      )}
+
+      {isExam && (
+        <p className={`result-badge${passed ? ' pass' : ' fail'}`}>
+          {passed ? '通过' : '未通过'} · 及格线 {EXAM_PASS_SCORE} 分
+        </p>
+      )}
+
       <p className="result-msg">{msg}</p>
 
       <div className="result-bar" aria-hidden="true">
-        <i className="r" style={{ width: `${done ? (right / done) * 100 : 0}%` }} />
-        <i className="w" style={{ width: `${done ? (wrong / done) * 100 : 0}%` }} />
+        <i className="r" style={{ width: `${total ? (score / total) * 100 : 0}%` }} />
+        <i className="w" style={{ width: `${total ? (wrong / total) * 100 : 0}%` }} />
       </div>
 
       <div className="result-stats">
@@ -36,7 +75,7 @@ export function ResultView() {
           <span>作答</span>
         </div>
         <div className="result-stat">
-          <b>{right}</b>
+          <b>{score}</b>
           <span>正确</span>
         </div>
         <div className="result-stat">

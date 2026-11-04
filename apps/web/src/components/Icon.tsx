@@ -15,7 +15,14 @@ export type IconName =
   | 'download'
   | 'upload'
   | 'star'
-  | 'pen';
+  | 'pen'
+  | 'clock'
+  | 'trophy'
+  | 'cloud'
+  | 'user'
+  | 'flame'
+  | 'calendar'
+  | 'target';
 
 const paths: Record<IconName, ReactNode> = {
   settings: (
@@ -86,6 +93,44 @@ const paths: Record<IconName, ReactNode> = {
     <>
       <path d="M12 20h9" />
       <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4L16.5 3.5z" />
+    </>
+  ),
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </>
+  ),
+  trophy: (
+    <>
+      <path d="M8 4h8v5a4 4 0 0 1-8 0V4z" />
+      <path d="M8 5H5v2a3 3 0 0 0 3 3M16 5h3v2a3 3 0 0 1-3 3" />
+      <path d="M12 13v4M9 20h6M10 17h4v3h-4z" />
+    </>
+  ),
+  cloud: (
+    <path d="M7 18h10a4 4 0 0 0 .4-7.98A6 6 0 0 0 6.1 11.1 3.5 3.5 0 0 0 7 18z" />
+  ),
+  user: (
+    <>
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M5 20a7 7 0 0 1 14 0" />
+    </>
+  ),
+  flame: (
+    <path d="M12 3c1 3.5 4 5 4 8a4 4 0 0 1-8 0c0-1.5.6-2.7 1.5-3.8C10.4 8.9 12 7 12 3zM12 21a5 5 0 0 0 5-5c0-1.8-.8-3.3-2-4.5" />
+  ),
+  calendar: (
+    <>
+      <rect x="4" y="5" width="16" height="15" rx="2" />
+      <path d="M8 3v4M16 3v4M4 10h16" />
+    </>
+  ),
+  target: (
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="12" cy="12" r="0.5" fill="currentColor" />
     </>
   ),
 };

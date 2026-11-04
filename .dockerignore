@@ -1,0 +1,13 @@
+node_modules
+**/node_modules
+**/dist
+apps/server/data
+apps/server/.env
+apps/desktop/src-tauri/target
+apps/desktop/src-tauri/gen
+apps/mobile/ios
+apps/mobile/android
+release
+.history
+.git
+*.log

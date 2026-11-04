@@ -1,4 +1,13 @@
-import { favoriteQuestions } from '@quiz/core';
+import {
+  favoriteQuestions,
+  achievementProgress,
+  achievementStats,
+  dailyCompletedOn,
+  dateKey,
+  DAILY_COUNT,
+  TIMED_COUNT,
+  EXAM_COUNT,
+} from '@quiz/core';
 import { useQuiz } from '../store/QuizStore';
 import { Icon } from '../components/Icon';
 
@@ -15,7 +24,16 @@ export function HomeView() {
     startUnanswered,
     startWrong,
     startFavorites,
+    startDaily,
+    startTimed,
+    startExam,
+    setView,
   } = useQuiz();
+
+  const stats = achievementStats(state, data);
+  const achievements = achievementProgress(state, data);
+  const unlockedCount = achievements.filter((a) => a.unlocked).length;
+  const dailyDone = dailyCompletedOn(state, dateKey());
 
   const total = data.questions.length;
   const answered = Object.keys(state.answers).length;
@@ -108,7 +126,60 @@ export function HomeView() {
                 <b>{wrongCount}</b>
                 <span>错题</span>
               </div>
+              <div className="stat-cell">
+                <b>{stats.currentStreak}</b>
+                <span>连续打卡</span>
+              </div>
             </div>
+          </section>
+
+          <section className="panel">
+            <div className="panel-head">
+              <h2>挑战模式</h2>
+            </div>
+            <div className="mode-list">
+              <button className="mode-row" onClick={startDaily}>
+                <span className="mode-icon">
+                  <Icon name="calendar" size={17} />
+                </span>
+                <span className="mode-label">每日一练</span>
+                <span className="mode-desc">{dailyDone ? '今日已完成' : `${DAILY_COUNT} 题`}</span>
+                <Icon name="chevron-right" size={15} className="chev" />
+              </button>
+              <button className="mode-row" onClick={startTimed}>
+                <span className="mode-icon">
+                  <Icon name="clock" size={17} />
+                </span>
+                <span className="mode-label">限时挑战</span>
+                <span className="mode-desc">{TIMED_COUNT} 题 · 10 分钟</span>
+                <Icon name="chevron-right" size={15} className="chev" />
+              </button>
+              <button className="mode-row" onClick={startExam}>
+                <span className="mode-icon">
+                  <Icon name="target" size={17} />
+                </span>
+                <span className="mode-label">模拟考</span>
+                <span className="mode-desc">{EXAM_COUNT} 题 · 150 分钟</span>
+                <Icon name="chevron-right" size={15} className="chev" />
+              </button>
+            </div>
+          </section>
+
+          <section className="panel achievement-teaser">
+            <button className="achievement-link" onClick={() => setView('achievements')}>
+              <span className={`achievement-badge${unlockedCount === achievements.length ? ' all' : ''}`}>
+                <Icon name="trophy" size={20} />
+              </span>
+              <span className="achievement-copy">
+                <strong>
+                  成就 {unlockedCount} / {achievements.length}
+                </strong>
+                <span className="progress thin">
+                  <i style={{ width: `${(unlockedCount / achievements.length) * 100}%` }} />
+                </span>
+              </span>
+              <Icon name="chevron-right" size={15} className="chev" />
+            </button>
           </section>
 
           <section className="panel">

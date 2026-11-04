@@ -1,11 +1,34 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { normalizeState } from '@quiz/core';
-import { useQuiz } from '../store/QuizStore';
+import { useQuiz, type CloudPhase } from '../store/QuizStore';
 import { Icon } from '../components/Icon';
 
+const PHASE_LABEL: Record<CloudPhase, string> = {
+  'signed-out': '未登录',
+  'signing-in': '等待授权',
+  syncing: '同步中',
+  synced: '已同步',
+  offline: '离线',
+  error: '同步出错',
+};
+
 export function SettingsDialog() {
-  const { settings, patchSettings, state, replaceState, resetProgress } = useQuiz();
+  const {
+    settings,
+    patchSettings,
+    state,
+    replaceState,
+    resetProgress,
+    cloud,
+    login,
+    cancelLogin,
+    logout,
+    syncNow,
+    setServerUrl,
+    openVerificationPage,
+  } = useQuiz();
   const ref = useRef<HTMLDialogElement>(null);
+  const [serverInput, setServerInput] = useState(cloud.serverUrl);
 
   const close = () => ref.current?.close();
 
@@ -61,6 +84,107 @@ export function SettingsDialog() {
       </div>
 
       <div className="dialog-body">
+        <section className="account-section">
+          <div className="panel-head">
+            <h2>账号与同步</h2>
+            <span className={`sync-state ${cloud.phase}`}>{PHASE_LABEL[cloud.phase]}</span>
+          </div>
+
+          {cloud.user ? (
+            <div className="account-row">
+              <span className="avatar">
+                {cloud.user.avatarUrl ? (
+                  <img src={cloud.user.avatarUrl} alt="" />
+                ) : (
+                  <Icon name="user" size={18} />
+                )}
+              </span>
+              <div className="account-copy">
+                <strong>{cloud.user.name || cloud.user.login}</strong>
+                <p>
+                  @{cloud.user.login}
+                  {cloud.lastSyncAt
+                    ? ` · 最近同步 ${new Date(cloud.lastSyncAt).toLocaleTimeString('zh-CN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}`
+                    : ''}
+                </p>
+              </div>
+              <div className="account-actions">
+                <button
+                  className="btn ghost sm"
+                  onClick={() => void syncNow()}
+                  disabled={cloud.phase === 'syncing'}
+                >
+                  {cloud.phase === 'syncing' ? '同步中…' : '立即同步'}
+                </button>
+                <button className="text-btn danger" onClick={() => void logout()}>
+                  退出登录
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="account-row">
+              <div className="setting-copy">
+                <label>GitHub 登录</label>
+                <p>登录后进度、收藏、心得和成就会在 Web / 桌面 / 手机之间同步；不登录也能照常离线使用。</p>
+              </div>
+              <button
+                className="btn primary sm"
+                onClick={() => void login()}
+                disabled={cloud.phase === 'signing-in'}
+              >
+                {cloud.phase === 'signing-in' ? '等待授权…' : '登录'}
+              </button>
+            </div>
+          )}
+
+          {cloud.pendingDevice && (
+            <div className="device-panel">
+              <p>已在浏览器打开验证页。请确认验证码一致：</p>
+              <div className="device-code">{cloud.pendingDevice.userCode}</div>
+              <div className="device-actions">
+                <a
+                  className="btn ghost sm"
+                  href={cloud.pendingDevice.verificationUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={openVerificationPage}
+                >
+                  打开验证页
+                </a>
+                <button className="text-btn" onClick={cancelLogin}>
+                  取消
+                </button>
+              </div>
+            </div>
+          )}
+
+          {cloud.error && <p className="cloud-error">{cloud.error}</p>}
+
+          <div className="server-row">
+            <label htmlFor="set-server">服务器地址</label>
+            <div className="server-input">
+              <input
+                id="set-server"
+                type="url"
+                value={serverInput}
+                placeholder="http://127.0.0.1:8787"
+                onChange={(e) => setServerInput(e.target.value)}
+              />
+              <button
+                className="btn ghost sm"
+                disabled={!serverInput.trim() || serverInput.trim() === cloud.serverUrl}
+                onClick={() => setServerUrl(serverInput)}
+              >
+                保存
+              </button>
+            </div>
+            <p>更换地址会退出当前账号，本机数据保留。</p>
+          </div>
+        </section>
+
         <div className="setting-row">
           <div className="setting-copy">
             <label htmlFor="set-count">每组题量</label>

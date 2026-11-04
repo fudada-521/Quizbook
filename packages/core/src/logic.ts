@@ -11,8 +11,10 @@ import {
   QuizSession,
   AnswerRecord,
   QuestionNote,
+  SessionMode,
   DEFAULT_SETTINGS,
   SCHEMA_VERSION,
+  dateKey,
   qkey,
 } from './types';
 
@@ -42,7 +44,15 @@ export function makeMap(shuffleOpts: boolean): [number, number, number, number] 
 export function createSession(
   list: Question[],
   title: string,
-  opts: { shuffle?: boolean; reviewOnly?: boolean } = {},
+  opts: {
+    shuffle?: boolean;
+    reviewOnly?: boolean;
+    mode?: SessionMode;
+    startedAt?: number;
+    durationMs?: number;
+    date?: string;
+    seed?: number;
+  } = {},
 ): QuizSession {
   const items: SessionItem[] = list.map((q) => ({
     q,
@@ -51,7 +61,17 @@ export function createSession(
     pick: null,
     lastPick: -1,
   }));
-  return { title, idx: 0, reviewOnly: !!opts.reviewOnly, list: items };
+  return {
+    title,
+    idx: 0,
+    reviewOnly: !!opts.reviewOnly,
+    list: items,
+    mode: opts.mode ?? 'practice',
+    startedAt: opts.startedAt,
+    durationMs: opts.durationMs,
+    date: opts.date,
+    seed: opts.seed,
+  };
 }
 
 /** 判分：返回是否答对，并同步进度状态 */
@@ -75,7 +95,34 @@ export function gradeAnswer(
   } else {
     state.wrong[k] = (state.wrong[k] || 0) + 1;
   }
+
+  // 按本地日期累计，作为连续打卡与成就的数据源
+  const day = dateKey(now);
+  const daily = (state.daily[day] ??= {
+    date: day,
+    answered: 0,
+    correct: 0,
+    completed: false,
+    t: now,
+  });
+  daily.answered += 1;
+  if (ok) daily.correct += 1;
+  daily.t = now;
+
   return { ok, realOpt };
+}
+
+/** 标记某天完成每日一练 */
+export function markDailyCompleted(state: PersistedState, date = dateKey(), now = Date.now()): void {
+  const daily = (state.daily[date] ??= {
+    date,
+    answered: 0,
+    correct: 0,
+    completed: false,
+    t: now,
+  });
+  daily.completed = true;
+  daily.t = now;
 }
 
 /** 是否答对后应自动跳转（答错/关闭/reviewOnly 均不跳） */
@@ -95,8 +142,14 @@ export function normalizeState(raw: unknown): PersistedState {
     answers: r.answers ?? {},
     wrong: r.wrong ?? {},
     favorites: r.favorites ?? {},
+    favoriteRemovals: r.favoriteRemovals ?? {},
     notes: r.notes ?? {},
     settings: { ...DEFAULT_SETTINGS, ...(r.settings ?? {}) },
+    settingsAt: typeof r.settingsAt === 'number' ? r.settingsAt : 0,
+    daily: r.daily ?? {},
+    challenges: Array.isArray(r.challenges) ? r.challenges : [],
+    achievements: r.achievements ?? {},
+    resetAt: typeof r.resetAt === 'number' ? r.resetAt : 0,
   };
 }
 
@@ -117,10 +170,25 @@ export function toggleFavorite(
   const k = qkey(q);
   if (isFavorite(state, q)) {
     delete state.favorites[k];
+    // 墓碑：让「取消收藏」也能跨设备同步，避免合并时被另一端的旧收藏复活
+    state.favoriteRemovals[k] = now;
     return false;
   }
+  delete state.favoriteRemovals[k];
   state.favorites[k] = now;
   return true;
+}
+
+/** 清空答题记录，但保留收藏、心得、成就与设置；resetAt 供云端合并时丢弃旧数据 */
+export function resetProgressState(state: PersistedState, now = Date.now()): PersistedState {
+  return {
+    ...state,
+    answers: {},
+    wrong: {},
+    daily: {},
+    challenges: [],
+    resetAt: now,
+  };
 }
 
 /** 收藏的题目，按收藏时间从新到旧 */

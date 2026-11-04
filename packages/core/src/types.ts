@@ -55,15 +55,69 @@ export interface QuestionNote {
   at: number; // 记录时间戳
 }
 
+/** 某一天的学习记录（本地时区日期，YYYY-MM-DD） */
+export interface DailyRecord {
+  date: string;
+  /** 当天作答次数 */
+  answered: number;
+  /** 当天答对次数 */
+  correct: number;
+  /** 当天是否完成了每日一练 */
+  completed: boolean;
+  /** 最近一次更新时间 */
+  t: number;
+}
+
+export type ChallengeKind = 'daily' | 'timed' | 'exam';
+
+/** 一次挑战/模拟考的成绩记录 */
+export interface ChallengeRecord {
+  /** 客户端生成的唯一 id */
+  id: string;
+  kind: ChallengeKind;
+  /** 开始日期 YYYY-MM-DD */
+  date: string;
+  /** 答对题数 */
+  score: number;
+  /** 总题数 */
+  total: number;
+  /** 实际用时（毫秒） */
+  durationMs: number;
+  /** 完成时间 */
+  finishedAt: number;
+  /** 模拟考是否及格 */
+  passed?: boolean;
+}
+
+/** 成就解锁记录 */
+export interface AchievementUnlock {
+  unlockedAt: number;
+}
+
 /** 持久化进度 */
 export interface PersistedState {
   schemaVersion: number;
   answers: Record<string, AnswerRecord>;
   wrong: Record<string, number>; // 键 → 错误次数
   favorites: Record<string, number>; // 键 → 收藏时间戳
+  /** 取消收藏的时间戳（墓碑，保证删除能跨设备同步） */
+  favoriteRemovals: Record<string, number>;
   notes: Record<string, QuestionNote[]>; // 键 → 心得时间线（旧→新）
   settings: Settings;
+  /** 设置最近修改时间，用于多设备合并 */
+  settingsAt: number;
+  /** 按日期的学习记录 */
+  daily: Record<string, DailyRecord>;
+  /** 挑战与模拟考成绩 */
+  challenges: ChallengeRecord[];
+  /** 成就 id → 解锁时间 */
+  achievements: Record<string, AchievementUnlock>;
+  /** 最近一次「清空记录」的时间戳；早于它的记录在合并时被丢弃 */
+  resetAt: number;
 }
+
+/** 练习模式 */
+export type SessionMode = 'practice' | 'daily' | 'timed' | 'exam';
 
 /** 会话中的一题（含乱序映射） */
 export interface SessionItem {
@@ -83,6 +137,16 @@ export interface QuizSession {
   idx: number;
   reviewOnly: boolean;
   list: SessionItem[];
+  /** 练习模式（旧会话快照没有该字段，按 practice 处理） */
+  mode?: SessionMode;
+  /** 开始时间（挑战/模拟考计时用） */
+  startedAt?: number;
+  /** 限时毫秒数，0/缺省表示不限时 */
+  durationMs?: number;
+  /** 每日一练对应日期 */
+  date?: string;
+  /** 随机抽题种子（可用于复盘） */
+  seed?: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -92,8 +156,8 @@ export const DEFAULT_SETTINGS: Settings = {
   autoNext: 1600,
 };
 
-/** 进度存储当前 schema 版本；跨设备同步时据此做迁移（v2 增加 favorites，v3 增加 notes） */
-export const SCHEMA_VERSION = 3;
+/** 进度存储当前 schema 版本；v4 增加打卡、挑战、成就与云端合并所需字段 */
+export const SCHEMA_VERSION = 4;
 
 export function qkey(q: Pick<Question, 'c' | 'n'> | Question): string {
   return `${q.c}-${q.n}`;
@@ -101,4 +165,13 @@ export function qkey(q: Pick<Question, 'c' | 'n'> | Question): string {
 
 export function chapterTitle(data: QuizData, c: number): string {
   return data.chapters[String(c)] ?? `第${String(c).padStart(2, '0')}章`;
+}
+
+/** 本地时区的日期键 YYYY-MM-DD */
+export function dateKey(ts = Date.now()): string {
+  const d = new Date(ts);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }

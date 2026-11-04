@@ -1,4 +1,4 @@
-import { createSession, gradeAnswer, normalizeState, shouldAutoAdvance, wrongQuestions, unansweredQuestions, questionsOfChapter, qkey, isFavorite, toggleFavorite, favoriteQuestions, notesFor, addQuestionNote, DEFAULT_SETTINGS, SCHEMA_VERSION, type QuizData } from '../src/index.ts';
+import { createSession, gradeAnswer, normalizeState, shouldAutoAdvance, wrongQuestions, unansweredQuestions, questionsOfChapter, qkey, isFavorite, toggleFavorite, favoriteQuestions, notesFor, addQuestionNote, mergeStates, dailyQuestions, scoreSession, makeChallengeRecord, achievementProgress, evaluateAchievements, resetProgressState, gradeAnswer as grade, DEFAULT_SETTINGS, SCHEMA_VERSION, dateKey, type QuizData, type PersistedState } from '../src/index.ts';
 
 const data: QuizData = {
   generatedFrom: 'test',
@@ -74,6 +74,116 @@ ok(timeline.length===2 && timeline[0].text==='第一条心得' && timeline[1].te
 ok(timeline[0].id !== timeline[1].id, 'note ids unique');
 ok(notesFor(noteState, data.questions[1]).length===0, 'notes scoped by question');
 ok(noteState.answers[qkey(data.questions[0])] == null, 'note does not touch answers');
+
+// ---------- schema v4：新增字段与迁移 ----------
+const v4 = normalizeState({ schemaVersion: 3, answers: {}, wrong: {}, favorites: {}, notes: {}, settings: {} });
+ok(v4.schemaVersion === 4, 'schema bumped to v4');
+ok(v4.favoriteRemovals && v4.daily && v4.achievements && Array.isArray(v4.challenges), 'v4 migration fills sync fields');
+ok(v4.resetAt === 0 && v4.settingsAt === 0, 'v4 migration defaults timestamps');
+
+// ---------- 合并：作答 / 错题 ----------
+const base = normalizeState({});
+const aState: PersistedState = normalizeState({
+  ...base,
+  answers: { '1-1': { ok: true, tries: 1, t: 200 } },
+  wrong: {},
+});
+const bState: PersistedState = normalizeState({
+  ...base,
+  answers: {
+    '1-1': { ok: false, tries: 2, t: 300 },
+    '1-2': { ok: true, tries: 1, t: 150 },
+  },
+  wrong: { '1-1': 2 },
+});
+const merged = mergeStates(aState, bState);
+ok(merged.answers['1-1'].ok === false && merged.answers['1-1'].t === 300, 'merge answers by newer timestamp');
+ok(merged.answers['1-1'].tries === 2, 'merge tries by max');
+ok(merged.answers['1-2'].ok === true, 'merge answers union');
+ok(merged.wrong['1-1'] === 2, 'wrong kept when latest answer is wrong');
+
+const corrected = mergeStates(merged, normalizeState({ answers: { '1-1': { ok: true, tries: 1, t: 400 } } }));
+ok(!corrected.wrong['1-1'], 'wrong removed after later correct answer');
+
+// ---------- 合并：收藏删除墓碑 ----------
+const favA = normalizeState({ favorites: { '1-1': 100 }, favoriteRemovals: { '1-1': 200 } });
+const favB = normalizeState({ favorites: { '1-1': 50, '1-2': 120 } });
+const favMerged = mergeStates(favA, favB);
+ok(!favMerged.favorites['1-1'] && favMerged.favoriteRemovals['1-1'] === 200, 'favorite removal wins over older add');
+ok(favMerged.favorites['1-2'] === 120, 'favorite union');
+
+// ---------- 合并：心得去重 / 设置后写胜 ----------
+const noteA = normalizeState({ notes: { '1-1': [{ id: 'n1', text: 'a', at: 100 }] } });
+const noteB = normalizeState({ notes: { '1-1': [{ id: 'n1', text: 'a', at: 100 }, { id: 'n2', text: 'b', at: 200 }] } });
+ok(mergeStates(noteA, noteB).notes['1-1'].length === 2, 'notes union dedupe by id');
+
+const setA = normalizeState({ settings: { ...DEFAULT_SETTINGS, count: 10 }, settingsAt: 100 });
+const setB = normalizeState({ settings: { ...DEFAULT_SETTINGS, count: 50 }, settingsAt: 200 });
+ok(mergeStates(setA, setB).settings.count === 50, 'settings newer wins');
+
+// ---------- 合并：resetAt 丢弃旧数据 ----------
+const resetA = normalizeState({ resetAt: 1000, answers: {}, wrong: {} });
+const oldB = normalizeState({ answers: { '1-1': { ok: true, tries: 1, t: 500 } } });
+ok(!mergeStates(resetA, oldB).answers['1-1'], 'resetAt drops pre-reset answers');
+const newB = normalizeState({ answers: { '1-2': { ok: true, tries: 1, t: 1500 } } });
+ok(mergeStates(resetA, newB).answers['1-2'].ok === true, 'post-reset answers kept');
+
+// 合并幂等
+const once = mergeStates(aState, bState);
+const twice = mergeStates(once, bState);
+ok(JSON.stringify(once) === JSON.stringify(twice), 'merge is idempotent');
+
+// ---------- 每日一练确定性 ----------
+const day = '2026-11-03';
+const d1 = dailyQuestions(data, day);
+const d2 = dailyQuestions(data, day);
+ok(d1.length === 3 && JSON.stringify(d1.map(qkey)) === JSON.stringify(d2.map(qkey)), 'daily questions deterministic');
+ok(dailyQuestions(data, '2026-11-04').length === 3, 'daily questions valid for another date');
+
+// ---------- 挑战成绩 ----------
+const examSession = createSession(data.questions, '模拟考', { mode: 'exam', startedAt: 1000, durationMs: 9000 });
+examSession.list.forEach((it) => { it.done = true; it.lastPick = it.map.indexOf(it.q.a); });
+ok(scoreSession(examSession).score === 3, 'scoreSession counts correct');
+const examRec = makeChallengeRecord(examSession, 5000);
+ok(examRec?.kind === 'exam' && examRec.score === 3 && examRec.total === 3 && examRec.passed === false, 'exam record fields');
+const dailySession = createSession(data.questions, '每日一练', { mode: 'daily', date: day, startedAt: 1000 });
+dailySession.list.forEach((it) => { it.done = true; it.lastPick = it.map.indexOf(it.q.a); });
+ok(makeChallengeRecord(dailySession, 2000)?.kind === 'daily', 'daily challenge record');
+
+// ---------- 成就 ----------
+const achState = normalizeState({
+  answers: {
+    '1-1': { ok: true, tries: 1, t: 1000 },
+    '1-2': { ok: true, tries: 1, t: 1001 },
+    '2-1': { ok: true, tries: 1, t: 1002 },
+  },
+  notes: { '1-1': [{ id: 'x', text: '记', at: 1003 }] },
+  daily: {
+    '2026-11-01': { date: '2026-11-01', answered: 1, correct: 1, completed: false, t: 1 },
+    '2026-11-02': { date: '2026-11-02', answered: 1, correct: 1, completed: false, t: 2 },
+    '2026-11-03': { date: '2026-11-03', answered: 1, correct: 1, completed: true, t: 3 },
+  },
+});
+const unlocked = evaluateAchievements(achState, data, 2000);
+ok(Boolean(unlocked.first_steps), 'achievement first_steps');
+ok(Boolean(unlocked.chapter_clear), 'achievement chapter_clear');
+ok(Boolean(unlocked.note_first), 'achievement note_first');
+ok(Boolean(unlocked.streak_3), 'achievement streak_3');
+ok(!unlocked.streak_7, 'streak_7 not unlocked');
+const progress = achievementProgress(achState, data);
+const firstSteps = progress.find((p) => p.id === 'first_steps')!;
+ok(firstSteps.unlocked && firstSteps.current === 3, 'achievement progress value');
+
+// ---------- 清空记录 ----------
+const resetState = resetProgressState(achState, 3000);
+ok(resetState.resetAt === 3000 && Object.keys(resetState.answers).length === 0, 'reset clears answers');
+ok(resetState.notes['1-1'].length === 1 && Object.keys(resetState.achievements).length === 0, 'reset keeps notes');
+
+// ---------- 判分写入每日记录 ----------
+const dailyGrade = normalizeState({});
+grade(dailyGrade, createSession([data.questions[0]], 't').list[0], 0, 1234);
+const today = dateKey(1234);
+ok(dailyGrade.daily[today].answered === 1 && dailyGrade.daily[today].correct === 1, 'grade updates daily record');
 
 console.log(`\n${passes} passed, ${fails} failed`);
 process.exit(fails?1:0);

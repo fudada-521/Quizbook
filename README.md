@@ -14,6 +14,7 @@
 │   └── storage/                # 进度存储适配层：localStorage/文件/云同步接口
 └── apps/
     ├── web/                    # React + Vite + TS 前端（所有端共用）
+    ├── server/                 # Fastify 后端：登录 + 云同步（本地可跑）
     ├── desktop/                # Tauri 2 桌面壳（macOS/Windows/Linux）
     └── mobile/                 # Capacitor 移动壳（iOS/Android）
 ```
@@ -28,6 +29,7 @@ pnpm preview          # 本地预览构建产物
 pnpm test             # 运行 core 单元测试
 pnpm desktop:dev      # 桌面 App 开发模式
 pnpm desktop:build    # 桌面 App 打包（apps/desktop/src-tauri/target/release/）
+pnpm server:dev       # 后端本地开发（http://127.0.0.1:8787，默认开发模式登录）
 ```
 
 ### 各端使用方式
@@ -75,13 +77,14 @@ gradle assembleDebug            # 或 ./gradlew assembleDebug
 
 - `a` 是 **0 基下标**（`a:3` 表示 D）。
 - 题目唯一键 `${c}-${n}`，新增题目必须保证唯一。
-- 进度持久化 schema 见 `packages/core/src/types.ts`（`PersistedState`，当前 `schemaVersion: 3`，包含 `favorites` 收藏表与 `notes` 题目心得时间线）。
+- 进度持久化 schema 见 `packages/core/src/types.ts`（`PersistedState`，当前 `schemaVersion: 4`，包含收藏、题目心得、每日打卡、挑战记录与成就）。
 
 ## 架构
 
 - **`@quiz/core`**：纯函数领域逻辑，无 DOM/框架依赖，可用 `pnpm test` 单测。
-- **`@quiz/storage`**：`ProgressStore` 接口（`load`/`save`/`subscribe`）+ `SyncBackend` 接口（`pull`/`push`）。
-  Web 用 `localStorage`（`@quiz/storage/web`），桌面/移动可注入文件或原生存储实现，云同步实现 `SyncBackend` 即可接入。
+- **`@quiz/storage`**：`ProgressStore` 接口（`load`/`save`/`subscribe`）+ 云同步客户端 `CloudClient`（设备码登录、拉取/推送）与本地 token 存储。
+  Web 用 `localStorage`（`@quiz/storage/web`），桌面/移动可注入文件或原生存储实现。
+- **`@quiz/server`**：Fastify + TypeScript + SQLite。设备码授权登录（三端统一走系统浏览器；支持 GitHub OAuth，本地可用开发模式），Bearer token 鉴权，服务端用 `mergeStates()` 合并多端进度并权威校验成就。详见 `apps/server/README.md`。
 - **`@quiz/web`**：React UI，通过 `QuizStore`（Context + hook）封装状态；极简工具风界面（浅色/深色自动跟随系统）、百词斩式答题卡片、答对自动跳转（答错停留）、章节进度、错题本、收藏夹、题目心得、答题卡、键盘快捷键。
 - **断点续做**：未完成的练习会话保存在本机（`quizbook_quiz_session_v1`），退出或重新打开后可回到原题继续。
 
@@ -96,7 +99,10 @@ gradle assembleDebug            # 或 ./gradlew assembleDebug
 | 题目心得 | 在答题解析与收藏详情中按时间线追加个人心得（不可修改），支持 ⌘/Ctrl+Enter 记录；开始写心得会取消本题自动跳转 |
 | 答题卡 / 快捷键 | 顶栏答题卡跳转；A–D 选择、Enter 继续、←→ 翻题 |
 | 选项乱序 | 防死记位置 |
-| 进度保存 | Web 存 localStorage；可导出/导入 JSON（跨端手动同步），预留云同步接口 |
+| 挑战模式 | 每日一练（10 题，按日期确定性抽题）、限时挑战（20 题 / 10 分钟）、模拟考（75 题 / 150 分钟，45 分及格），倒计时结束自动交卷 |
+| 成就系统 | 10 个核心成就（进度 / 习惯 / 收藏 / 挑战），解锁后弹提示；服务端登录时权威校验，防篡改 |
+| 云同步 | GitHub 设备码登录；离线优先，本地照常记录，登录后自动合并多端进度（收藏、心得、打卡、成就） |
+| 进度保存 | 本地存 localStorage；可导出/导入 JSON 手动迁移；可选云端同步 |
 | 断点续做 | 未完成的练习自动保存，退出或重新打开后从原题继续 |
 
 ## 已知限制
@@ -104,4 +110,4 @@ gradle assembleDebug            # 或 ./gradlew assembleDebug
 1. 题目文字来自题库整理，个别字词可能存在错别字，不影响作答。
 2. 少数含网络图/表格的计算题文字描述不完整，属原书图片内容，可忽略。
 3. 被刻意剔除的多空题导致题号间断，不要"修复"编号连续性。
-4. 云同步需后端；当前提供接口桩 + 文件导入导出，接入任意云需实现 `SyncBackend`（见 `TODO.md`）。
+4. 云同步已接入（`apps/server` + 设备码登录），但 Docker 镜像与 Tauri / Capacitor 真机流程尚未实际验证；不登录时仍可完全离线使用，导出/导入 JSON 依旧可用（见 `TODO.md`）。

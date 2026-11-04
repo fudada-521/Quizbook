@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuiz } from '../store/QuizStore';
 import { isFavorite, qkey, type SessionItem } from '@quiz/core';
 import { Icon } from '../components/Icon';
@@ -19,9 +19,30 @@ export function QuizView() {
     toggleSheet,
     setAutoPending,
     toggleFavorite,
+    finish,
   } = useQuiz();
   const sess = app.session;
   const it = sess?.list[sess.idx];
+  const deadline = sess?.durationMs && sess.startedAt ? sess.startedAt + sess.durationMs : null;
+  const [remainingMs, setRemainingMs] = useState(0);
+  const expiredRef = useRef(false);
+
+  // 限时挑战 / 模拟考倒计时，到点自动交卷
+  useEffect(() => {
+    if (!deadline) return;
+    expiredRef.current = false;
+    const tick = () => {
+      const left = deadline - Date.now();
+      setRemainingMs(Math.max(0, left));
+      if (left <= 0 && !expiredRef.current) {
+        expiredRef.current = true;
+        finish();
+      }
+    };
+    tick();
+    const id = window.setInterval(tick, 500);
+    return () => window.clearInterval(id);
+  }, [deadline, finish]);
 
   // 键盘
   useEffect(() => {
@@ -64,6 +85,12 @@ export function QuizView() {
             <span className="count">
               {sess.idx + 1} / {sess.list.length}
             </span>
+            {deadline && (
+              <span className={`quiz-timer${remainingMs <= 60_000 ? ' urgent' : ''}`}>
+                <Icon name="clock" size={14} />
+                {formatClock(remainingMs)}
+              </span>
+            )}
           </div>
           <button className="btn ghost sm" onClick={toggleSheet}>
             <Icon name="grid" size={16} />
@@ -119,6 +146,16 @@ export function QuizView() {
       </article>
     </div>
   );
+}
+
+function formatClock(ms: number): string {
+  const total = Math.ceil(ms / 1000);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const mm = String(m).padStart(2, '0');
+  const ss = String(s).padStart(2, '0');
+  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
 }
 
 function Options({ item }: { item: SessionItem }) {

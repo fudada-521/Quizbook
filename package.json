@@ -18,7 +18,9 @@
     "desktop:build": "pnpm --filter @quiz/desktop build",
     "mobile:sync": "pnpm --filter @quiz/mobile sync",
     "mobile:ios": "pnpm --filter @quiz/mobile ios",
-    "mobile:android": "pnpm --filter @quiz/mobile android"
+    "mobile:android": "pnpm --filter @quiz/mobile android",
+    "server:dev": "pnpm --filter @quiz/server dev",
+    "server:start": "pnpm --filter @quiz/server start"
   },
   "devDependencies": {
     "tsx": "^4.23.15",
