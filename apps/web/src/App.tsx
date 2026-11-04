@@ -40,11 +40,9 @@ function Shell() {
 
   return (
     <div className="app-shell" data-view={app.view}>
-      {app.view === 'home' && (
-        <div className="light-field" aria-hidden="true">
-          <WaterLight className="water-light" />
-        </div>
-      )}
+      <div className="light-field" aria-hidden="true">
+        <WaterLight className="water-light" />
+      </div>
       {!inQuiz && (
         <header className="app-head">
           <button className="brand" onClick={() => setView('home')} aria-label="返回首页">

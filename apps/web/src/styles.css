@@ -320,23 +320,29 @@ kbd {
 }
 
 .light-field {
-  position: absolute;
-  top: 0;
-  right: max(0px, calc((100% - var(--maxw)) / 2 - 24px));
-  z-index: 0;
-  width: min(46%, 620px);
-  height: 440px;
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
   -webkit-mask-image: radial-gradient(
-    ellipse 46% 62% at 62% 28%,
+    ellipse 92% 82% at 60% 18%,
     var(--color-ink) 0%,
-    transparent 78%
+    var(--color-ink) 38%,
+    transparent 88%
   );
   mask-image: radial-gradient(
-    ellipse 46% 62% at 62% 28%,
+    ellipse 92% 82% at 60% 18%,
     var(--color-ink) 0%,
-    transparent 78%
+    var(--color-ink) 38%,
+    transparent 88%
   );
+}
+
+/* 答题时背景光收敛一些，别和题干抢注意力 */
+.app-shell[data-view='quiz'] .light-field {
+  opacity: 0.55;
 }
 
 .water-light {
@@ -2500,19 +2506,17 @@ dialog#settings::backdrop {
   }
 
   .light-field {
-    top: 0;
-    right: -24%;
-    width: 118%;
-    height: 320px;
     -webkit-mask-image: radial-gradient(
-      ellipse 52% 62% at 58% 24%,
+      ellipse 120% 74% at 60% 12%,
       var(--color-ink) 0%,
-      transparent 78%
+      var(--color-ink) 32%,
+      transparent 86%
     );
     mask-image: radial-gradient(
-      ellipse 52% 62% at 58% 24%,
+      ellipse 120% 74% at 60% 12%,
       var(--color-ink) 0%,
-      transparent 78%
+      var(--color-ink) 32%,
+      transparent 86%
     );
   }
 
