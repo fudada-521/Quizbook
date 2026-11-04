@@ -836,8 +836,10 @@ kbd {
 }
 
 .question-card {
+  --card-pad-x: 32px;
+  --card-pad-y: 32px;
   margin-top: var(--space-lg);
-  padding: 32px;
+  padding: var(--card-pad-y) var(--card-pad-x);
   border: 1px solid var(--color-rule);
   border-radius: var(--radius-card);
   background: var(--surface-panel);
@@ -1260,13 +1262,23 @@ kbd {
   white-space: pre-wrap;
 }
 
+/* 解析展开后卡片会远超一屏，翻题按钮吸在视口底部，随时可点 */
 .quiz-nav {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--z-raised);
   display: flex;
   justify-content: space-between;
   gap: var(--space-sm);
   margin-top: var(--space-lg);
-  padding-top: 20px;
+  margin-inline: calc(var(--card-pad-x, 0px) * -1);
+  padding: 14px var(--card-pad-x, 0px)
+    calc(14px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--color-rule);
+  background: var(--surface-panel);
+  box-shadow: var(--shadow-bar);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
 .shortcut-hint {
@@ -2140,13 +2152,18 @@ dialog#settings::backdrop {
 .toast-stack {
   position: fixed;
   left: 50%;
-  bottom: 22px;
+  bottom: calc(22px + env(safe-area-inset-bottom, 0px));
   z-index: var(--z-toast);
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
   width: min(380px, calc(100% - 32px));
   transform: translateX(-50%);
+}
+
+/* 答题页翻题条吸在视口底部，成就提示要让开它 */
+.app-shell[data-view='quiz'] .toast-stack {
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
 }
 
 .toast {
@@ -2380,8 +2397,9 @@ dialog#settings::backdrop {
   }
 
   .question-card {
+    --card-pad-x: 18px;
+    --card-pad-y: 22px;
     margin-top: 18px;
-    padding: 22px 18px;
   }
 
   .stem {

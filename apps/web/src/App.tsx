@@ -39,7 +39,7 @@ function Shell() {
   const inQuiz = app.view === 'quiz';
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" data-view={app.view}>
       {app.view === 'home' && (
         <div className="light-field" aria-hidden="true">
           <WaterLight className="water-light" />

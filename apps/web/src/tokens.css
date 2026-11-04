@@ -63,6 +63,7 @@
   --shadow-card: 18px 28px 48px -26px oklch(0% 0 0 / 0.14),
     2px 3px 6px -2px oklch(0% 0 0 / 0.06);
   --shadow-cast: 28px 40px 70px -30px oklch(0% 0 0 / 0.16);
+  --shadow-bar: 0 -18px 32px -26px oklch(0% 0 0 / 0.2);
   --shadow-dialog: 0 28px 80px -24px oklch(0% 0 0 / 0.22);
   --backdrop: oklch(0% 0 0 / 0.42);
 
@@ -126,6 +127,7 @@
     --shadow-card: 0 18px 48px -26px oklch(0% 0 0 / 0.7),
       0 2px 6px -2px oklch(0% 0 0 / 0.5);
     --shadow-cast: 0 28px 70px -30px oklch(0% 0 0 / 0.75);
+    --shadow-bar: 0 -18px 32px -26px oklch(0% 0 0 / 0.7);
     --shadow-dialog: 0 28px 90px -24px oklch(0% 0 0 / 0.85);
     --backdrop: oklch(0% 0 0 / 0.72);
   }
