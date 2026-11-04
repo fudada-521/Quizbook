@@ -46,7 +46,7 @@ button {
   width: 100%;
   max-width: var(--maxw);
   margin: 0 auto;
-  padding: 20px 32px var(--space-xs);
+  padding: calc(20px + env(safe-area-inset-top, 0px)) 32px var(--space-xs);
 }
 
 .brand {
@@ -690,6 +690,8 @@ kbd {
 .quiz-page {
   max-width: 760px;
   margin: 0 auto;
+  /* 给悬空的底部胶囊栏留出空间，避免遮住最后的解析 / 心得 */
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
 }
 
 .quiz-bar {
@@ -698,8 +700,19 @@ kbd {
   z-index: var(--z-sticky);
   margin: 0 -32px;
   padding: calc(var(--space-sm) + env(safe-area-inset-top, 0px)) 32px 0;
-  border-bottom: 1px solid var(--color-rule);
   background: var(--color-paper);
+}
+
+/* 吸顶栏下方柔和渐隐：内容滚过时不会被栏底硬切 */
+.quiz-bar::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: -16px;
+  left: 0;
+  height: 16px;
+  background: linear-gradient(to bottom, var(--color-paper), transparent);
+  pointer-events: none;
 }
 
 .quiz-bar-row {
@@ -892,6 +905,11 @@ kbd {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+}
+
+/* 解析卡排在选项之上时，两者之间留出呼吸间距 */
+.reveal + .options {
+  margin-top: var(--space-md);
 }
 
 .option {
@@ -1284,23 +1302,79 @@ kbd {
   white-space: pre-wrap;
 }
 
-/* 解析展开后卡片会远超一屏，翻题按钮吸在视口底部，随时可点 */
-.quiz-nav {
-  position: sticky;
-  bottom: 0;
+/* 悬空胶囊操作栏：脱离文档流固定在视口底部，主操作占满余下宽度 */
+.quiz-actionbar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   z-index: var(--z-raised);
   display: flex;
-  justify-content: space-between;
-  gap: var(--space-sm);
-  margin-top: var(--space-lg);
-  margin-inline: calc(var(--card-pad-x, 0px) * -1);
-  padding: 14px var(--card-pad-x, 0px)
-    calc(14px + env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid var(--color-rule);
+  align-items: center;
+  gap: 8px;
+  width: min(calc(100% - 32px), 460px);
+  padding: 8px;
+  transform: translateX(-50%);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklab, var(--surface-panel) 86%, transparent);
+  box-shadow: var(--shadow-card), var(--edge-light);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+.qbar-btn {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 1px solid var(--color-rule);
+  border-radius: 50%;
   background: var(--surface-panel);
-  box-shadow: var(--shadow-bar);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
+  color: var(--color-ink-2);
+  font-family: var(--font-body);
+  box-shadow: var(--edge-light);
+  transition: background var(--dur-micro) var(--ease-out),
+    border-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out),
+    opacity var(--dur-micro) var(--ease-out), transform var(--dur-micro) var(--ease-out);
+}
+
+.qbar-btn:not(:disabled):hover {
+  border-color: var(--color-shade-2);
+  background: var(--surface-panel-2);
+  color: var(--color-ink);
+}
+
+.qbar-btn:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+.qbar-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.qbar-btn.primary {
+  display: inline-flex;
+  flex: 1;
+  width: auto;
+  justify-content: center;
+  gap: 8px;
+  border-color: transparent;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: var(--on-accent);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  box-shadow: var(--edge-light), var(--shadow-card);
+}
+
+.qbar-btn.primary:hover {
+  border-color: transparent;
+  background: var(--color-accent-hi);
+  color: var(--on-accent);
 }
 
 .shortcut-hint {
@@ -1308,6 +1382,11 @@ kbd {
   color: var(--color-muted);
   font-size: 12px;
   text-align: center;
+}
+
+/* 右侧导航栏只在宽屏出现，移动端不占位 */
+.quiz-rail {
+  display: none;
 }
 
 /* ============================================================
@@ -2393,7 +2472,8 @@ dialog#settings::backdrop {
 
 @media (max-width: 720px) {
   .app-head {
-    padding: 18px var(--space-md) 6px;
+    /* 真机/PWA 全屏时内容会铺到状态栏下方，顶部需加安全区内边距 */
+    padding: calc(18px + env(safe-area-inset-top, 0px)) var(--space-md) 6px;
   }
 
   .app-main {
@@ -2600,8 +2680,9 @@ dialog#settings::backdrop {
     display: none;
   }
 
-  .quiz-nav .btn {
-    min-height: 42px;
+  .qbar-btn {
+    width: 44px;
+    height: 44px;
   }
 
   .setting-row {
@@ -2667,6 +2748,277 @@ dialog#settings::backdrop {
 @media (hover: none) {
   .shortcut-hint,
   .note-hint {
+    display: none;
+  }
+}
+
+/* ============================================================
+   宽屏答题工作区（≥1100）
+   ============================================================ */
+
+@media (min-width: 1100px) {
+  /* 容器与顶部栏 / 首页对齐到 1120px */
+  .app-main.quiz-main {
+    max-width: var(--maxw);
+    padding-bottom: 0;
+  }
+
+  .quiz-page {
+    --quiz-rail-w: clamp(272px, 25vw, 300px);
+    --quiz-gap: clamp(20px, 2.2vw, 28px);
+    /* 吸顶栏高度约 60px + 16px 间距 */
+    --quiz-rail-top: calc(76px + env(safe-area-inset-top, 0px));
+
+    max-width: none;
+    padding-bottom: calc(48px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* 吸顶栏与工作区左右边缘对齐；标题行收窄到主栏宽度 */
+  .quiz-bar {
+    margin: 0;
+    padding: var(--space-sm) 0 0;
+  }
+
+  .quiz-bar-row {
+    width: calc(100% - var(--quiz-rail-w) - var(--quiz-gap));
+  }
+
+  /* 右侧补一个等宽占位，让标题相对主栏居中 */
+  .quiz-bar-row::after {
+    content: '';
+    flex: none;
+    width: 76px;
+  }
+
+  .quiz-title strong {
+    max-width: 420px;
+  }
+
+  .quiz-sheet-toggle,
+  .quiz-sheet-mobile {
+    display: none;
+  }
+
+  /* 双栏工作区 */
+  .quiz-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--quiz-rail-w);
+    gap: 0 var(--quiz-gap);
+    margin-top: var(--space-lg);
+  }
+
+  .quiz-main-col {
+    min-width: 0;
+  }
+
+  .quiz-main-col > .question-card {
+    margin-top: 0;
+  }
+
+  /* 主栏排版：适度放大，保持紧凑 */
+  .question-card {
+    --card-pad-x: clamp(28px, 3.4vw, 40px);
+    --card-pad-y: clamp(28px, 3.2vw, 36px);
+  }
+
+  .stem {
+    margin-bottom: 28px;
+    font-size: clamp(18px, 1.5vw, 19px);
+    line-height: 1.7;
+  }
+
+  .options {
+    gap: 10px;
+  }
+
+  .option {
+    gap: 14px;
+    padding: 14px 18px;
+    font-size: clamp(14.5px, 1.15vw, 15px);
+    line-height: 1.65;
+  }
+
+  .reveal-body p {
+    font-size: 14px;
+    line-height: 1.8;
+  }
+
+  .question-notes.notes-card {
+    padding: 24px;
+  }
+
+  /* 右栏：吸顶；题号区内部滚动，nav 常驻 */
+  .quiz-rail {
+    position: sticky;
+    top: var(--quiz-rail-top);
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    max-height: calc(100dvh - var(--quiz-rail-top) - var(--space-md));
+    min-width: 0;
+  }
+
+  .quiz-rail-summary {
+    flex: none;
+    padding: 18px 18px 16px;
+  }
+
+  .quiz-rail-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    margin-bottom: 10px;
+  }
+
+  .quiz-rail-head h2 {
+    color: var(--color-ink-2);
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0;
+    line-height: 1.3;
+  }
+
+  .quiz-rail-head > span {
+    color: var(--color-muted);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .quiz-rail-stats {
+    display: flex;
+    gap: 18px;
+    margin: 14px 0 0;
+  }
+
+  .quiz-rail-stats > div {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+  }
+
+  .quiz-rail-stats dt {
+    color: var(--color-muted);
+    font-size: 11.5px;
+  }
+
+  .quiz-rail-stats dd {
+    margin: 0;
+    color: var(--color-ink);
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .quiz-rail-stats dd.ok {
+    color: var(--ok);
+  }
+
+  .quiz-rail-stats dd.bad {
+    color: var(--bad);
+  }
+
+  .quiz-rail-sheet {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    padding: 16px;
+    overflow: hidden;
+  }
+
+  .quiz-rail-sheet .answer-sheet {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    animation: none;
+  }
+
+  .quiz-rail-sheet .answer-sheet-head {
+    flex: none;
+    min-height: 28px;
+    margin-bottom: 10px;
+  }
+
+  .answer-sheet-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+
+  .answer-sheet-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .sheet-nav-btn {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--color-rule);
+    border-radius: 50%;
+    background: var(--surface-panel);
+    color: var(--color-ink-2);
+    box-shadow: var(--edge-light);
+    transition: background var(--dur-micro) var(--ease-out),
+      border-color var(--dur-micro) var(--ease-out),
+      color var(--dur-micro) var(--ease-out), opacity var(--dur-micro) var(--ease-out);
+  }
+
+  .sheet-nav-btn:hover {
+    border-color: var(--color-shade-2);
+    background: var(--surface-panel-2);
+    color: var(--color-ink);
+  }
+
+  .sheet-nav-btn.primary {
+    border-color: transparent;
+    background: var(--color-accent);
+    color: var(--on-accent);
+  }
+
+  .sheet-nav-btn.primary:hover {
+    border-color: transparent;
+    background: var(--color-accent-hi);
+    color: var(--on-accent);
+  }
+
+  .sheet-nav-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  .quiz-rail-sheet .sheet-grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    align-content: start;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 2px;
+    margin: -2px;
+    grid-template-columns: repeat(auto-fill, minmax(30px, 1fr));
+    gap: 6px;
+    scrollbar-width: thin;
+  }
+
+  .quiz-rail-sheet .dot {
+    border-radius: 8px;
+    font-size: 11px;
+  }
+
+  /* 宽屏不再使用底部悬浮胶囊 */
+  .quiz-actionbar {
     display: none;
   }
 }

@@ -73,8 +73,25 @@ export function QuizView() {
     return () => window.removeEventListener('keydown', onKey);
   }, [sess, it, pick, next, prev, settings.instant]);
 
+  // 宽屏切题后回到题目顶部；移动端保持原有的阅读位置
+  useEffect(() => {
+    if (sess?.idx == null) return;
+    if (!window.matchMedia('(min-width: 1100px)').matches) return;
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [sess?.idx]);
+
   if (!sess || !it) return null;
   const done = sess.list.filter((x) => x.done).length;
+  const total = sess.list.length;
+  let okCount = 0;
+  let badCount = 0;
+  for (const item of sess.list) {
+    if (!item.done) continue;
+    const rec = state.answers[qkey(item.q)];
+    if (rec?.ok) okCount++;
+    else if (rec) badCount++;
+  }
+  const pct = total ? Math.round((done / total) * 100) : 0;
   const isLast = sess.idx === sess.list.length - 1;
   const fav = isFavorite(state, it.q);
 
@@ -98,68 +115,117 @@ export function QuizView() {
               </span>
             )}
           </div>
-          <button className="btn ghost sm" onClick={toggleSheet}>
+          <button className="btn ghost sm quiz-sheet-toggle" onClick={toggleSheet}>
             <Icon name="grid" size={16} />
             {app.sheetOpen ? '收起' : '答题卡'}
           </button>
         </div>
         <div className="progress thin accent">
-          <i style={{ transform: `scaleX(${done / sess.list.length})` }} />
+          <i style={{ transform: `scaleX(${done / total})` }} />
         </div>
-        {app.sheetOpen && <AnswerSheet />}
-      </div>
-
-      <article className="question-card" key={sess.idx}>
-        <div className="q-head">
-          <p className="q-meta">
-            {sess.title}，原题 {it.q.n}
-          </p>
-          <button
-            className={`fav-btn${fav ? ' active' : ''}`}
-            onClick={() => toggleFavorite(it.q)}
-            aria-pressed={fav}
-            aria-label={fav ? '取消收藏' : '收藏题目'}
-            title={fav ? '取消收藏' : '收藏题目'}
-          >
-            <Icon name="star" size={16} />
-            <span>{fav ? '已收藏' : '收藏'}</span>
-          </button>
-        </div>
-        <h2 className="stem">{it.q.s}</h2>
-        <Options item={it} />
-
-        {!it.done && settings.instant === 0 && it.pick != null && (
-          <div className="submit-row">
-            <button className="btn primary" onClick={() => pick(it.pick!)}>
-              确认答案
-            </button>
+        {app.sheetOpen && (
+          <div className="quiz-sheet-mobile">
+            <AnswerSheet />
           </div>
         )}
+      </div>
 
-        {it.done && (
-          <Reveal item={it} paused={paused} onPause={() => setPaused(true)} />
-        )}
+      <div className="quiz-workspace">
+        <div className="quiz-main-col">
+          <article className="question-card" key={sess.idx}>
+            <div className="q-head">
+              <p className="q-meta">
+                {sess.title}，原题 {it.q.n}
+              </p>
+              <button
+                className={`fav-btn${fav ? ' active' : ''}`}
+                onClick={() => toggleFavorite(it.q)}
+                aria-pressed={fav}
+                aria-label={fav ? '取消收藏' : '收藏题目'}
+                title={fav ? '取消收藏' : '收藏题目'}
+              >
+                <Icon name="star" size={16} />
+                <span>{fav ? '已收藏' : '收藏'}</span>
+              </button>
+            </div>
+            <h2 className="stem">{it.q.s}</h2>
 
-        <div className="quiz-nav">
-          <button className="btn ghost" disabled={sess.idx === 0} onClick={prev}>
-            上一题
-          </button>
-          <button className="btn primary" onClick={next}>
-            {isLast ? '完成' : '下一题'}
-            <Icon name="arrow-right" size={16} />
-          </button>
+            {/* 判分后解析整体排在选项之上，结论和解析紧贴题干 */}
+            {it.done && (
+              <Reveal item={it} paused={paused} onPause={() => setPaused(true)} />
+            )}
+
+            <Options item={it} />
+
+            {!it.done && settings.instant === 0 && it.pick != null && (
+              <div className="submit-row">
+                <button className="btn primary" onClick={() => pick(it.pick!)}>
+                  确认答案
+                </button>
+              </div>
+            )}
+
+            <p className="shortcut-hint">A、B、C、D 选择；Enter 继续；← → 翻题</p>
+          </article>
+
+          {it.done && (
+            <QuestionNotes
+              className="notes-card"
+              question={it.q}
+              onComposeStart={() => setPaused(true)}
+            />
+          )}
         </div>
 
-        <p className="shortcut-hint">A、B、C、D 选择；Enter 继续；← → 翻题</p>
-      </article>
+        <aside className="quiz-rail" aria-label="答题导航">
+          <section className="panel quiz-rail-summary">
+            <div className="quiz-rail-head">
+              <h2>本组进度</h2>
+              <span>
+                {done} / {total} · {pct}%
+              </span>
+            </div>
+            <div className="progress accent" aria-hidden="true">
+              <i style={{ transform: `scaleX(${done / total})` }} />
+            </div>
+            <dl className="quiz-rail-stats">
+              <div>
+                <dt>正确</dt>
+                <dd className="ok">{okCount}</dd>
+              </div>
+              <div>
+                <dt>错误</dt>
+                <dd className="bad">{badCount}</dd>
+              </div>
+              <div>
+                <dt>未答</dt>
+                <dd>{total - done}</dd>
+              </div>
+            </dl>
+          </section>
 
-      {it.done && (
-        <QuestionNotes
-          className="notes-card"
-          question={it.q}
-          onComposeStart={() => setPaused(true)}
-        />
-      )}
+          <section className="panel quiz-rail-sheet" aria-label="答题卡">
+            <AnswerSheet docked />
+          </section>
+        </aside>
+      </div>
+
+      {/* 悬空胶囊操作栏：主操作占满余下宽度，翻题按钮收成圆点 */}
+      <div className="quiz-actionbar">
+        <button
+          className="qbar-btn"
+          onClick={prev}
+          disabled={sess.idx === 0}
+          aria-label="上一题"
+          title="上一题"
+        >
+          <Icon name="arrow-left" size={18} />
+        </button>
+        <button className="qbar-btn primary" onClick={next}>
+          {isLast ? '完成' : '下一题'}
+          <Icon name="arrow-right" size={18} />
+        </button>
+      </div>
     </div>
   );
 }
@@ -328,18 +394,44 @@ function Reveal({
   );
 }
 
-function AnswerSheet() {
-  const { app, state, jump, toggleSheet } = useQuiz();
+function AnswerSheet({ docked = false }: { docked?: boolean }) {
+  const { app, state, jump, toggleSheet, prev, next } = useQuiz();
   const sess = app.session;
   if (!sess) return null;
   const done = sess.list.filter((it) => it.done).length;
+  const isLast = sess.idx === sess.list.length - 1;
 
   return (
     <div className="answer-sheet">
       <div className="answer-sheet-head">
         <span>答题卡</span>
-        <span>
-          已答 {done} / {sess.list.length}
+        <span className="answer-sheet-meta">
+          <span>
+            已答 {done} / {sess.list.length}
+          </span>
+          {docked && (
+            <span className="answer-sheet-nav">
+              <button
+                type="button"
+                className="sheet-nav-btn"
+                onClick={prev}
+                disabled={sess.idx === 0}
+                aria-label="上一题"
+                title="上一题"
+              >
+                <Icon name="arrow-left" size={15} />
+              </button>
+              <button
+                type="button"
+                className="sheet-nav-btn primary"
+                onClick={next}
+                aria-label={isLast ? '完成' : '下一题'}
+                title={isLast ? '完成' : '下一题'}
+              >
+                <Icon name={isLast ? 'check' : 'arrow-right'} size={15} />
+              </button>
+            </span>
+          )}
         </span>
       </div>
       <div className="sheet-grid">
@@ -355,7 +447,8 @@ function AnswerSheet() {
               className={cls}
               onClick={() => {
                 jump(i);
-                toggleSheet();
+                // 宽屏答题卡常驻，点题号后不收起
+                if (!docked) toggleSheet();
               }}
             >
               {i + 1}
