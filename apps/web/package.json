@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@capacitor/haptics": "^7.0.5",
     "@quiz/core": "workspace:*",
     "@quiz/storage": "workspace:*",
     "react": "^18.3.1",

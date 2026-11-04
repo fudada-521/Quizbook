@@ -1035,51 +1035,91 @@ kbd {
   animation: revealIn var(--dur-short) var(--ease-out);
 }
 
+/* 答对：弹一下 + 绿色光晕，横幅扫过一道高光 */
 .reveal.ok {
   border-color: color-mix(in oklab, var(--ok) 34%, var(--color-rule));
   background: var(--ok-soft);
+  animation: okReveal 720ms var(--ease-out) both;
 }
 
+/* 答错：左右抖动一次，红色边框跟着脉冲 */
 .reveal.bad {
   border-color: color-mix(in oklab, var(--bad) 34%, var(--color-rule));
   background: var(--bad-soft);
+  animation: badReveal 460ms var(--ease-in-out) both;
 }
 
 .reveal-head {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--space-xs);
-  padding: var(--space-sm) var(--space-md);
+  overflow: hidden;
+  padding: 13px var(--space-md);
+  color: var(--on-solid);
+}
+
+.reveal.ok .reveal-head {
+  background: var(--ok-solid);
+}
+
+.reveal.bad .reveal-head {
+  background: var(--bad-solid);
+}
+
+.reveal.ok .reveal-head::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 32%,
+    color-mix(in oklab, var(--on-solid) 32%, transparent) 48%,
+    transparent 64%
+  );
+  transform: translateX(-110%);
+  animation: sheen 760ms var(--ease-out) 160ms 1 both;
+  pointer-events: none;
 }
 
 .reveal-status {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  font-size: 13px;
+  gap: 8px;
+  font-size: 15px;
   font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
-.reveal.ok .reveal-status {
-  color: var(--ok);
+.reveal-status svg {
+  width: 19px;
+  height: 19px;
+  animation: iconPop 420ms var(--ease-out) 120ms 1 both;
 }
 
+.reveal.ok .reveal-status,
 .reveal.bad .reveal-status {
-  color: var(--bad);
+  color: var(--on-solid);
 }
 
 .answer-ref {
-  color: var(--color-ink-2);
-  font-size: 11.5px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklab, var(--on-solid) 18%, transparent);
+  color: var(--on-solid);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .countdown {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  color: var(--color-ink-2);
+  color: var(--on-solid);
   font-size: 11.5px;
   font-variant-numeric: tabular-nums;
 }
@@ -2229,6 +2269,74 @@ dialog#settings::backdrop {
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* 答对：入场 + 轻微弹起 + 一圈渐散的绿色光晕 */
+@keyframes okReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.985);
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--ok) 42%, transparent);
+  }
+  45% {
+    opacity: 1;
+    transform: translateY(0) scale(1.012);
+    box-shadow: 0 0 0 7px color-mix(in oklab, var(--ok) 18%, transparent);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    box-shadow: 0 0 0 18px transparent;
+  }
+}
+
+/* 答错：入场后左右抖动收敛 */
+@keyframes badReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  18% {
+    opacity: 1;
+    transform: translateX(-7px);
+  }
+  36% {
+    transform: translateX(6px);
+  }
+  54% {
+    transform: translateX(-4px);
+  }
+  72% {
+    transform: translateX(3px);
+  }
+  88% {
+    transform: translateX(-1px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes iconPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes sheen {
+  to {
+    transform: translateX(110%);
   }
 }
 

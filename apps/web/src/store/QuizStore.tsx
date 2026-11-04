@@ -63,8 +63,15 @@ import {
   saveServerUrl,
 } from '@quiz/storage/auth';
 import { clearSavedSession, loadSession, saveSession } from './sessionPersistence';
+import { emitAnswerFeedback } from '../feedback';
 
 export type View = 'home' | 'quiz' | 'result' | 'favorites' | 'achievements';
+
+/** 翻题离开时清掉“刚判分”标记，回看已答题不再触发自动跳转 */
+function clearFresh(session: QuizSession | null | undefined): void {
+  if (!session) return;
+  for (const it of session.list) it.fresh = false;
+}
 
 export interface ResumeSummary {
   title: string;
@@ -746,9 +753,12 @@ export function QuizProvider(props: {
       const item = sess.list[sess.idx];
       if (item.done) return;
       const { ok } = gradeAnswer(persistRef.current, item, pickIdx);
+      emitAnswerFeedback(ok ? 'ok' : 'bad', persistRef.current.settings);
       setPersisted({ ...persistRef.current });
       dispatch({ type: 'TICK' });
-      if (shouldAutoAdvance(ok, persistRef.current.settings, sess.reviewOnly)) {
+      if (
+        shouldAutoAdvance(ok, persistRef.current.settings, sess.reviewOnly, item.fresh === true)
+      ) {
         dispatch({ type: 'SET_AUTO_PENDING', pending: true });
       }
     },
@@ -772,15 +782,18 @@ export function QuizProvider(props: {
   );
 
   const next = useCallback(() => {
+    clearFresh(appSessionRef.current);
     dispatch({ type: 'SET_AUTO_PENDING', pending: false });
     dispatch({ type: 'NEXT' });
   }, []);
   const prev = useCallback(() => {
+    clearFresh(appSessionRef.current);
     dispatch({ type: 'SET_AUTO_PENDING', pending: false });
     dispatch({ type: 'PREV' });
   }, []);
   const move = useCallback((d: number) => (d > 0 ? next() : prev()), [next, prev]);
   const jump = useCallback((i: number) => {
+    clearFresh(appSessionRef.current);
     dispatch({ type: 'SET_AUTO_PENDING', pending: false });
     dispatch({ type: 'JUMP', idx: i });
   }, []);

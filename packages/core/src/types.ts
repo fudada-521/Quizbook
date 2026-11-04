@@ -45,6 +45,10 @@ export interface Settings {
   instant: 0 | 1;
   /** 答对后自动跳转毫秒数，0=不自动 */
   autoNext: number;
+  /** 答题音效 0=关 1=开 */
+  sound: 0 | 1;
+  /** 答错触觉反馈 0=关 1=开（移动端生效） */
+  haptics: 0 | 1;
 }
 
 /** 单条题目心得（只追加，不修改） */
@@ -130,6 +134,11 @@ export interface SessionItem {
   pick: number | null;
   /** 最近一次作答的显示下标 */
   lastPick: number;
+  /**
+   * 本次停留内刚判分：只有它为真时才允许答对后自动跳转。
+   * 翻题离开即清除，且不写入会话快照，回看已答题时不会再次倒计时。
+   */
+  fresh?: boolean;
 }
 
 export interface QuizSession {
@@ -154,10 +163,12 @@ export const DEFAULT_SETTINGS: Settings = {
   shuffle: 0,
   instant: 1,
   autoNext: 1600,
+  sound: 1,
+  haptics: 1,
 };
 
-/** 进度存储当前 schema 版本；v4 增加打卡、挑战、成就与云端合并所需字段 */
-export const SCHEMA_VERSION = 4;
+/** 进度存储当前 schema 版本；v5 增加答题音效与触觉反馈开关 */
+export const SCHEMA_VERSION = 5;
 
 export function qkey(q: Pick<Question, 'c' | 'n'> | Question): string {
   return `${q.c}-${q.n}`;

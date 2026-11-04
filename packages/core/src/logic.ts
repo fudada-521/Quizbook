@@ -85,6 +85,7 @@ export function gradeAnswer(
   const ok = realOpt === item.q.a;
   item.done = true;
   item.lastPick = pickIdx;
+  item.fresh = true;
 
   const k = qkey(item.q);
   const prev = state.answers[k];
@@ -125,13 +126,17 @@ export function markDailyCompleted(state: PersistedState, date = dateKey(), now 
   daily.t = now;
 }
 
-/** 是否答对后应自动跳转（答错/关闭/reviewOnly 均不跳） */
+/**
+ * 是否答对后应自动跳转。
+ * 答错、关闭自动跳转、错题回顾模式，以及回看此前已作答的题（fresh=false）都不跳。
+ */
 export function shouldAutoAdvance(
   ok: boolean,
   settings: Settings,
   reviewOnly: boolean,
+  fresh = true,
 ): boolean {
-  return ok && settings.autoNext > 0 && !reviewOnly;
+  return ok && settings.autoNext > 0 && !reviewOnly && fresh;
 }
 
 /** 组装带默认值的持久化状态（含旧数据兼容） */

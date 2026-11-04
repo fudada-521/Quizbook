@@ -59,7 +59,7 @@ pnpm server:dev       # 后端本地开发（Fastify，默认 http://127.0.0.1:8
 - 挑战模式常量与确定性抽题在 `packages/core/src/challenges.ts`（每日一练 10 题、限时 20 题/10 分钟、模拟考 75 题/150 分钟/45 分及格）；成就在 `packages/core/src/achievements.ts`，本地即时解锁，服务端同步时权威复核。
 - `favorites` 是 `题目键 → 收藏时间戳` 的映射；`favoriteQuestions()` 按收藏时间从新到旧返回，`toggleFavorite()` 原地修改状态。收藏专项练习使用全部收藏题；「清空记录」通过 `resetProgress` 保留 `favorites`。
 - `notes` 是 `题目键 → QuestionNote[]` 的心得时间线，只追加、不修改也不删除；`notesFor()` 返回旧→新数组，`addQuestionNote()` 负责去空白并生成题内唯一 id。UI 展示时反转数组使最新在前；「清空记录」同样保留 `notes`。
-- 答对后自动跳转的条件集中在 `shouldAutoAdvance()`：答对、`autoNext > 0`、非错题回顾模式，三者同时满足。
+- 答对后自动跳转的条件集中在 `shouldAutoAdvance()`：答对、`autoNext > 0`、非错题回顾模式，且该题是本次停留内刚判分的（`SessionItem.fresh` 为真，翻题离开即清除、不写入会话快照），四者同时满足。用「上一题」或答题卡回看已答题时不会再次倒计时。
 
 ## 其他注意事项
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuiz } from '../store/QuizStore';
-import { isFavorite, qkey, type SessionItem } from '@quiz/core';
+import { isFavorite, qkey, shouldAutoAdvance, type SessionItem } from '@quiz/core';
 import { Icon } from '../components/Icon';
 import { QuestionNotes } from '../components/QuestionNotes';
 
@@ -227,13 +227,15 @@ function Reveal({
   paused: boolean;
   onPause: () => void;
 }) {
-  const { settings, next, setAutoPending } = useQuiz();
+  const { app, settings, next, setAutoPending } = useQuiz();
   const pickedOrig = item.map[item.lastPick];
   const ok = pickedOrig === item.q.a;
 
   const [remainMs, setRemainMs] = useState(settings.autoNext);
 
-  const shouldAuto = ok && settings.autoNext > 0 && !paused;
+  // 只有刚判分的题（fresh）才自动跳转；用「上一题」回看时停在原地读解析
+  const reviewOnly = app.session?.reviewOnly ?? false;
+  const shouldAuto = !paused && shouldAutoAdvance(ok, settings, reviewOnly, item.fresh === true);
   const total = settings.autoNext;
 
   useEffect(() => {

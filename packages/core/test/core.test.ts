@@ -42,11 +42,18 @@ const r2 = gradeAnswer(state, item2, pickWrong);
 ok(r2.ok===false, 'wrong grade not ok');
 ok(state.wrong[qkey(item2.q)]===1, 'wrong entry recorded');
 
-const SET = {count:20,shuffle:0 as const,instant:1 as const,autoNext:1600};
+const SET = {count:20,shuffle:0 as const,instant:1 as const,autoNext:1600,sound:1 as const,haptics:1 as const};
 ok(shouldAutoAdvance(true, SET, false)===true, 'auto on correct');
 ok(shouldAutoAdvance(false, SET, false)===false, 'no auto on wrong');
 ok(shouldAutoAdvance(true, {...SET,autoNext:0}, false)===false, 'no auto when autoNext=0');
 ok(shouldAutoAdvance(true, SET, true)===false, 'no auto in reviewOnly');
+ok(shouldAutoAdvance(true, SET, false, false)===false, 'no auto when revisiting an answered question');
+
+// 刚判分的题带 fresh 标记，翻题离开后清掉
+const freshItem = createSession(ch1, 't').list[0];
+ok(freshItem.fresh !== true, 'new session item is not fresh');
+gradeAnswer(normalizeState({}), freshItem, freshItem.map.indexOf(freshItem.q.a));
+ok(freshItem.fresh === true, 'grade marks item fresh');
 
 const wq = wrongQuestions(data, state);
 ok(wq.length===1 && qkey(wq[0])==='1-2', 'wrongQuestions');
@@ -77,9 +84,17 @@ ok(noteState.answers[qkey(data.questions[0])] == null, 'note does not touch answ
 
 // ---------- schema v4：新增字段与迁移 ----------
 const v4 = normalizeState({ schemaVersion: 3, answers: {}, wrong: {}, favorites: {}, notes: {}, settings: {} });
-ok(v4.schemaVersion === 4, 'schema bumped to v4');
+ok(v4.schemaVersion === SCHEMA_VERSION, 'schema bumped to current version');
 ok(v4.favoriteRemovals && v4.daily && v4.achievements && Array.isArray(v4.challenges), 'v4 migration fills sync fields');
 ok(v4.resetAt === 0 && v4.settingsAt === 0, 'v4 migration defaults timestamps');
+
+// ---------- schema v5：音效 / 触觉开关 ----------
+const v5 = normalizeState({ schemaVersion: 4, answers: {}, wrong: {}, favorites: {}, notes: {}, settings: {} });
+ok(v5.schemaVersion === 5, 'schema bumped to v5');
+ok(v5.settings.sound === 1 && v5.settings.haptics === 1, 'v5 migration adds feedback settings');
+const v5off = normalizeState({ schemaVersion: 5, answers: {}, wrong: {}, favorites: {}, notes: {}, settings: { sound: 0, haptics: 0 } });
+ok(v5off.settings.sound === 0 && v5off.settings.haptics === 0, 'v5 keeps explicit feedback settings');
+ok(v5off.settings.count === DEFAULT_SETTINGS.count, 'v5 fills missing settings from defaults');
 
 // ---------- 合并：作答 / 错题 ----------
 const base = normalizeState({});

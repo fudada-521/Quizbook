@@ -57,6 +57,10 @@
   --ok-soft: oklch(96% 0.012 160);
   --bad: oklch(47% 0.09 27);
   --bad-soft: oklch(96.5% 0.016 27);
+  /* 答对/答错横幅的实色底，配 --on-solid 反白文字 */
+  --ok-solid: oklch(42% 0.1 158);
+  --bad-solid: oklch(45% 0.15 27);
+  --on-solid: oklch(99.5% 0 0);
 
   --edge-light: inset 0 1px 0 oklch(100% 0 0 / 0.9),
     inset 0 0 0 1px oklch(100% 0 0 / 0.5);
@@ -121,6 +125,8 @@
     --ok-soft: oklch(23% 0.012 160);
     --bad: oklch(72% 0.075 27);
     --bad-soft: oklch(25% 0.015 27);
+    --ok-solid: oklch(48% 0.1 158);
+    --bad-solid: oklch(50% 0.15 27);
 
     --edge-light: inset 0 1px 0 oklch(96% 0 0 / 0.07),
       inset 0 0 0 1px oklch(96% 0 0 / 0.05);

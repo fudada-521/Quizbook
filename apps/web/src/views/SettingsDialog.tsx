@@ -258,6 +258,40 @@ export function SettingsDialog() {
             </select>
           </div>
         </div>
+
+        <div className="setting-row">
+          <div className="setting-copy">
+            <label htmlFor="set-sound">答题音效</label>
+            <p>答对与答错时播放短提示音</p>
+          </div>
+          <div className="setting-control">
+            <select
+              id="set-sound"
+              value={settings.sound}
+              onChange={(e) => patchSettings({ sound: (+e.target.value) as 0 | 1 })}
+            >
+              <option value={1}>开启</option>
+              <option value={0}>关闭</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="setting-row">
+          <div className="setting-copy">
+            <label htmlFor="set-haptics">触觉反馈</label>
+            <p>答错时在手机上轻震一下，桌面端无效果</p>
+          </div>
+          <div className="setting-control">
+            <select
+              id="set-haptics"
+              value={settings.haptics}
+              onChange={(e) => patchSettings({ haptics: (+e.target.value) as 0 | 1 })}
+            >
+              <option value={1}>开启</option>
+              <option value={0}>关闭</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       <div className="dialog-foot">
