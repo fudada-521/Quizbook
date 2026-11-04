@@ -386,25 +386,7 @@ kbd {
   display: flex;
   flex-direction: column;
   grid-area: aside;
-  gap: 0;
-  padding: var(--space-2xs) 20px;
-  border: 1px solid var(--color-rule);
-  border-radius: var(--radius-card);
-  background: var(--surface-panel);
-  box-shadow: var(--edge-light), var(--shadow-card);
-}
-
-.home-aside .panel {
-  padding: 18px 0;
-  border: 0;
-  border-top: 1px solid var(--color-rule-2);
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-.home-aside .panel:first-child {
-  border-top: 0;
+  gap: var(--space-md);
 }
 
 .home-chapters {
@@ -2131,10 +2113,6 @@ dialog#settings::backdrop {
   white-space: nowrap;
 }
 
-.achievement-teaser {
-  padding: var(--space-2xs) 0;
-}
-
 .achievement-link {
   display: flex;
   align-items: center;
@@ -2401,19 +2379,8 @@ dialog#settings::backdrop {
     position: static;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0 var(--space-lg);
-  }
-
-  .home-aside .panel {
-    border-top: 1px solid var(--color-rule-2);
-  }
-
-  .home-aside .panel:nth-child(-n + 2) {
-    border-top: 0;
-  }
-
-  .achievement-teaser {
-    padding: 18px 0;
+    gap: var(--space-md);
+    align-items: start;
   }
 }
 
@@ -2484,14 +2451,6 @@ dialog#settings::backdrop {
 
   .home-aside {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .home-aside .panel {
-    border-top: 1px solid var(--color-rule-2);
-  }
-
-  .home-aside .panel:first-child {
-    border-top: 0;
   }
 
   .quiz-bar {
