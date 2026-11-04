@@ -9,6 +9,7 @@ import { FavoritesView } from './views/FavoritesView';
 import { AchievementsView } from './views/AchievementsView';
 import { SettingsDialog } from './views/SettingsDialog';
 import { Icon } from './components/Icon';
+import { WaterLight } from './components/WaterLight';
 import rawData from '../../../data/questions.json';
 
 export default function App() {
@@ -39,6 +40,11 @@ function Shell() {
 
   return (
     <div className="app-shell">
+      {app.view === 'home' && (
+        <div className="light-field" aria-hidden="true">
+          <WaterLight className="water-light" />
+        </div>
+      )}
       {!inQuiz && (
         <header className="app-head">
           <button className="brand" onClick={() => setView('home')} aria-label="返回首页">

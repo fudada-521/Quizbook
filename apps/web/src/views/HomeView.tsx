@@ -57,19 +57,25 @@ export function HomeView() {
       <header className="page-head">
         <h1>保持节奏，继续推进。</h1>
         <p className="page-sub">
-          已作答 {answered.toLocaleString()} / {total.toLocaleString()} 题 · 正确率 {acc}
+          已作答 {answered.toLocaleString()} / {total.toLocaleString()} 题，正确率 {acc}
         </p>
       </header>
 
       <div className="home-grid">
         <section className="continue-card home-hero">
           <div className="continue-main">
-            <p className="eyebrow accent">{resume ? '未完成练习' : '准备开始'}</p>
-            <h2 className="continue-title">{resume ? resume.title : '智能推进 · 新题优先'}</h2>
+            <div className="continue-head">
+              <h2 className="continue-title">
+                {resume ? resume.title : '智能推进，新题优先'}
+              </h2>
+              <span className="continue-status">
+                {resume ? '未完成练习' : '准备开始'}
+              </span>
+            </div>
             <p className="continue-meta">
               {resume
-                ? `第 ${resume.idx + 1} / ${resume.total} 题 · 已完成 ${resume.done} 题`
-                : `优先未做过的题 · 每组 ${settings.count} 题`}
+                ? `第 ${resume.idx + 1} / ${resume.total} 题，已完成 ${resume.done} 题`
+                : `优先未做过的题，每组 ${settings.count} 题`}
             </p>
             <div className="progress">
               <i
@@ -225,7 +231,9 @@ export function HomeView() {
         <section className="chapters-panel home-chapters">
           <div className="section-head">
             <h2>按章节练习</h2>
-            <span>{Object.keys(byCh).length} 章 · {total.toLocaleString()} 题</span>
+            <span>
+              {Object.keys(byCh).length} 章，共 {total.toLocaleString()} 题
+            </span>
           </div>
           <div className="chapter-list">
             {Object.keys(byCh)

@@ -112,7 +112,7 @@ export function QuizView() {
       <article className="question-card" key={sess.idx}>
         <div className="q-head">
           <p className="q-meta">
-            {sess.title} · 原题 {it.q.n}
+            {sess.title}，原题 {it.q.n}
           </p>
           <button
             className={`fav-btn${fav ? ' active' : ''}`}

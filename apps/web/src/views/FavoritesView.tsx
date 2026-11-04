@@ -44,7 +44,7 @@ export function FavoritesView() {
         <div>
           <h1>收藏的题目</h1>
           <p className="page-sub">
-            共 {favorites.length} 道 · 按收藏时间从新到旧
+            共 {favorites.length} 道，按收藏时间从新到旧
           </p>
         </div>
         {favorites.length > 0 && (
@@ -61,7 +61,7 @@ export function FavoritesView() {
             <button className="fav-row" key={qkey(q)} onClick={() => setDetail(q)}>
               <span className="fav-main">
                 <span className="fav-chapter">
-                  第{String(q.c).padStart(2, '0')}章 {chapterTitle(data, q.c)} · 原题 {q.n}
+                  第{String(q.c).padStart(2, '0')}章 {chapterTitle(data, q.c)}，原题 {q.n}
                 </span>
                 <span className="fav-stem">{q.s}</span>
                 <span className="fav-date">
@@ -101,7 +101,7 @@ export function FavoritesView() {
               <div>
                 <h2 id="fav-detail-title">题目详情</h2>
                 <p className="fav-dialog-meta">
-                  第{String(detail.c).padStart(2, '0')}章 {chapterTitle(data, detail.c)} · 原题{' '}
+                  第{String(detail.c).padStart(2, '0')}章 {chapterTitle(data, detail.c)}，原题{' '}
                   {detail.n}
                 </p>
               </div>

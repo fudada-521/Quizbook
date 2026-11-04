@@ -40,8 +40,9 @@ export function ResultView() {
 
   return (
     <div className="result-page">
-      <p className="eyebrow">
-        {sess.title} · {MODE_LABEL[mode]}
+      <p className="result-meta">
+        <span>{MODE_LABEL[mode]}</span>
+        <strong>{sess.title}</strong>
       </p>
 
       {isExam ? (
@@ -58,7 +59,7 @@ export function ResultView() {
 
       {isExam && (
         <p className={`result-badge${passed ? ' pass' : ' fail'}`}>
-          {passed ? '通过' : '未通过'} · 及格线 {EXAM_PASS_SCORE} 分
+          {passed ? '通过' : '未通过'}，及格线 {EXAM_PASS_SCORE} 分
         </p>
       )}
 

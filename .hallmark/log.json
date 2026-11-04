@@ -1,0 +1,23 @@
+[
+ {
+  "mode": "redesign",
+  "depth": "full",
+  "scope": "app",
+  "shape": "app screen",
+  "theme": "Refract (by request)",
+  "axes": "light/grotesk-sans/cool",
+  "hero": "none: app shell; home opens on the continue sheet beside live water caustics",
+  "nav": "kept: wordmark and four icon controls over a hairline foot",
+  "footer": "none: app shell",
+  "imagery": "generated water caustics signature (canvas)",
+  "photos": [],
+  "entry": "home",
+  "fingerprint": "refract-app-v2",
+  "sections": "Home, Quiz, Result, Favorites, Achievements, Settings",
+  "signature": "live water caustics beside the working panel",
+  "waived": "24b",
+  "prompt": "/hallmark refract: whole-app redesign, keep dark mode as a night pool variant",
+  "check": "0 FAIL, 0 WARN, 83 WAIVED, 5 DISMISSED",
+  "date": "2026-11-04"
+ }
+]

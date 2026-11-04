@@ -104,7 +104,7 @@ export function SettingsDialog() {
                 <p>
                   @{cloud.user.login}
                   {cloud.lastSyncAt
-                    ? ` · 最近同步 ${new Date(cloud.lastSyncAt).toLocaleTimeString('zh-CN', {
+                    ? `，最近同步 ${new Date(cloud.lastSyncAt).toLocaleTimeString('zh-CN', {
                         hour: '2-digit',
                         minute: '2-digit',
                       })}`
