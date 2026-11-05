@@ -84,9 +84,12 @@ export function QuizView() {
     return () => window.removeEventListener('keydown', onKey);
   }, [sess, it, pick, next, prev, settings.instant]);
 
-  // 宽屏切题后回到题目顶部；移动端保持原有的阅读位置
+  // 切题回到题首：手机端滚动在题目区内部（吸顶标题透明，内容不能从它底下穿过），
+  // 非滚动容器上赋值是无操作；宽屏再连带把整页滚回顶部
+  const workspaceRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (sess?.idx == null) return;
+    if (workspaceRef.current) workspaceRef.current.scrollTop = 0;
     if (!window.matchMedia('(min-width: 1100px)').matches) return;
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }, [sess?.idx]);
@@ -141,7 +144,7 @@ export function QuizView() {
         )}
       </div>
 
-      <div className="quiz-workspace">
+      <div className="quiz-workspace" ref={workspaceRef}>
         <div className="quiz-main-col">
           <article className="question-card" key={sess.idx} {...swipeHandlers}>
             <div className="q-head">

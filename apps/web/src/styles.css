@@ -2883,6 +2883,64 @@ dialog {
     padding-bottom: var(--space-xl);
   }
 
+  /* 答题页锁成一屏：滚动只发生在题目区内部。
+     吸顶标题是透明的（要让背景水波纹透出来），整页一旦能滚，题卡文字就会
+     从标题底下穿过来压在一起；把滚动收进标题下方，透光处就只剩下光和背景。 */
+  .app-shell[data-view='quiz'] {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .app-shell[data-view='quiz'] .app-main.quiz-main {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+
+  .app-shell[data-view='quiz'] .quiz-page {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    flex-direction: column;
+    padding-bottom: 0;
+  }
+
+  /* 已在滚动区之外，不必再吸顶；改为相对定位承接悬浮的答题卡 */
+  .app-shell[data-view='quiz'] .quiz-bar {
+    position: relative;
+  }
+
+  /* 答题卡悬浮在题目区之上：一屏高度锁死后，它再占文档流会把题目挤成半屏 */
+  .quiz-sheet-mobile {
+    position: absolute;
+    top: calc(100% - var(--space-sm));
+    right: var(--space-md);
+    left: var(--space-md);
+    z-index: var(--z-sticky);
+  }
+
+  .app-shell[data-view='quiz'] .quiz-workspace {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    /* 底部只需让开悬空胶囊栏（46 按钮 + 8 内边距 + 8 间隙），滚到底时最后的解析不被压住 */
+    padding-bottom: calc(62px + var(--space-md) + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* 一屏高度锁死后，长题的答题卡会把题目挤出屏幕；悬浮后仍要给题号区封顶，
+     260px = 整 7 行（32 行高 + 6 间距），不露半行 */
+  .quiz-sheet-mobile .sheet-grid {
+    max-height: 260px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
   .app-foot {
     padding: 22px var(--space-md) calc(32px + env(safe-area-inset-bottom, 0px));
   }
@@ -2918,22 +2976,40 @@ dialog {
     max-width: 30vw;
   }
 
+  /* 字号保持可读，纵向预算全从留白里省：让长题尽量不用下滑 */
   .question-card {
-    --card-pad-x: 18px;
-    --card-pad-y: 22px;
-    margin-top: 18px;
+    --card-pad-x: 16px;
+    --card-pad-y: 16px;
+    margin-top: 12px;
+  }
+
+  .q-head {
+    margin-bottom: var(--space-xs);
   }
 
   .stem {
     font-size: 17.5px;
-    line-height: 1.78;
-    margin-bottom: 20px;
+    line-height: 1.65;
+    margin-bottom: 14px;
+  }
+
+  .options {
+    gap: 9px;
   }
 
   .option {
-    padding: 14px 14px;
+    padding: 11px 12px;
     font-size: 16px;
-    line-height: 1.7;
+    line-height: 1.6;
+  }
+
+  .submit-row {
+    margin-top: var(--space-sm);
+  }
+
+  /* 与基础层 .options + .reveal 同特异度，才能真的收到 12px */
+  .options + .reveal {
+    margin-top: var(--space-sm);
   }
 
   .result-page {
