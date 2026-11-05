@@ -129,7 +129,7 @@ export function AchievementsView() {
         <div className="view-head-copy">
           <h1>成就</h1>
           <p className="page-sub">
-            已解锁 {unlocked} / {list.length} · 持续练习，把徽章一个个点亮。
+            已解锁 {unlocked} / {list.length}。持续练习，把徽章一个个点亮。
           </p>
           <div className="progress achievement-overall">
             <i style={{ transform: `scaleX(${unlocked / list.length})` }} />
@@ -163,7 +163,7 @@ export function AchievementsView() {
 
         <section
           className="panel achievement-panel side-content"
-          role="tabpanel"
+          role="region"
           key={active}
           aria-label={CATEGORY_LABEL[active]}
         >

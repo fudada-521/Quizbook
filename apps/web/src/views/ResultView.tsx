@@ -40,10 +40,10 @@ export function ResultView() {
 
   return (
     <div className="result-page">
-      <p className="result-meta">
+      <header className="result-meta">
         <span>{MODE_LABEL[mode]}</span>
-        <strong>{sess.title}</strong>
-      </p>
+        <h1 className="result-meta-title">{sess.title}</h1>
+      </header>
 
       {isExam ? (
         <div className={`result-score${passed ? ' pass' : ''}`}>

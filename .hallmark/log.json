@@ -1,6 +1,27 @@
 [
  {
   "mode": "redesign",
+  "depth": "polish",
+  "scope": "app",
+  "shape": "app screen",
+  "theme": "Refract (by request)",
+  "axes": "light/grotesk-sans/cool",
+  "hero": "none: app shell; home opens on the continue sheet beside live water caustics",
+  "nav": "kept: wordmark and four icon controls over a hairline foot",
+  "footer": "none: app shell",
+  "imagery": "generated water caustics signature (canvas), held right of the reading column and off on phones",
+  "photos": [],
+  "entry": "home",
+  "fingerprint": "refract-app-v2-polish",
+  "sections": "Home, Quiz, Result, Favorites, Achievements, Settings",
+  "signature": "live water caustics beside the working panel",
+  "waived": "22, 24b, 39b",
+  "prompt": "/hallmark polish: fix only what reads as generated in the existing Refract app",
+  "check": "0 FAIL, 0 WARN, 44 WAIVED, 6 DISMISSED",
+  "date": "2026-11-05"
+ },
+ {
+  "mode": "redesign",
   "depth": "full",
   "scope": "app",
   "shape": "app screen",

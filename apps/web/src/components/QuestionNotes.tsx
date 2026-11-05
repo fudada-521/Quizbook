@@ -41,7 +41,7 @@ export function QuestionNotes({
           我的心得
         </span>
         <span className="notes-count">
-          {notes.length ? `${notes.length} 条 · 最新在前` : '记录理解与易错点'}
+          {notes.length ? `${notes.length} 条，最新在前` : '记录理解与易错点'}
         </span>
       </div>
 

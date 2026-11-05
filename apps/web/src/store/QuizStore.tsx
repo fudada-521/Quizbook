@@ -65,6 +65,7 @@ import {
 } from '@quiz/storage/auth';
 import { clearAllSessions, clearSession, loadSessions, saveSession } from './sessionPersistence';
 import { emitAnswerFeedback } from '../feedback';
+import { notify } from '../components/Feedback';
 
 export type View = 'home' | 'quiz' | 'result' | 'favorites' | 'achievements' | 'settings';
 
@@ -622,7 +623,7 @@ export function QuizProvider(props: {
         const c = Number(origin.slice('favorites:'.length));
         const list = favoriteQuestions(data, persistRef.current).filter((q) => q.c === c);
         if (!list.length) return null;
-        return { list, title: `收藏练习 · ${chapterTitleOf(data, c)}` };
+        return { list, title: `收藏练习：${chapterTitleOf(data, c)}` };
       }
       if (origin.startsWith('daily:')) {
         const date = origin.slice('daily:'.length) || dateKey();
@@ -648,14 +649,14 @@ export function QuizProvider(props: {
           const n = Math.min(persistRef.current.settings.count || 20, pool.length);
           return {
             list: pool.slice(0, n),
-            title: un.length ? '智能推进 · 新题' : '随机练习',
+            title: un.length ? '智能推进：新题' : '随机练习',
             opts: { shuffle: persistRef.current.settings.shuffle === 1 },
           };
         }
         case 'wrong': {
           const w = wrongQuestions(data, persistRef.current);
           if (!w.length) {
-            alert('暂无错题，先去做题吧 🎉');
+            notify('暂无错题，先去做题吧');
             return null;
           }
           return { list: w, title: '错题重练' };
@@ -663,7 +664,7 @@ export function QuizProvider(props: {
         case 'favorites': {
           const list = favoriteQuestions(data, persistRef.current);
           if (!list.length) {
-            alert('还没有收藏题目，答题时点题卡右上角的星标即可收藏。');
+            notify('还没有收藏题目，答题时点题卡右上角的星标即可收藏。');
             return null;
           }
           return { list, title: '收藏练习' };
@@ -783,7 +784,7 @@ export function QuizProvider(props: {
       .filter((it) => it.done && it.lastPick >= 0 && it.map[it.lastPick] !== it.q.a)
       .map((it) => it.q);
     if (!wrong.length) {
-      alert('本轮全部答对，太棒了 🎉');
+      notify('本轮全部答对');
       dispatch({ type: 'GOTO', view: 'home' });
       return;
     }

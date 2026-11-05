@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { normalizeState } from '@quiz/core';
 import { useQuiz, type CloudPhase } from '../store/QuizStore';
 import { Icon, type IconName } from '../components/Icon';
+import { confirmAction, notify } from '../components/Feedback';
 
 const PHASE_LABEL: Record<CloudPhase, string> = {
   'signed-out': '未登录',
@@ -27,7 +28,7 @@ function normalizeSeconds(value: number): number {
 }
 
 const SECTIONS: { id: Section; label: string; hint: string; icon: IconName }[] = [
-  { id: 'account', label: '账号与同步', hint: '登录、设备与服务器', icon: 'cloud' },
+  { id: 'account', label: '账号与同步', hint: '登录、账户与服务器', icon: 'cloud' },
   { id: 'practice', label: '答题设置', hint: '题量、判分与反馈', icon: 'settings' },
   { id: 'data', label: '数据与备份', hint: '导入、导出与清空', icon: 'download' },
 ];
@@ -130,12 +131,12 @@ export function SettingsView() {
           const d = JSON.parse(String(r.result));
           if (d && d.answers) {
             replaceState(normalizeState(d));
-            alert('导入成功');
+            notify('导入成功');
           } else {
-            alert('文件格式不正确');
+            notify('文件格式不正确', 'error');
           }
         } catch {
-          alert('文件格式不正确');
+          notify('文件格式不正确', 'error');
         }
       };
       r.readAsText(f);
@@ -230,7 +231,7 @@ export function SettingsView() {
                         autoComplete="username"
                         autoCapitalize="none"
                         spellCheck={false}
-                        placeholder="3–32 位字母、数字或 _ . -"
+                        placeholder="3 到 32 位字母、数字或 _ . -"
                       />
                     </label>
                     <label>
@@ -260,7 +261,12 @@ export function SettingsView() {
                 </form>
               )}
 
-              {cloud.error && <p className="cloud-error">{cloud.error}</p>}
+              <p
+                className="cloud-error"
+                role="status"
+                aria-live="polite">
+                {cloud.error}
+              </p>
 
               <div className="server-row">
                 <label htmlFor="set-server">服务器地址</label>
@@ -479,7 +485,14 @@ export function SettingsView() {
                   <button
                     className="btn ghost sm danger"
                     onClick={() => {
-                      if (confirm('确定清空所有答题记录？此操作不可恢复。')) resetProgress();
+                      void confirmAction({
+                        title: '清空答题记录？',
+                        body: '作答与错题记录会被清除，收藏和题目心得保留。此操作不可恢复。',
+                        confirmLabel: '清空',
+                        danger: true,
+                      }).then((ok) => {
+                        if (ok) resetProgress();
+                      });
                     }}
                   >
                     清空

@@ -1,8 +1,8 @@
 /* Hallmark · checked: 2026-11-05 · genre: atmospheric · scope: app
- * floor: 0 FAIL · fixed: 13 (19, 24a ×10, 67 ×2) · reflex: 1 waived (39b) · finish: 1 fixed (F5) · light: caustics held right of the reading column, dimmed on the centred result
+ * floor: 0 FAIL · fixed: 15 (19 ×2, 26b, 63 ×11, 67) · reflex: 2 waived (24b, 39b) · finish: 5 fixed (F14, F19, F21 ×2, F23) · finish-review: subagent · 5 findings · 5 resolved · light: caustics held right of the reading column, dimmed on the centred result, off on phones where every surface carries text
  * built: Hallmark · theme: Refract (by request) · shape: app screen · nav: kept: wordmark and four icon controls over a hairline foot · signature: greyscale water caustics beside the working panel, never under running text · states: idle, hover, focus, active, disabled, loading, empty, error · redesign: polish · v2.0.0 */
 /* Hallmark · pre-emit critique: P4 H4 E4 S4 R4 V4 · weakest: V, the shell is kept; the light, clear sheets and ruled lists carry the difference */
-/* Hallmark · waive 24b · the answer card options and the stat rows keep a two-pixel spacing nudge · stacked rows align optically at this size, and a strict grid leaves the list visibly loose */
+/* Hallmark · waive 24b · guard: dense app chrome only (settings rows, dialogs, the quiz rail, chapter and answer-sheet lists) · optical offsets from 3px to 30px align type to rules and to 30-36px controls; every layout-level gap uses the 4px space scale */
 /* Hallmark · waive 22 · pure monochrome is the requested scheme · every accent, rule and surface carries zero chroma, and color returns only in the ok and bad states */
 /* Hallmark · dismissed F4 · the icon and favourite fills are active-state chips, not primary actions */
 /* Hallmark · dismissed F7 · one clear-sheet recipe and one well recipe are the app's two containment levels */
@@ -280,6 +280,12 @@ kbd {
   color: var(--color-ink);
 }
 
+.icon-btn:active {
+  border-color: var(--color-shade-2);
+  background: var(--surface-well);
+  color: var(--color-ink);
+}
+
 .icon-btn.active {
   border-color: color-mix(in oklab, var(--color-accent) 32%, transparent);
   background: var(--color-accent-soft);
@@ -440,11 +446,7 @@ kbd {
 
 .continue-status {
   flex: none;
-  padding: 3px 10px;
-  border: 1px solid color-mix(in oklab, var(--color-accent) 26%, transparent);
-  border-radius: var(--radius-pill);
-  background: var(--color-accent-soft);
-  color: var(--accent-text);
+  color: var(--color-muted);
   font-size: 11.5px;
   font-weight: 500;
   white-space: nowrap;
@@ -561,7 +563,8 @@ kbd {
   background: transparent;
   color: var(--color-ink);
   text-align: left;
-  transition: color var(--dur-micro) var(--ease-out);
+  transition: color var(--dur-micro) var(--ease-out),
+    background var(--dur-micro) var(--ease-out);
 }
 
 .mode-list .mode-row:first-child {
@@ -569,6 +572,11 @@ kbd {
 }
 
 .mode-row:hover {
+  color: var(--accent-text);
+}
+
+.mode-row:active {
+  background: var(--surface-panel-2);
   color: var(--accent-text);
 }
 
@@ -645,10 +653,15 @@ kbd {
   background: transparent;
   color: var(--color-ink);
   text-align: left;
+  transition: background var(--dur-micro) var(--ease-out);
 }
 
 .chapter-row:hover .chapter-name {
   color: var(--accent-text);
+}
+
+.chapter-row:active {
+  background: var(--surface-panel-2);
 }
 
 .chapter-index {
@@ -735,12 +748,15 @@ kbd {
   font-size: 12px;
 }
 
-.quiz-title strong {
+.quiz-title-name {
   overflow: hidden;
   max-width: 320px;
   color: var(--color-ink);
+  font-family: var(--font-body);
   font-size: 13px;
   font-weight: 500;
+  letter-spacing: normal;
+  line-height: normal;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -814,6 +830,11 @@ kbd {
   background: var(--surface-panel-2);
 }
 
+.dot:active {
+  border-color: var(--color-shade-2);
+  background: var(--surface-well);
+}
+
 .dot.ok {
   border-color: color-mix(in oklab, var(--ok) 42%, var(--color-rule));
   background: var(--ok-soft);
@@ -881,6 +902,10 @@ kbd {
   border-color: var(--color-rule);
   background: var(--surface-panel-2);
   color: var(--color-ink);
+}
+
+.fav-btn:active {
+  background: var(--surface-well);
 }
 
 .fav-btn.active {
@@ -1423,9 +1448,15 @@ kbd {
   font-size: 12px;
 }
 
-.result-meta strong {
+.result-meta-title {
+  max-width: none;
+  margin: 0;
   color: var(--color-ink-2);
+  font-family: var(--font-body);
+  font-size: inherit;
   font-weight: 500;
+  letter-spacing: normal;
+  line-height: normal;
 }
 
 .result-score {
@@ -1594,6 +1625,10 @@ kbd {
 
 .fav-row:hover {
   background: var(--surface-panel-2);
+}
+
+.fav-row:active {
+  background: var(--surface-well);
 }
 
 .fav-main {
@@ -1769,6 +1804,11 @@ dialog {
 
 .side-nav-item:hover {
   background: var(--surface-panel-2);
+  color: var(--color-ink);
+}
+
+.side-nav-item:active {
+  background: var(--surface-well);
   color: var(--color-ink);
 }
 
@@ -2014,6 +2054,11 @@ dialog {
   color: var(--color-ink);
 }
 
+.text-btn:active {
+  background: var(--surface-well);
+  color: var(--color-ink);
+}
+
 .text-btn.danger {
   color: var(--bad);
 }
@@ -2184,9 +2229,11 @@ dialog {
 }
 
 .cloud-error {
+  min-height: 18px;
   margin: 6px 0 10px;
   color: var(--bad);
   font-size: 12px;
+  line-height: 1.5;
 }
 
 .server-row {
@@ -2304,10 +2351,6 @@ dialog {
 .achievement-card.secret .achievement-icon {
   border: 1px dashed var(--color-rule);
   background: transparent;
-}
-
-.achievement-card.secret .achievement-title strong {
-  letter-spacing: 0.12em;
 }
 
 .achievement-card {
@@ -2428,7 +2471,8 @@ dialog {
   font-weight: 500;
 }
 
-.achievement-link:hover .achievement-copy strong {
+.achievement-link:hover .achievement-copy strong,
+.achievement-link:active .achievement-copy strong {
   color: var(--accent-text);
 }
 
@@ -2497,6 +2541,49 @@ dialog {
   font-size: 11.5px;
 }
 
+.toast.error {
+  border-color: color-mix(in oklab, var(--bad) 26%, var(--color-rule));
+}
+
+.toast.error .toast-icon {
+  color: var(--bad);
+}
+
+/* 应用内确认框：替代 window.confirm，沿用弹窗的边、纸面与遮罩 */
+.confirm-dialog {
+  width: min(400px, calc(100% - 32px));
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-card);
+  background: var(--color-paper-2);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-dialog);
+}
+
+.confirm-dialog[open] {
+  animation: dialogIn var(--dur-short) var(--ease-out);
+}
+
+.confirm-dialog:focus-visible {
+  outline: none;
+}
+
+.confirm-dialog::backdrop {
+  background: var(--backdrop);
+}
+
+.confirm-body {
+  padding: 6px 22px 0;
+  color: var(--color-ink-2);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.confirm-foot {
+  justify-content: flex-end;
+}
+
 /* 答题过程中解锁成就：居中的祝贺卡片，带动画与遮罩 */
 .celebrate-layer {
   position: fixed;
@@ -2541,10 +2628,13 @@ dialog {
 }
 
 .celebrate-kicker {
+  max-width: none;
   color: var(--color-ink-2);
+  font-family: var(--font-body);
   font-size: var(--text-sm);
   font-weight: 500;
   letter-spacing: normal;
+  line-height: normal;
 }
 
 .celebrate-list {
@@ -2562,7 +2652,7 @@ dialog {
 
 .celebrate-list strong {
   font-size: 19px;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .celebrate-list span {
@@ -2824,7 +2914,7 @@ dialog {
     padding-left: var(--space-md);
   }
 
-  .quiz-title strong {
+  .quiz-title-name {
     max-width: 30vw;
   }
 
@@ -2966,7 +3056,7 @@ dialog {
     justify-content: center;
     width: auto;
     min-height: 34px;
-    padding: 0 12px;
+    padding: 0 var(--space-sm);
     border-radius: var(--radius-pill);
     font-size: 12.5px;
     white-space: nowrap;
@@ -3115,7 +3205,7 @@ dialog {
 
 /* 极窄屏放不下会话标题时整段隐藏，避免只剩「限…」 */
 @media (max-width: 360px) {
-  .quiz-title strong {
+  .quiz-title-name {
     display: none;
   }
 }
@@ -3167,7 +3257,7 @@ dialog {
     width: 76px;
   }
 
-  .quiz-title strong {
+  .quiz-title-name {
     max-width: 420px;
   }
 
@@ -3338,25 +3428,35 @@ dialog {
   }
 
   .sheet-nav-btn {
-    display: grid;
-    place-items: center;
-    width: 28px;
-    height: 28px;
-    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2xs);
+    height: 30px;
+    padding: 0 var(--space-xs);
     border: 1px solid var(--color-rule);
-    border-radius: 50%;
+    border-radius: var(--radius-pill);
     background: var(--surface-panel);
     color: var(--color-ink-2);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
     box-shadow: var(--edge-light);
     transition: background var(--dur-micro) var(--ease-out),
       border-color var(--dur-micro) var(--ease-out),
-      color var(--dur-micro) var(--ease-out), opacity var(--dur-micro) var(--ease-out);
+      color var(--dur-micro) var(--ease-out), opacity var(--dur-micro) var(--ease-out),
+      transform var(--dur-micro) var(--ease-out);
   }
 
   .sheet-nav-btn:hover {
     border-color: var(--color-shade-2);
     background: var(--surface-panel-2);
     color: var(--color-ink);
+  }
+
+  .sheet-nav-btn:not(:disabled):active {
+    transform: translateY(1px);
   }
 
   .sheet-nav-btn.primary {

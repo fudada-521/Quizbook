@@ -43,18 +43,18 @@ export function HomeView() {
     const right = Object.values(state.answers).filter((a) => a.ok).length;
     const wrongCount = Object.keys(state.wrong).length;
     const favCount = favoriteQuestions(data, state).length;
-    const acc = answered ? Math.round((right / answered) * 100) + "%" : "--";
+    const acc = answered ? Math.round((right / answered) * 100) + "%" : "暂无";
 
     const byCh: Record<number, typeof data.questions> = {};
     data.questions.forEach((q) => {
         (byCh[q.c] = byCh[q.c] || []).push(q);
     });
 
-    // 按练习来源索引未完成会话，入口上显示「继续 · 第 N/M 题」
+    // 按练习来源索引未完成会话，入口上显示「继续，第 N/M 题」
     const resumeByOrigin = new Map(savedSessions.map((s) => [s.origin, s]));
     const pendingLabel = (origin: string, fallback: string) => {
         const p = resumeByOrigin.get(origin);
-        return p ? `继续 · 第 ${p.idx + 1}/${p.list.length} 题` : fallback;
+        return p ? `继续，第 ${p.idx + 1}/${p.list.length} 题` : fallback;
     };
 
     return (
@@ -337,7 +337,7 @@ export function HomeView() {
                                                 <span>{qs.length} 题</span>
                                                 <span>
                                                     {pending
-                                                        ? `继续 · 第 ${pending.idx + 1}/${pending.list.length} 题`
+                                                        ? `继续，第 ${pending.idx + 1}/${pending.list.length} 题`
                                                         : done
                                                           ? `已做 ${done}`
                                                           : "未开始"}

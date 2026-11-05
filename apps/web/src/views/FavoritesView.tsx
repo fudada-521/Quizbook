@@ -93,8 +93,8 @@ export function FavoritesView() {
             {favorites.length === 0
               ? '共 0 道'
               : active === 'all'
-                ? `共 ${favorites.length} 道 · 按收藏时间从新到旧`
-                : `${scopeLabel} · ${visible.length} 道`}
+                ? `共 ${favorites.length} 道，按收藏时间从新到旧`
+                : `${scopeLabel}，${visible.length} 道`}
           </p>
         </div>
         {favorites.length > 0 && (
@@ -137,7 +137,7 @@ export function FavoritesView() {
                   <span className="side-nav-copy">
                     <strong>{title}</strong>
                     <small>
-                      第{String(c).padStart(2, '0')}章 · {items.length} 道
+                      第{String(c).padStart(2, '0')}章，{items.length} 道
                     </small>
                   </span>
                   <Icon name="chevron-right" size={14} className="chev" />
@@ -149,7 +149,7 @@ export function FavoritesView() {
           <div
             className="fav-list side-content"
             key={String(active)}
-            role="tabpanel"
+            role="region"
             aria-label={scopeLabel}
           >
             {visible.map((q) => (
@@ -227,7 +227,7 @@ export function FavoritesView() {
 }
 
 function formatDate(ts: number | undefined): string {
-  if (!ts) return '—';
+  if (!ts) return '时间未知';
   const d = new Date(ts);
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;

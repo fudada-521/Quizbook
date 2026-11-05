@@ -1,6 +1,6 @@
 /** @format */
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { achievementById, type QuizData } from "@quiz/core";
 import { createLocalStorageStore, DEFAULT_SYNC_BACKEND } from "@quiz/storage/web";
 import { QuizProvider, useQuiz, type View } from "./store/QuizStore";
@@ -12,6 +12,7 @@ import { FavoritesView } from "./views/FavoritesView";
 import { AchievementsView } from "./views/AchievementsView";
 import { SettingsView } from "./views/SettingsView";
 import { Icon } from "./components/Icon";
+import { FeedbackHost } from "./components/Feedback";
 import { WaterLight } from "./components/WaterLight";
 import rawData from "../../../data/questions.json";
 
@@ -163,7 +164,7 @@ function Shell() {
                             className={`icon-btn cloud-btn${cloud.user ? " active" : ""}`}
                             onClick={openSettings}
                             aria-label="账号与同步"
-                            title={cloud.user ? `已登录 ${cloud.user.username}` : "未登录 · 点击设置"}>
+                            title={cloud.user ? `已登录 ${cloud.user.username}` : "未登录，点击设置"}>
                             <Icon name="cloud" />
                             <span className={`cloud-dot ${cloud.phase}`} />
                         </button>
@@ -189,20 +190,39 @@ function Shell() {
 
             {app.view === "home" && <Footer />}
             <AchievementToast />
+            <FeedbackHost />
         </div>
     );
 }
 
 function AchievementToast() {
-    const { newAchievements, dismissAchievements } = useQuiz();
+    const { app, newAchievements, dismissAchievements } = useQuiz();
+    const confirmRef = useRef<HTMLButtonElement>(null);
+    const [holding, setHolding] = useState(false);
+
+    // 限时挑战与模拟考有真实倒计时，祝贺层不抢断答题；离开该场次后再补显示
+    const timedQuiz =
+        app.view === "quiz" && (app.session?.mode === "timed" || app.session?.mode === "exam");
+    const visible = newAchievements.length > 0 && !timedQuiz;
 
     useEffect(() => {
-        if (!newAchievements.length) return;
-        const timer = window.setTimeout(dismissAchievements, 6000);
+        if (!visible) return;
+        // 悬停或键盘聚焦时延后收起，但不无限停留，避免挡住答题
+        const timer = window.setTimeout(dismissAchievements, holding ? 12000 : 6000);
         return () => window.clearTimeout(timer);
-    }, [newAchievements, dismissAchievements]);
+    }, [visible, holding, dismissAchievements]);
 
-    if (!newAchievements.length) return null;
+    useEffect(() => {
+        if (!visible) return;
+        confirmRef.current?.focus();
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") dismissAchievements();
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [visible, dismissAchievements]);
+
+    if (!visible) return null;
 
     const defs = newAchievements.flatMap((id) => {
         const def = achievementById(id);
@@ -221,18 +241,23 @@ function AchievementToast() {
                 aria-hidden="true"
                 onClick={dismissAchievements}
             />
-            <div className="celebrate-card">
+            <div
+                className="celebrate-card"
+                onMouseEnter={() => setHolding(true)}
+                onMouseLeave={() => setHolding(false)}
+                onFocus={() => setHolding(true)}
+                onBlur={() => setHolding(false)}>
                 <span className="celebrate-icon">
                     <Icon
                         name="trophy"
                         size={30}
                     />
                 </span>
-                <p
+                <h2
                     className="celebrate-kicker"
                     id="celebrate-title">
                     成就解锁
-                </p>
+                </h2>
                 <div className="celebrate-list">
                     {defs.map((def) => (
                         <div key={def.id}>
@@ -242,6 +267,7 @@ function AchievementToast() {
                     ))}
                 </div>
                 <button
+                    ref={confirmRef}
                     className="btn primary celebrate-confirm"
                     onClick={dismissAchievements}>
                     继续答题

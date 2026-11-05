@@ -34,10 +34,13 @@ export function QuizView() {
     setPaused(false);
   }, [sess?.idx]);
 
-  // 解锁成就时暂停自动跳题，关闭祝贺弹窗后重新开始倒计时
+  // 解锁成就时暂停自动跳题，关闭祝贺弹窗后重新开始倒计时；
+  // 限时挑战与模拟考不弹祝贺层，也不因此暂停
   useEffect(() => {
-    setPaused(newAchievements.length > 0);
-  }, [newAchievements]);
+    const celebrating =
+      newAchievements.length > 0 && sess?.mode !== 'timed' && sess?.mode !== 'exam';
+    setPaused(celebrating);
+  }, [newAchievements, sess?.mode]);
 
   // 限时挑战 / 模拟考倒计时，到点自动交卷
   useEffect(() => {
@@ -114,7 +117,7 @@ export function QuizView() {
             退出
           </button>
           <div className="quiz-title">
-            <strong>{sess.title}</strong>
+            <h1 className="quiz-title-name">{sess.title}</h1>
             <span className="count">
               {sess.idx + 1} / {sess.list.length}
             </span>
@@ -189,7 +192,7 @@ export function QuizView() {
             <div className="quiz-rail-head">
               <h2>本组进度</h2>
               <span>
-                {done} / {total} · {pct}%
+                {done} / {total}，{pct}%
               </span>
             </div>
             <div className="progress accent" aria-hidden="true">
@@ -381,17 +384,16 @@ function AnswerSheet({ docked = false }: { docked?: boolean }) {
                 onClick={prev}
                 disabled={sess.idx === 0}
                 aria-label="上一题"
-                title="上一题"
               >
                 <Icon name="arrow-left" size={15} />
+                上一题
               </button>
               <button
                 type="button"
                 className="sheet-nav-btn primary"
                 onClick={next}
-                aria-label={isLast ? '完成' : '下一题'}
-                title={isLast ? '完成' : '下一题'}
               >
+                {isLast ? '完成' : '下一题'}
                 <Icon name={isLast ? 'check' : 'arrow-right'} size={15} />
               </button>
             </span>
