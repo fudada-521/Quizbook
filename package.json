@@ -1,26 +1,26 @@
 {
-  "name": "gaoxiang-quiz",
+  "name": "megrez",
   "version": "1.0.0",
   "private": true,
-  "description": "题本 Quizbook · 跨平台答题应用（Web / 桌面 / 移动 共用同一套 React 代码）",
+  "description": "天权 Megrez · 跨平台答题应用（Web / 桌面 / 移动 共用同一套 React 代码）",
   "packageManager": "pnpm@10.32.1",
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
-    "dev": "pnpm --filter @quiz/web dev",
-    "build": "pnpm --filter @quiz/web build",
-    "preview": "pnpm --filter @quiz/web preview",
+    "dev": "pnpm --filter @megrez/web dev",
+    "build": "pnpm --filter @megrez/web build",
+    "preview": "pnpm --filter @megrez/web preview",
     "test": "pnpm -r --filter './packages/*' test",
     "typecheck": "pnpm -r typecheck",
-    "desktop:dev": "pnpm --filter @quiz/desktop dev",
-    "desktop:build": "pnpm --filter @quiz/desktop build",
-    "mobile:sync": "pnpm --filter @quiz/mobile sync",
-    "mobile:ios": "pnpm --filter @quiz/mobile ios",
-    "mobile:android": "pnpm --filter @quiz/mobile android",
-    "server:dev": "pnpm --filter @quiz/server dev",
-    "server:start": "pnpm --filter @quiz/server start"
+    "desktop:dev": "pnpm --filter @megrez/desktop dev",
+    "desktop:build": "pnpm --filter @megrez/desktop build",
+    "mobile:sync": "pnpm --filter @megrez/mobile sync",
+    "mobile:ios": "pnpm --filter @megrez/mobile ios",
+    "mobile:android": "pnpm --filter @megrez/mobile android",
+    "server:dev": "pnpm --filter @megrez/server dev",
+    "server:start": "pnpm --filter @megrez/server start"
   },
   "devDependencies": {
     "tsx": "^4.23.15",

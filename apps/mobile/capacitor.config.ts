@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.gaoxiang.quiz',
-  appName: '题本',
+  appId: 'com.megrez.quiz',
+  appName: '天权',
   webDir: '../web/dist',
   server: {
     androidScheme: 'https',

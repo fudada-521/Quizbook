@@ -5,7 +5,7 @@ import {
   TIER_LABEL,
   type AchievementCategory,
   type AchievementStatus,
-} from '@quiz/core';
+} from '@megrez/core';
 import { useQuiz } from '../store/QuizStore';
 import { Icon } from '../components/Icon';
 

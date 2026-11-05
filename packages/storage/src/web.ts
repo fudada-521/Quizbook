@@ -1,12 +1,12 @@
 /**
  * 平台实现：Web 端 localStorage 存储 + noop 同步后端。
  */
-import { PersistedState, normalizeState } from '@quiz/core';
+import { PersistedState, normalizeState } from '@megrez/core';
 import { ProgressStore, NoopSyncBackend } from './index';
 
-const KEY = 'quizbook_quiz_v1';
-/** 旧品牌时期使用的键，首次加载时自动迁移到新键 */
-const LEGACY_KEY = 'gaoxiang_quiz_v1';
+const KEY = 'megrez_quiz_v1';
+/** 历史品牌键（新→旧），首次加载时自动迁移到新键 */
+const LEGACY_KEYS = ['quizbook_quiz_v1', 'gaoxiang_quiz_v1'];
 
 export const createLocalStorageStore = (storage?: Storage): ProgressStore => {
   const s = storage ?? (typeof localStorage !== 'undefined' ? localStorage : null);
@@ -19,12 +19,15 @@ export const createLocalStorageStore = (storage?: Storage): ProgressStore => {
         if (raw) return normalizeState(JSON.parse(raw));
 
         // 旧键迁移：解析成功后再写入新键并删除旧键，避免数据损坏时丢失原数据
-        const legacy = s.getItem(LEGACY_KEY);
-        if (!legacy) return null;
-        const state = normalizeState(JSON.parse(legacy));
-        s.setItem(KEY, JSON.stringify(state));
-        s.removeItem(LEGACY_KEY);
-        return state;
+        for (const legacyKey of LEGACY_KEYS) {
+          const legacy = s.getItem(legacyKey);
+          if (!legacy) continue;
+          const state = normalizeState(JSON.parse(legacy));
+          s.setItem(KEY, JSON.stringify(state));
+          s.removeItem(legacyKey);
+          return state;
+        }
+        return null;
       } catch {
         return null;
       }

@@ -1,5 +1,5 @@
 {
-  "name": "@quiz/storage",
+  "name": "@megrez/storage",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -16,7 +16,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@quiz/core": "workspace:*"
+    "@megrez/core": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.6.3"

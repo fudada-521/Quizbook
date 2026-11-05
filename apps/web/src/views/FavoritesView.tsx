@@ -5,7 +5,7 @@ import {
   qkey,
   type Question,
   type SessionItem,
-} from '@quiz/core';
+} from '@megrez/core';
 import { useQuiz } from '../store/QuizStore';
 import { Icon } from '../components/Icon';
 import { QuestionNotes } from '../components/QuestionNotes';

@@ -1,6 +1,6 @@
 /**
- * 题本 Quizbook 服务端入口。
- * 本地启动：pnpm --filter @quiz/server dev
+ * 天权 Megrez 服务端入口。
+ * 本地启动：pnpm --filter @megrez/server dev
  * 生产：同一个进程同时提供 API 与 Web 静态产物（apps/web/dist）。
  */
 import { existsSync } from 'node:fs';
@@ -68,7 +68,7 @@ try {
       publicUrl: env.publicUrl,
       dbPath: env.dbPath,
     },
-    'quizbook-server 已启动',
+    'megrez-server 已启动',
   );
 } catch (err) {
   app.log.error(err);

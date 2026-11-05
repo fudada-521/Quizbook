@@ -5,9 +5,25 @@
  */
 import type { StoredAuth } from './http';
 
-const AUTH_KEY = 'quizbook_auth_v1';
-const SERVER_KEY = 'quizbook_server_v1';
+const AUTH_KEY = 'megrez_auth_v1';
+const SERVER_KEY = 'megrez_server_v1';
+/** 上一品牌时期的同名键，读取时搬到新键 */
+const LEGACY_AUTH_KEYS = ['quizbook_auth_v1'];
+const LEGACY_SERVER_KEYS = ['quizbook_server_v1'];
 export const DEFAULT_SERVER_URL = 'http://127.0.0.1:8787';
+
+function readWithMigration(s: Storage, key: string, legacyKeys: string[]): string | null {
+  const current = s.getItem(key);
+  if (current) return current;
+  for (const legacy of legacyKeys) {
+    const raw = s.getItem(legacy);
+    if (!raw) continue;
+    s.setItem(key, raw);
+    s.removeItem(legacy);
+    return raw;
+  }
+  return null;
+}
 
 export interface AuthStore {
   load(): StoredAuth | null;
@@ -40,7 +56,7 @@ export function createLocalAuthStore(storage?: Storage): AuthStore {
     load() {
       if (!s) return null;
       try {
-        const raw = s.getItem(AUTH_KEY);
+        const raw = readWithMigration(s, AUTH_KEY, LEGACY_AUTH_KEYS);
         if (!raw) return null;
         const parsed = JSON.parse(raw);
         return isStoredAuth(parsed) ? parsed : null;
@@ -58,6 +74,7 @@ export function createLocalAuthStore(storage?: Storage): AuthStore {
     clear() {
       try {
         s?.removeItem(AUTH_KEY);
+        for (const legacy of LEGACY_AUTH_KEYS) s?.removeItem(legacy);
       } catch {
         // ignore
       }
@@ -87,7 +104,7 @@ export function defaultServerUrl(): string {
 export function loadServerUrl(storage?: Storage): string {
   const s = storage ?? defaultStorage();
   try {
-    const saved = s?.getItem(SERVER_KEY);
+    const saved = s ? readWithMigration(s, SERVER_KEY, LEGACY_SERVER_KEYS) : null;
     if (saved) return saved.replace(/\/+$/, '');
   } catch {
     // ignore

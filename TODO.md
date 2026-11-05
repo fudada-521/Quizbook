@@ -36,7 +36,7 @@
   - 需新增设置项：开关、提醒时间、权限申请与拒绝后的引导；注意三端能力差异与「单文件离线可用」约束
 - [ ] **多题库支持（P3）**
   - 现状：`apps/web/src/App.tsx` 直接 `import` `data/questions.json`，题库编进 bundle；进度题目键 `${c}-${n}` 不含题库维度
-  - 关键改造：题库元数据（id/名称/版本/题量）与运行时数据源；存储按题库分区或给题目键加前缀；`@quiz/core` 的判分/抽题/合并需接受题库上下文；`mergeStates()` 与云同步需兼容
+  - 关键改造：题库元数据（id/名称/版本/题量）与运行时数据源；存储按题库分区或给题目键加前缀；`@megrez/core` 的判分/抽题/合并需接受题库上下文；`mergeStates()` 与云同步需兼容
   - 先做方案：题库来源（内置多份按需加载 vs 远程下载）、切换后的进度隔离策略、离线可用性权衡
 
 ### 云同步与成就
@@ -83,8 +83,8 @@
 - [x] 成就系统：50 个成就（进度/习惯/收藏/挑战/准确率/隐藏），分级系列展示 + 隐藏成就提示，本地即时解锁 + 服务端权威校验，成就页与解锁提示
 - [x] 部署产物：`apps/server/Dockerfile`、`deploy/docker-compose.yml`、`Caddyfile`、`.env.example`、`scripts/backup.sh`
 - [x] 题库从 `questions.js` 转为 `data/questions.json`（唯一数据源）
-- [x] 抽出 `@quiz/core`（判分/抽题/错题/收藏/心得/进度纯函数 + 29 个单测）
-- [x] 抽出 `@quiz/storage`（`ProgressStore` / `SyncBackend` 接口 + noop 桩 + 文件导入导出）
+- [x] 抽出 `@megrez/core`（判分/抽题/错题/收藏/心得/进度纯函数 + 29 个单测）
+- [x] 抽出 `@megrez/storage`（`ProgressStore` / `SyncBackend` 接口 + noop 桩 + 文件导入导出）
 - [x] React+Vite+TS 重写 UI，保留百词斩式体验（单文件构建，双击离线可用 + PWA）
 - [x] Tauri 2 桌面壳编译通过（产物已生成）
 - [x] Capacitor 7 移动壳（iOS/Android 原生工程已生成）

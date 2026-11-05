@@ -11,7 +11,7 @@ import {
   mergeStates,
   normalizeState,
   type PersistedState,
-} from '@quiz/core';
+} from '@megrez/core';
 import { env } from './env';
 import { quizData } from './questions';
 import {
@@ -98,7 +98,7 @@ function validateCredentials(username: string, password: string): string | null 
 export function registerRoutes(app: FastifyInstance): void {
   // ---------- 基础信息 ----------
 
-  app.get('/api/health', async () => ({ ok: true, now: Date.now(), service: 'quizbook-server' }));
+  app.get('/api/health', async () => ({ ok: true, now: Date.now(), service: 'megrez-server' }));
 
   app.get('/api/config', async () => ({
     authEnabled: true,

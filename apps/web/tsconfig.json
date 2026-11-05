@@ -15,11 +15,11 @@
     "noEmit": true,
     "forceConsistentCasingInFileNames": true,
     "paths": {
-      "@quiz/core": ["../../packages/core/src/index.ts"],
-      "@quiz/storage": ["../../packages/storage/src/index.ts"],
-      "@quiz/storage/web": ["../../packages/storage/src/web.ts"],
-      "@quiz/storage/http": ["../../packages/storage/src/http.ts"],
-      "@quiz/storage/auth": ["../../packages/storage/src/auth.ts"]
+      "@megrez/core": ["../../packages/core/src/index.ts"],
+      "@megrez/storage": ["../../packages/storage/src/index.ts"],
+      "@megrez/storage/web": ["../../packages/storage/src/web.ts"],
+      "@megrez/storage/http": ["../../packages/storage/src/http.ts"],
+      "@megrez/storage/auth": ["../../packages/storage/src/auth.ts"]
     }
   },
   "include": ["src", "vite.config.ts"]

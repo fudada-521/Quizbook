@@ -1,18 +1,18 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "题本",
+  "productName": "Megrez",
   "version": "1.0.0",
-  "identifier": "com.gaoxiang.quiz",
+  "identifier": "com.megrez.quiz",
   "build": {
-    "beforeDevCommand": "pnpm --filter @quiz/web build",
+    "beforeDevCommand": "pnpm --filter @megrez/web build",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm --filter @quiz/web build",
+    "beforeBuildCommand": "pnpm --filter @megrez/web build",
     "frontendDist": "../web/dist"
   },
   "app": {
     "windows": [
       {
-        "title": "题本",
+        "title": "天权",
         "width": 900,
         "height": 700,
         "minWidth": 640,

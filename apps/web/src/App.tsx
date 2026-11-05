@@ -1,8 +1,8 @@
 /** @format */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { achievementById, type QuizData } from "@quiz/core";
-import { createLocalStorageStore, DEFAULT_SYNC_BACKEND } from "@quiz/storage/web";
+import { achievementById, type QuizData } from "@megrez/core";
+import { createLocalStorageStore, DEFAULT_SYNC_BACKEND } from "@megrez/storage/web";
 import { QuizProvider, useQuiz, type View } from "./store/QuizStore";
 import { useEdgeSwipeBack } from "./gestures";
 import { HomeView } from "./views/HomeView";
@@ -87,22 +87,22 @@ function Shell() {
             return;
         }
         if (!nav.pushed) {
-            window.history.pushState({ quizbookView: app.view }, "");
+            window.history.pushState({ megrezView: app.view }, "");
             nav.pushed = true;
         } else {
-            window.history.replaceState({ quizbookView: app.view }, "");
+            window.history.replaceState({ megrezView: app.view }, "");
         }
     }, [app.view]);
 
     // 刷新后应用总是从首页开始，把可能残留的二级页历史状态重置掉
     useEffect(() => {
-        window.history.replaceState({ quizbookView: "home" }, "");
+        window.history.replaceState({ megrezView: "home" }, "");
     }, []);
 
     useEffect(() => {
         const onPop = (e: PopStateEvent) => {
             lastNavRef.current = Date.now();
-            const target = (e.state as { quizbookView?: View } | null)?.quizbookView ?? "home";
+            const target = (e.state as { megrezView?: View } | null)?.megrezView ?? "home";
             const nav = navRef.current;
             nav.view = target;
             nav.pushed = target !== "home";
@@ -137,8 +137,10 @@ function Shell() {
                         className="brand"
                         onClick={() => setView("home")}
                         aria-label="返回首页">
-                        <span className="brand-mark">Q</span>
-                        <span className="brand-name">题本</span>
+                        <span className="brand-mark">
+                            <Icon name="star" size={16} fill="currentColor" stroke="none" />
+                        </span>
+                        <span className="brand-name">天权</span>
                         <span className="brand-rule" />
                         <span className="brand-sub">
                             <span className="brand-sub-full">软考 · 信息系统项目管理师</span>

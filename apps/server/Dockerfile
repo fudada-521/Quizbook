@@ -1,6 +1,6 @@
-# 题本 Quizbook server：单容器，同时提供 API 和 Web 静态产物。
+# 天权 Megrez server：单容器，同时提供 API 和 Web 静态产物。
 # 构建上下文必须是仓库根目录：
-#   docker build -f apps/server/Dockerfile -t quizbook-server .
+#   docker build -f apps/server/Dockerfile -t megrez-server .
 FROM node:24-alpine
 
 WORKDIR /app
@@ -16,7 +16,7 @@ COPY packages/core/package.json packages/core/package.json
 COPY packages/storage/package.json packages/storage/package.json
 
 # server 运行 + web 构建所需依赖（core/storage 作为 workspace 依赖一并安装）
-RUN pnpm install --frozen-lockfile --filter @quiz/server... --filter @quiz/web...
+RUN pnpm install --frozen-lockfile --filter @megrez/server... --filter @megrez/web...
 
 # 源码与题库
 COPY packages/core/src packages/core/src
@@ -27,7 +27,7 @@ COPY apps/server apps/server
 # 构建 Web 单文件产物（server 会托管 apps/web/dist）
 COPY apps/web apps/web
 COPY tsconfig.json tsconfig.json
-RUN pnpm --filter @quiz/web build
+RUN pnpm --filter @megrez/web build
 
 WORKDIR /app/apps/server
 ENV NODE_ENV=production \

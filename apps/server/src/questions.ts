@@ -5,7 +5,7 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import type { QuizData } from '@quiz/core';
+import type { QuizData } from '@megrez/core';
 
 function loadQuestions(): QuizData | null {
   const candidates = [

@@ -3,7 +3,7 @@
  * Web 端已有 localStorage + 导出/导入 JSON；此文件提供跨端通用的文件同步辅助。
  */
 
-import { PersistedState, normalizeState } from '@quiz/core';
+import { PersistedState, normalizeState } from '@megrez/core';
 
 /** 将进度序列化为可移植的 JSON 字符串（带版本与时间戳元信息） */
 export function serializeForSync(state: PersistedState): string {

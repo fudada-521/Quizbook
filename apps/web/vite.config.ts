@@ -14,8 +14,8 @@ export default defineConfig({
       injectRegister: 'script',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: '题本 Quizbook',
-        short_name: '题本',
+        name: '天权 Megrez',
+        short_name: '天权',
         description: '刷题·即时判分·错题本（2210 题）',
         lang: 'zh-CN',
         theme_color: '#f6f6f3',

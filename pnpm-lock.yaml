@@ -17,7 +17,7 @@ importers:
 
   apps/desktop:
     dependencies:
-      '@quiz/web':
+      '@megrez/web':
         specifier: workspace:*
         version: link:../web
     devDependencies:
@@ -58,7 +58,7 @@ importers:
       '@fastify/static':
         specifier: ^8.3.0
         version: 8.3.0
-      '@quiz/core':
+      '@megrez/core':
         specifier: workspace:*
         version: link:../../packages/core
       fastify:
@@ -80,10 +80,10 @@ importers:
       '@capacitor/haptics':
         specifier: ^7.0.5
         version: 7.0.5(@capacitor/core@7.6.10)
-      '@quiz/core':
+      '@megrez/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@quiz/storage':
+      '@megrez/storage':
         specifier: workspace:*
         version: link:../../packages/storage
       react:
@@ -126,7 +126,7 @@ importers:
 
   packages/storage:
     dependencies:
-      '@quiz/core':
+      '@megrez/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:

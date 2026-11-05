@@ -15,7 +15,7 @@ export const env = {
   port,
   host: process.env.HOST ?? '127.0.0.1',
   publicUrl,
-  dbPath: process.env.DB_PATH ?? resolve(process.cwd(), 'data/quizbook.db'),
+  dbPath: process.env.DB_PATH ?? resolve(process.cwd(), 'data/megrez.db'),
   webDist: process.env.WEB_DIST ?? resolve(process.cwd(), '../web/dist'),
   corsOrigin: process.env.CORS_ORIGIN ?? '*',
   /** 登录 token 有效期（天） */

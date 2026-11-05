@@ -1,6 +1,6 @@
-# @quiz/server
+# @megrez/server
 
-题本 Quizbook 后端：用户名 + 密码登录 + 多端进度合并同步 + 成就权威校验。
+天权 Megrez 后端：用户名 + 密码登录 + 多端进度合并同步 + 成就权威校验。
 
 ## 本地启动
 
@@ -25,7 +25,7 @@ curl -X POST http://127.0.0.1:8787/api/auth/register \
 |---|---|---|
 | `HOST` / `PORT` | `127.0.0.1` / `8787` | 监听地址；手机同局域网调试改为 `0.0.0.0` |
 | `PUBLIC_URL` | `http://localhost:8787` | 对外地址，仅用于展示/诊断 |
-| `DB_PATH` | `apps/server/data/quizbook.db` | SQLite 文件（已 gitignore） |
+| `DB_PATH` | `apps/server/data/megrez.db` | SQLite 文件（已 gitignore） |
 | `CORS_ORIGIN` | `*` | 允许的来源，逗号分隔 |
 | `TOKEN_TTL_DAYS` | `365` | 登录 token 有效期 |
 
@@ -49,8 +49,8 @@ curl -X POST http://127.0.0.1:8787/api/auth/register \
 ## 数据
 
 - SQLite 由 Node 24 内置的 `node:sqlite` 驱动，无原生依赖。
-- 每个用户保存一份 `PersistedState` JSON 快照 + `version`；客户端推送时服务端用 `@quiz/core` 的 `mergeStates` 与远端快照合并，因此旧设备不会覆盖新数据。
-- 生产环境应把 `data/` 目录做定时备份（直接拷贝 `quizbook.db` 前建议先 `sqlite3 ... ".backup"`，或停机拷贝 `.db` + `-wal`）。
+- 每个用户保存一份 `PersistedState` JSON 快照 + `version`；客户端推送时服务端用 `@megrez/core` 的 `mergeStates` 与远端快照合并，因此旧设备不会覆盖新数据。
+- 生产环境应把 `data/` 目录做定时备份（直接拷贝 `megrez.db` 前建议先 `sqlite3 ... ".backup"`，或停机拷贝 `.db` + `-wal`）。
 
 ## 部署（Docker + Caddy）
 
@@ -62,10 +62,10 @@ docker compose up -d --build
 
 Caddy 会自动申请 HTTPS 证书，并把请求反代到 server；server 同时托管 Web 单文件产物。
 
-生产环境务必给 `quizbook-data` 卷做定时备份：
+生产环境务必给 `megrez-data` 卷做定时备份：
 
 ```bash
-DB_PATH=/var/lib/docker/volumes/quizbook_quizbook-data/_data/quizbook.db \
+DB_PATH=/var/lib/docker/volumes/megrez_megrez-data/_data/megrez.db \
 BACKUP_DIR=/backup sh apps/server/scripts/backup.sh
 ```
 
@@ -76,6 +76,6 @@ BACKUP_DIR=/backup sh apps/server/scripts/backup.sh
 - [x] Fastify + TypeScript + SQLite 骨架
 - [x] 用户名 + 密码注册 / 登录（scrypt 哈希、失败限流）
 - [x] Bearer token 鉴权、吊销
-- [x] 服务端合并算法（`@quiz/core` 的 `mergeStates`，与客户端共用）
+- [x] 服务端合并算法（`@megrez/core` 的 `mergeStates`，与客户端共用）
 - [x] 成就权威校验（`/api/achievements`，同步时自动解锁）
 - [x] Dockerfile / docker-compose / Caddyfile / 备份脚本

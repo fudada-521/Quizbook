@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { normalizeState } from '@quiz/core';
+import { normalizeState } from '@megrez/core';
 import { useQuiz, type CloudPhase } from '../store/QuizStore';
 import { Icon, type IconName } from '../components/Icon';
 import { confirmAction, notify } from '../components/Feedback';
@@ -113,7 +113,7 @@ export function SettingsView() {
     const a = document.createElement('a');
     const url = URL.createObjectURL(blob);
     a.href = url;
-    a.download = `题本进度-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `天权进度-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };

@@ -12,9 +12,11 @@ import {
   type QuizSession,
   type SessionItem,
   type SessionMode,
-} from '@quiz/core';
+} from '@megrez/core';
 
-const KEY = 'quizbook_quiz_sessions_v2';
+const KEY = 'megrez_quiz_sessions_v2';
+/** 上一品牌时期的多会话键，格式未变，读取时整份搬到新键 */
+const LEGACY_MAP_KEY = 'quizbook_quiz_sessions_v2';
 /** 旧版本单份快照的键，读取时自动迁移 */
 const LEGACY_KEY = 'quizbook_quiz_session_v1';
 /** 旧品牌时期的会话键，读取时自动迁移 */
@@ -69,7 +71,15 @@ function readMap(): StoredMap {
   const s = storage();
   if (!s) return { v: 1, sessions: {} };
   try {
-    const raw = s.getItem(KEY);
+    let raw = s.getItem(KEY);
+    if (!raw) {
+      const legacyMap = s.getItem(LEGACY_MAP_KEY);
+      if (legacyMap) {
+        s.setItem(KEY, legacyMap);
+        s.removeItem(LEGACY_MAP_KEY);
+        raw = legacyMap;
+      }
+    }
     if (!raw) return { v: 1, sessions: {} };
     const parsed = JSON.parse(raw) as Partial<StoredMap>;
     if (parsed && parsed.v === 1 && parsed.sessions && typeof parsed.sessions === 'object') {
@@ -238,6 +248,7 @@ export function clearAllSessions(): void {
   try {
     const s = storage();
     s?.removeItem(KEY);
+    s?.removeItem(LEGACY_MAP_KEY);
     s?.removeItem(LEGACY_KEY);
     s?.removeItem(LEGACY_BRAND_KEY);
   } catch {

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { SessionItem } from '@quiz/core';
+import type { SessionItem } from '@megrez/core';
 import { Icon } from './Icon';
 
 export const LETTERS = ['A', 'B', 'C', 'D'] as const;

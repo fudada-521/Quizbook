@@ -1,4 +1,4 @@
-import type { Settings } from '@quiz/core';
+import type { Settings } from '@megrez/core';
 
 export type AnswerFeedback = 'ok' | 'bad';
 

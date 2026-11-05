@@ -1,12 +1,12 @@
 [package]
-name = "gaoxiang-quiz"
+name = "megrez"
 version = "1.0.0"
-description = "题本 Quizbook - 桌面答题应用"
+description = "天权 Megrez - 桌面答题应用"
 authors = ["fukun"]
 edition = "2021"
 
 [lib]
-name = "gaoxiang_quiz_lib"
+name = "megrez_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

@@ -1,4 +1,4 @@
-name: quizbook
+name: megrez
 
 services:
   server:
@@ -10,11 +10,11 @@ services:
       HOST: 0.0.0.0
       PORT: 8787
       PUBLIC_URL: ${PUBLIC_URL:?请在 .env 中设置 PUBLIC_URL}
-      DB_PATH: /data/quizbook.db
+      DB_PATH: /data/megrez.db
       # 允许 App / 原生壳的跨域请求；使用 Bearer token，不依赖 Cookie
       CORS_ORIGIN: '*'
     volumes:
-      - quizbook-data:/data
+      - megrez-data:/data
     expose:
       - '8787'
 
@@ -34,6 +34,6 @@ services:
       - server
 
 volumes:
-  quizbook-data:
+  megrez-data:
   caddy-data:
   caddy-config:

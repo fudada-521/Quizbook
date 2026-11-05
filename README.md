@@ -1,4 +1,4 @@
-# 题本 Quizbook · 答题练习（跨平台）
+# 天权 Megrez · 答题练习（跨平台）
 
 软考·信息系统项目管理师 综合知识刷题应用。
 一套 React 代码，同时产出 **网页 / 桌面 App / 手机 App**。
@@ -45,7 +45,7 @@ pnpm server:dev       # 后端本地开发（http://127.0.0.1:8787）
 ```bash
 cd apps/mobile
 pnpm exec cap add android      # 仅首次
-pnpm --filter @quiz/web build && pnpm exec cap sync android
+pnpm --filter @megrez/web build && pnpm exec cap sync android
 ```
 
 然后构建（需 JDK 17+ 与 Android SDK，`android/local.properties` 的 `sdk.dir` 指向本机 SDK）：
@@ -81,12 +81,12 @@ gradle assembleDebug            # 或 ./gradlew assembleDebug
 
 ## 架构
 
-- **`@quiz/core`**：纯函数领域逻辑，无 DOM/框架依赖，可用 `pnpm test` 单测。
-- **`@quiz/storage`**：`ProgressStore` 接口（`load`/`save`/`subscribe`）+ 云同步客户端 `CloudClient`（账号密码登录、拉取/推送）与本地 token 存储。
-  Web 用 `localStorage`（`@quiz/storage/web`），桌面/移动可注入文件或原生存储实现。
-- **`@quiz/server`**：Fastify + TypeScript + SQLite。用户名 + 密码注册/登录（scrypt 哈希、失败限流），Bearer token 鉴权，服务端用 `mergeStates()` 合并多端进度并权威校验成就。详见 `apps/server/README.md`。
-- **`@quiz/web`**：React UI，通过 `QuizStore`（Context + hook）封装状态；极简工具风界面（浅色/深色自动跟随系统）、百词斩式答题卡片、答对自动跳转（答错停留）、章节进度、错题本、收藏夹、题目心得、答题卡、键盘快捷键。
-- **断点续做**：每个练习入口（章节、随机、错题、收藏、挑战等）的未完成进度分别保存在本机（`quizbook_quiz_sessions_v2`），从同一入口进入或退出后重新打开，都可回到该练习上次的原题继续。
+- **`@megrez/core`**：纯函数领域逻辑，无 DOM/框架依赖，可用 `pnpm test` 单测。
+- **`@megrez/storage`**：`ProgressStore` 接口（`load`/`save`/`subscribe`）+ 云同步客户端 `CloudClient`（账号密码登录、拉取/推送）与本地 token 存储。
+  Web 用 `localStorage`（`@megrez/storage/web`），桌面/移动可注入文件或原生存储实现。
+- **`@megrez/server`**：Fastify + TypeScript + SQLite。用户名 + 密码注册/登录（scrypt 哈希、失败限流），Bearer token 鉴权，服务端用 `mergeStates()` 合并多端进度并权威校验成就。详见 `apps/server/README.md`。
+- **`@megrez/web`**：React UI，通过 `QuizStore`（Context + hook）封装状态；极简工具风界面（浅色/深色自动跟随系统）、百词斩式答题卡片、答对自动跳转（答错停留）、章节进度、错题本、收藏夹、题目心得、答题卡、键盘快捷键。
+- **断点续做**：每个练习入口（章节、随机、错题、收藏、挑战等）的未完成进度分别保存在本机（`megrez_quiz_sessions_v2`），从同一入口进入或退出后重新打开，都可回到该练习上次的原题继续。
 
 ## 功能
 

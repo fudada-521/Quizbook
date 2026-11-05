@@ -1,4 +1,4 @@
-import { EXAM_PASS_SCORE, scoreSession, type SessionMode } from '@quiz/core';
+import { EXAM_PASS_SCORE, scoreSession, type SessionMode } from '@megrez/core';
 import { useQuiz } from '../store/QuizStore';
 
 const MODE_LABEL: Record<SessionMode, string> = {

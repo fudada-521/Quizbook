@@ -1,5 +1,5 @@
 {
-  "name": "@quiz/desktop",
+  "name": "@megrez/desktop",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -8,7 +8,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@quiz/web": "workspace:*"
+    "@megrez/web": "workspace:*"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.12.4",

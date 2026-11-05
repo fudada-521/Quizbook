@@ -50,19 +50,19 @@ import {
   dateKey,
   type Settings,
   type Question,
-} from '@quiz/core';
-import { ProgressStore, SyncBackend } from '@quiz/storage';
+} from '@megrez/core';
+import { ProgressStore, SyncBackend } from '@megrez/storage';
 import {
   ApiError,
   CloudClient,
   type AuthUser,
   type StoredAuth,
-} from '@quiz/storage/http';
+} from '@megrez/storage/http';
 import {
   createLocalAuthStore,
   loadServerUrl,
   saveServerUrl,
-} from '@quiz/storage/auth';
+} from '@megrez/storage/auth';
 import { clearAllSessions, clearSession, loadSessions, saveSession } from './sessionPersistence';
 import { emitAnswerFeedback } from '../feedback';
 import { notify } from '../components/Feedback';

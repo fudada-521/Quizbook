@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuiz } from '../store/QuizStore';
-import { chapterTitle, isFavorite, qkey, shouldAutoAdvance, type SessionItem } from '@quiz/core';
+import { chapterTitle, isFavorite, qkey, shouldAutoAdvance, type SessionItem } from '@megrez/core';
 import { Icon } from '../components/Icon';
 import { QuestionNotes } from '../components/QuestionNotes';
 import { AnswerOptions, LETTERS, RevealCard } from '../components/AnswerParts';

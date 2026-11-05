@@ -8,7 +8,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { env } from './env';
-import { normalizeState, type PersistedState } from '@quiz/core';
+import { normalizeState, type PersistedState } from '@megrez/core';
 
 mkdirSync(dirname(env.dbPath), { recursive: true });
 

@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent } from 'react';
-import { notesFor, type Question } from '@quiz/core';
+import { notesFor, type Question } from '@megrez/core';
 import { useQuiz } from '../store/QuizStore';
 import { Icon } from './Icon';
 

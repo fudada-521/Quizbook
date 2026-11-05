@@ -6,7 +6,7 @@
  *   - 移动(Capacitor)：原生 Preferences / Filesystem
  *   - 云同步：实现本接口即可接入任意后端（预留）
  */
-import { PersistedState } from '@quiz/core';
+import { PersistedState } from '@megrez/core';
 
 export interface ProgressStore {
   readonly kind: string;

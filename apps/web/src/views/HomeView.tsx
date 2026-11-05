@@ -9,7 +9,7 @@ import {
     DAILY_COUNT,
     TIMED_COUNT,
     EXAM_COUNT,
-} from "@quiz/core";
+} from "@megrez/core";
 import { useQuiz } from "../store/QuizStore";
 import { Icon } from "../components/Icon";
 

@@ -2,7 +2,7 @@
  * 云端 API 客户端：账号密码登录 + 进度同步 + 成就查询。
  * 只依赖 fetch，浏览器 / Tauri / Capacitor 通用。
  */
-import type { PersistedState } from '@quiz/core';
+import type { PersistedState } from '@megrez/core';
 
 export interface AuthUser {
   id: string;

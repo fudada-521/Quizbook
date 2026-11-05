@@ -1,9 +1,9 @@
 {
-  "name": "@quiz/mobile",
+  "name": "@megrez/mobile",
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "sync": "pnpm --filter @quiz/web build && cap sync",
+    "sync": "pnpm --filter @megrez/web build && cap sync",
     "ios": "cap open ios",
     "android": "cap open android",
     "copy": "cap copy"
