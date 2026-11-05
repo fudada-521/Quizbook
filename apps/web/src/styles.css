@@ -725,7 +725,7 @@ kbd {
 .quiz-page {
   max-width: 760px;
   margin: 0 auto;
-  /* 给底部通栏操作条留出空间，避免遮住最后的解析 / 心得 */
+  /* 给悬空的底部胶囊栏留出空间，避免遮住最后的解析 / 心得 */
   padding-bottom: calc(var(--space-3xl) + env(safe-area-inset-bottom, 0px));
 }
 
@@ -1349,21 +1349,22 @@ kbd {
   white-space: pre-wrap;
 }
 
-/* 底部通栏操作条：贴住安全区，主操作占满余下宽度 */
+/* 悬空胶囊操作栏：脱离文档流固定在视口底部，主操作占满余下宽度 */
 .quiz-actionbar {
   position: fixed;
-  right: 0;
-  bottom: 0;
-  left: 0;
+  left: 50%;
+  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
   z-index: var(--z-raised);
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  /* 平板宽度下与 760px 的答题栏对齐，不再随屏幕无限拉宽 */
-  padding: var(--space-xs) max(32px, calc((100% - 760px) / 2))
-    calc(var(--space-xs) + env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid var(--color-rule);
-  background: color-mix(in oklab, var(--surface-panel) 92%, transparent);
+  width: min(calc(100% - 32px), 460px);
+  padding: var(--space-xs);
+  transform: translateX(-50%);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklab, var(--surface-panel) 86%, transparent);
+  box-shadow: var(--shadow-card), var(--edge-light);
   -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
 }
@@ -3138,15 +3139,9 @@ dialog {
     display: none;
   }
 
-  /* 通栏操作条与答题卡左右对齐 */
-  .quiz-actionbar {
-    padding-right: var(--space-md);
-    padding-left: var(--space-md);
-  }
-
   .qbar-btn {
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
   }
 
   .setting-row {
