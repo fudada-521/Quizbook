@@ -100,6 +100,11 @@ button {
   white-space: nowrap;
 }
 
+/* 窄屏放不下完整考名，只留「软考」 */
+.brand-sub-short {
+  display: none;
+}
+
 .header-actions {
   display: flex;
   align-items: center;
@@ -898,6 +903,8 @@ kbd {
 }
 
 .stem {
+  /* base.css 给 h2 设了 30ch 上限，题干需要占满卡片宽度 */
+  max-width: none;
   margin-bottom: var(--space-lg);
   color: var(--color-ink);
   font-size: 17px;
@@ -913,8 +920,8 @@ kbd {
   gap: var(--space-sm);
 }
 
-/* 解析卡排在选项之上时，两者之间留出呼吸间距 */
-.reveal + .options {
+/* 解析卡排在选项之下时，两者之间留出呼吸间距 */
+.options + .reveal {
   margin-top: var(--space-md);
 }
 
@@ -1021,6 +1028,15 @@ kbd {
 
 .option.dim {
   opacity: 0.55;
+}
+
+/* 判分反馈：答对复用解析卡的弹起 + 绿色光晕，答错左右震动 */
+.option.correct {
+  animation: okReveal 720ms var(--ease-out) both;
+}
+
+.option.wrong {
+  animation: badReveal 460ms var(--ease-in-out) both;
 }
 
 .submit-row {
@@ -1519,15 +1535,18 @@ kbd {
 }
 
 /* ============================================================
-   收藏夹
+   一级页面骨架（收藏 / 成就 / 设置共用）
    ============================================================ */
 
-.favorites-page {
+.view-page {
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
   padding-top: 10px;
   animation: questionIn var(--dur-short) var(--ease-out);
 }
 
-.fav-head {
+.view-head {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -1535,18 +1554,26 @@ kbd {
   padding: var(--space-lg) 0;
 }
 
-.fav-head h1 {
+.view-head-copy {
+  min-width: 0;
+}
+
+.view-head h1 {
   font-size: 32px;
   line-height: 1.15;
 }
 
-.fav-head .page-sub {
+.view-head .page-sub {
   margin-top: 10px;
 }
 
-.fav-head .btn {
+.view-head > .btn {
   flex: none;
 }
+
+/* ============================================================
+   收藏夹
+   ============================================================ */
 
 .fav-list {
   overflow: hidden;
@@ -1697,38 +1724,6 @@ kbd {
   padding: 18px var(--space-lg) var(--space-2xs);
 }
 
-.fav-stem-full {
-  margin-bottom: var(--space-md);
-  font-size: 16.5px;
-  font-weight: 500;
-  line-height: 1.75;
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
-}
-
-.fav-explain {
-  margin-top: 20px;
-  padding-top: var(--space-md);
-  border-top: 1px solid var(--color-rule);
-}
-
-.fav-explain .label {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--color-muted);
-  font-family: var(--font-body);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0;
-}
-
-.fav-explain p {
-  color: var(--color-ink);
-  font-size: 13.5px;
-  line-height: 1.78;
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
-}
 
 .fav-dialog .dialog-foot {
   position: sticky;
@@ -1762,35 +1757,14 @@ dialog {
    设置页
    ============================================================ */
 
-.settings-page {
-  width: 100%;
-  max-width: 920px;
-  margin: 0 auto;
-  padding-top: 10px;
-  animation: questionIn var(--dur-short) var(--ease-out);
-}
-
-.settings-head {
-  padding: var(--space-lg) 0;
-}
-
-.settings-head h1 {
-  font-size: 32px;
-  line-height: 1.15;
-}
-
-.settings-head .page-sub {
-  margin-top: 10px;
-}
-
-.settings-layout {
+.side-layout {
   display: grid;
   grid-template-columns: 224px minmax(0, 1fr);
   gap: var(--space-lg);
   align-items: start;
 }
 
-.settings-nav {
+.side-nav {
   position: sticky;
   top: var(--space-lg);
   display: flex;
@@ -1798,7 +1772,7 @@ dialog {
   gap: 2px;
 }
 
-.settings-nav-item {
+.side-nav-item {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1813,40 +1787,43 @@ dialog {
     border-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out);
 }
 
-.settings-nav-item:hover {
+.side-nav-item:hover {
   background: var(--surface-panel-2);
   color: var(--color-ink);
 }
 
-.settings-nav-item.active {
+.side-nav-item.active {
   border-color: var(--color-rule);
   background: var(--surface-panel);
   color: var(--color-ink);
   box-shadow: var(--edge-light), var(--shadow-card);
 }
 
-.settings-nav-item > svg:first-child {
+.side-nav-item > svg:first-child {
   flex: none;
   color: var(--color-muted);
 }
 
-.settings-nav-item.active > svg:first-child {
+.side-nav-item.active > svg:first-child {
   color: var(--color-accent);
 }
 
-.settings-nav-copy {
+.side-nav-copy {
   display: flex;
   flex: 1;
   flex-direction: column;
   min-width: 0;
 }
 
-.settings-nav-copy strong {
+.side-nav-copy strong {
+  overflow: hidden;
   font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-.settings-nav-copy small {
+.side-nav-copy small {
   overflow: hidden;
   color: var(--color-muted);
   font-size: 11px;
@@ -1854,17 +1831,17 @@ dialog {
   text-overflow: ellipsis;
 }
 
-.settings-nav-item .chev {
+.side-nav-item .chev {
   flex: none;
   opacity: 0;
   transition: opacity var(--dur-micro) var(--ease-out);
 }
 
-.settings-nav-item.active .chev {
+.side-nav-item.active .chev {
   opacity: 0.6;
 }
 
-.settings-content {
+.side-content {
   min-width: 0;
   animation: questionIn var(--dur-short) var(--ease-out);
 }
@@ -1989,6 +1966,36 @@ dialog {
   border-radius: var(--radius-inner);
   background: var(--surface-well);
   font-size: var(--field-font-size);
+}
+
+/* 自动下一题：预设下拉 + 自定义秒数 */
+.auto-custom {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+.auto-custom-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.auto-seconds {
+  width: 72px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-inner);
+  background: var(--surface-well);
+  font-size: var(--field-font-size);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.auto-custom-unit {
+  color: var(--color-muted);
+  font-size: 12px;
 }
 
 .dialog-foot {
@@ -2242,84 +2249,13 @@ dialog {
    成就
    ============================================================ */
 
-.achievements-page {
-  width: 100%;
-  max-width: 820px;
-  margin: 0 auto;
-}
-
 .achievement-overall {
   max-width: 260px;
   margin-top: 14px;
 }
 
-.achievement-tabs {
-  display: flex;
-  gap: 3px;
-  overflow-x: auto;
-  margin-top: 18px;
-  padding: 3px;
-  border: 1px solid var(--color-rule);
-  border-radius: var(--radius-pill);
-  background: var(--surface-well);
-  scrollbar-width: none;
-}
-
-.achievement-tabs::-webkit-scrollbar {
-  display: none;
-}
-
-.achievement-tab {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 1 0 auto;
-  gap: 6px;
-  min-height: 34px;
-  padding: 0 12px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--color-ink-2);
-  font-size: 12.5px;
-  white-space: nowrap;
-  transition: background var(--dur-micro) var(--ease-out),
-    border-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out);
-}
-
-.achievement-tab:hover {
-  background: var(--surface-panel-2);
-  color: var(--color-ink);
-}
-
-.achievement-tab.active {
-  border-color: var(--color-rule);
-  background: var(--surface-panel);
-  color: var(--color-ink);
-  box-shadow: var(--edge-light), var(--shadow-card);
-}
-
-.achievement-tab > svg {
-  flex: none;
-  color: var(--color-muted);
-}
-
-.achievement-tab.active > svg {
-  color: var(--color-accent);
-}
-
-.achievement-tab-count {
-  color: var(--color-muted);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-}
-
-.achievement-tab.active .achievement-tab-count {
-  color: var(--accent-text);
-}
-
 .achievement-panel {
-  margin-top: var(--space-sm);
+  padding: 20px 22px;
   animation: questionIn var(--dur-short) var(--ease-out);
 }
 
@@ -2581,6 +2517,89 @@ dialog {
   font-size: 11.5px;
 }
 
+/* 答题过程中解锁成就：居中的祝贺卡片，带动画与遮罩 */
+.celebrate-layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.celebrate-backdrop {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in oklab, var(--color-ink) 38%, transparent);
+  backdrop-filter: blur(3px);
+  animation: fadeIn 220ms var(--ease-out) both;
+}
+
+.celebrate-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(380px, 100%);
+  padding: 30px 26px 24px;
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-card);
+  background: var(--surface-panel);
+  box-shadow: var(--edge-light), var(--shadow-cast);
+  text-align: center;
+  animation: celebrateIn 520ms var(--ease-out) both;
+}
+
+.celebrate-icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 2px;
+  border-radius: 50%;
+  background: var(--color-accent-soft);
+  color: var(--accent-text);
+  box-shadow: 0 0 0 10px color-mix(in oklab, var(--color-accent) 10%, transparent);
+  animation: iconPop 520ms var(--ease-out) 120ms both;
+}
+
+.celebrate-kicker {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+
+.celebrate-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.celebrate-list > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.celebrate-list strong {
+  font-size: 19px;
+  font-weight: 650;
+}
+
+.celebrate-list span {
+  color: var(--color-ink-2);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.celebrate-confirm {
+  min-width: 160px;
+  margin-top: 8px;
+}
+
 /* ============================================================
    动效
    ============================================================ */
@@ -2692,6 +2711,30 @@ dialog {
     transform: translateY(6px) scale(0.99);
   }
   to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes celebrateIn {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.9);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.02);
+  }
+  100% {
     opacity: 1;
     transform: none;
   }
@@ -2826,14 +2869,15 @@ dialog {
   }
 
   .stem {
-    font-size: 16px;
-    line-height: 1.72;
+    font-size: 17.5px;
+    line-height: 1.78;
     margin-bottom: 20px;
   }
 
   .option {
-    padding: var(--space-sm) 13px;
-    font-size: 14px;
+    padding: 14px 14px;
+    font-size: 16px;
+    line-height: 1.7;
   }
 
   .result-page {
@@ -2864,18 +2908,18 @@ dialog {
     padding-left: 18px;
   }
 
-  .fav-head {
+  .view-head {
     align-items: stretch;
     flex-direction: column;
     gap: var(--space-md);
     padding: 20px 0;
   }
 
-  .fav-head h1 {
+  .view-head h1 {
     font-size: 28px;
   }
 
-  .fav-head .btn {
+  .view-head > .btn {
     width: 100%;
   }
 
@@ -2918,43 +2962,51 @@ dialog {
     display: none;
   }
 
-  .settings-head {
-    padding: 20px 0;
-  }
-
-  .settings-head h1 {
-    font-size: 28px;
-  }
-
-  .settings-layout {
+  .side-layout {
     display: block;
   }
 
-  /* 手机端改为横向分段导航，内容纵向展开 */
-  .settings-nav {
+  /* 窄屏换回胶囊 tab：横向滚动、单行，内容纵向展开（成就与设置共用） */
+  .side-nav {
     position: static;
-    flex-direction: row;
-    gap: 4px;
+    flex-flow: row nowrap;
+    gap: 3px;
     overflow-x: auto;
     margin-bottom: var(--space-md);
-    padding-bottom: 2px;
+    padding: 3px;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-pill);
+    background: var(--surface-well);
     scrollbar-width: none;
   }
 
-  .settings-nav::-webkit-scrollbar {
+  .side-nav::-webkit-scrollbar {
     display: none;
   }
 
-  .settings-nav-item {
+  .side-nav-item {
     flex: 1 0 auto;
     justify-content: center;
     width: auto;
-    padding: 9px 12px;
-    border-color: var(--color-rule-2);
+    min-height: 34px;
+    padding: 0 14px;
+    border-radius: var(--radius-pill);
+    font-size: 12.5px;
+    white-space: nowrap;
   }
 
-  .settings-nav-copy small,
-  .settings-nav-item .chev {
+  .side-nav-copy {
+    flex: none;
+  }
+
+  .side-nav-copy strong {
+    max-width: 8.5em;
+    font-size: 12.5px;
+  }
+
+  .side-nav-copy small,
+  .side-nav-item .chev,
+  .side-nav-item > svg:first-child {
     display: none;
   }
 
@@ -2989,9 +3041,12 @@ dialog {
     flex: 1;
   }
 
-  .brand-sub,
-  .brand-rule {
+  .brand-sub-full {
     display: none;
+  }
+
+  .brand-sub-short {
+    display: inline;
   }
 
   .chapters-panel {
@@ -3027,6 +3082,21 @@ dialog {
   .setting-control select {
     width: 100%;
   }
+
+  /* 下拉与秒数输入并排，下拉吃掉剩余宽度 */
+  .auto-custom {
+    flex-wrap: wrap;
+  }
+
+  .auto-custom select {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+  }
+
+  .auto-custom input.auto-seconds {
+    width: 72px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -3057,20 +3127,12 @@ dialog {
     width: calc(100% - 16px);
   }
 
-  .fav-head h1 {
+  .view-head h1 {
     font-size: 26px;
   }
 
   .result-actions .btn {
     flex: 1;
-  }
-
-  .achievement-tab {
-    padding: 0 10px;
-  }
-
-  .achievement-tab > svg {
-    display: none;
   }
 }
 
@@ -3081,9 +3143,11 @@ dialog {
   }
 }
 
-@media (hover: none) {
+/* 触屏设备没有物理键盘，隐藏所有键盘提示；pointer: coarse 兜住部分 Android WebView */
+@media (hover: none), (pointer: coarse) {
   .shortcut-hint,
-  .note-hint {
+  .note-hint,
+  .kbd-only {
     display: none;
   }
 }

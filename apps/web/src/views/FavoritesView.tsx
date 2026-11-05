@@ -1,16 +1,54 @@
 import { useEffect, useRef, useState } from 'react';
-import { chapterTitle, favoriteQuestions, qkey, type Question } from '@quiz/core';
+import {
+  chapterTitle,
+  favoriteQuestions,
+  qkey,
+  type Question,
+  type SessionItem,
+} from '@quiz/core';
 import { useQuiz } from '../store/QuizStore';
 import { Icon } from '../components/Icon';
 import { QuestionNotes } from '../components/QuestionNotes';
+import { AnswerOptions, RevealCard } from '../components/AnswerParts';
+import { useSwipeDownToClose } from '../gestures';
 
-const LETTERS = ['A', 'B', 'C', 'D'] as const;
+/** 收藏详情没有乱序，显示顺序即原始顺序 */
+const READONLY_MAP: [number, number, number, number] = [0, 1, 2, 3];
+
+/** 目录的当前范围：全部收藏，或某一章 */
+type Scope = 'all' | number;
+
+interface ChapterEntry {
+  c: number;
+  items: Question[];
+}
+
+/** 按章节归档，章节号升序；章内保持收藏时间从新到旧 */
+function groupByChapter(list: Question[]): ChapterEntry[] {
+  const map = new Map<number, Question[]>();
+  for (const q of list) {
+    const bucket = map.get(q.c);
+    if (bucket) bucket.push(q);
+    else map.set(q.c, [q]);
+  }
+  return [...map.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([c, items]) => ({ c, items }));
+}
 
 export function FavoritesView() {
   const { data, state, startFavorites, startUnanswered, toggleFavorite } = useQuiz();
   const favorites = favoriteQuestions(data, state);
   const [detail, setDetail] = useState<Question | null>(null);
+  const [scope, setScope] = useState<Scope>('all');
   const dlgRef = useRef<HTMLDialogElement>(null);
+
+  const chapters = groupByChapter(favorites);
+  // 取消收藏可能让当前章节清空，此时自动回到「全部收藏」
+  const active: Scope =
+    scope === 'all' || chapters.some((entry) => entry.c === scope) ? scope : 'all';
+  const visible =
+    active === 'all' ? favorites : (chapters.find((entry) => entry.c === active)?.items ?? []);
 
   useEffect(() => {
     const dlg = dlgRef.current;
@@ -33,39 +71,100 @@ export function FavoritesView() {
     closeDetail();
   };
 
+  // 手机上从弹窗头部向下滑动即可关闭
+  useSwipeDownToClose(dlgRef.current, closeDetail);
+
+  // 只读会话项：数据已判分、无选中记录，交给答题页组件按「正确答案」渲染
+  const readonlyItem: SessionItem | null = detail
+    ? { q: detail, map: READONLY_MAP, done: true, pick: null, lastPick: -1 }
+    : null;
+
+  const scopeLabel =
+    active === 'all'
+      ? '全部收藏'
+      : `第${String(active).padStart(2, '0')}章 ${chapterTitle(data, active)}`;
+
   return (
-    <div className="favorites-page">
-      <header className="fav-head">
-        <div>
+    <div className="view-page">
+      <header className="view-head">
+        <div className="view-head-copy">
           <h1>收藏的题目</h1>
           <p className="page-sub">
-            共 {favorites.length} 道，按收藏时间从新到旧
+            {active === 'all'
+              ? `共 ${favorites.length} 道 · 按收藏时间从新到旧`
+              : `${scopeLabel} · ${visible.length} 道`}
           </p>
         </div>
         {favorites.length > 0 && (
-          <button className="btn primary" onClick={startFavorites}>
-            开始收藏练习
+          <button
+            className="btn primary"
+            onClick={() => startFavorites(active === 'all' ? undefined : active)}
+          >
+            {active === 'all' ? '开始收藏练习' : `练习本章 ${visible.length} 道`}
             <Icon name="arrow-right" size={16} />
           </button>
         )}
       </header>
 
       {favorites.length > 0 ? (
-        <div className="fav-list">
-          {favorites.map((q) => (
-            <button className="fav-row" key={qkey(q)} onClick={() => setDetail(q)}>
-              <span className="fav-main">
-                <span className="fav-chapter">
-                  第{String(q.c).padStart(2, '0')}章 {chapterTitle(data, q.c)}，原题 {q.n}
-                </span>
-                <span className="fav-stem">{q.s}</span>
-                <span className="fav-date">
-                  收藏于 {formatDate(state.favorites[qkey(q)])}
-                </span>
+        <div className="side-layout">
+          <nav className="side-nav" aria-label="收藏章节目录">
+            <button
+              className={`side-nav-item${active === 'all' ? ' active' : ''}`}
+              onClick={() => setScope('all')}
+              aria-current={active === 'all' ? 'page' : undefined}
+            >
+              <Icon name="star" size={17} />
+              <span className="side-nav-copy">
+                <strong>全部收藏</strong>
+                <small>{favorites.length} 道</small>
               </span>
-              <Icon name="chevron-right" size={16} className="chev" />
+              <Icon name="chevron-right" size={14} className="chev" />
             </button>
-          ))}
+            {chapters.map(({ c, items }) => {
+              const title = chapterTitle(data, c);
+              return (
+                <button
+                  key={c}
+                  className={`side-nav-item${active === c ? ' active' : ''}`}
+                  onClick={() => setScope(c)}
+                  aria-current={active === c ? 'page' : undefined}
+                  title={title}
+                >
+                  <Icon name="book" size={17} />
+                  <span className="side-nav-copy">
+                    <strong>{title}</strong>
+                    <small>
+                      第{String(c).padStart(2, '0')}章 · {items.length} 道
+                    </small>
+                  </span>
+                  <Icon name="chevron-right" size={14} className="chev" />
+                </button>
+              );
+            })}
+          </nav>
+
+          <div
+            className="fav-list side-content"
+            key={String(active)}
+            role="tabpanel"
+            aria-label={scopeLabel}
+          >
+            {visible.map((q) => (
+              <button className="fav-row" key={qkey(q)} onClick={() => setDetail(q)}>
+                <span className="fav-main">
+                  <span className="fav-chapter">
+                    第{String(q.c).padStart(2, '0')}章 {chapterTitle(data, q.c)}，原题 {q.n}
+                  </span>
+                  <span className="fav-stem">{q.s}</span>
+                  <span className="fav-date">
+                    收藏于 {formatDate(state.favorites[qkey(q)])}
+                  </span>
+                </span>
+                <Icon name="chevron-right" size={16} className="chev" />
+              </button>
+            ))}
+          </div>
         </div>
       ) : (
         <div className="empty-state">
@@ -90,7 +189,7 @@ export function FavoritesView() {
           if (e.target === dlgRef.current) closeDetail();
         }}
       >
-        {detail && (
+        {detail && readonlyItem && (
           <>
             <div className="dialog-head">
               <div>
@@ -106,25 +205,9 @@ export function FavoritesView() {
             </div>
 
             <div className="fav-dialog-body">
-              <h3 className="fav-stem-full">{detail.s}</h3>
-              <div className="options">
-                {detail.o.map((text, i) => (
-                  <div className={`option done${i === detail.a ? ' correct' : ''}`} key={i}>
-                    <span className="letter">{LETTERS[i]}</span>
-                    <span className="text">{text}</span>
-                    {i === detail.a && (
-                      <span className="mark">
-                        <Icon name="check" size={13} />
-                        正确答案
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <div className="fav-explain">
-                <span className="label">解析</span>
-                <p>{detail.e || '（本题原书无解析）'}</p>
-              </div>
+              <h3 className="stem">{detail.s}</h3>
+              <AnswerOptions item={readonlyItem} />
+              <RevealCard item={readonlyItem} ok reference />
               <QuestionNotes question={detail} />
             </div>
 

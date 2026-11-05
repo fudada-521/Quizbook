@@ -131,62 +131,71 @@ export function AchievementsView() {
     categories.find((entry) => entry.category === active)?.items ?? categories[0]?.items ?? [];
 
   return (
-    <div className="achievements-page">
-      <header className="page-head">
-        <h1>
-          已解锁 {unlocked} / {list.length}
-        </h1>
-        <p className="page-sub">持续练习，把徽章一个个点亮。</p>
-        <div className="progress achievement-overall">
-          <i style={{ transform: `scaleX(${unlocked / list.length})` }} />
+    <div className="view-page">
+      <header className="view-head">
+        <div className="view-head-copy">
+          <h1>成就</h1>
+          <p className="page-sub">
+            已解锁 {unlocked} / {list.length} · 持续练习，把徽章一个个点亮。
+          </p>
+          <div className="progress achievement-overall">
+            <i style={{ transform: `scaleX(${unlocked / list.length})` }} />
+          </div>
         </div>
       </header>
 
-      <div className="achievement-tabs" role="tablist" aria-label="成就分类">
-        {categories.map(({ category, items }) => (
-          <button
-            key={category}
-            role="tab"
-            aria-selected={active === category}
-            className={`achievement-tab${active === category ? ' active' : ''}`}
-            onClick={() => setActive(category)}
-          >
-            <Icon name={CATEGORY_ICON[category]} size={15} />
-            {CATEGORY_LABEL[category]}
-            <span className="achievement-tab-count">
-              {items.filter((item) => item.unlocked).length}/{items.length}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      <section
-        className="panel achievement-panel"
-        role="tabpanel"
-        key={active}
-        aria-label={CATEGORY_LABEL[active]}
-      >
-        <div className="achievement-list">
-          {groupBySeries(activeItems).map((group) => {
-            const groupUnlocked = group.items.filter((item) => item.unlocked).length;
+      <div className="side-layout">
+        <nav className="side-nav" aria-label="成就分类">
+          {categories.map(({ category, items }) => {
+            const categoryUnlocked = items.filter((item) => item.unlocked).length;
             return (
-              <div className="achievement-series" key={group.key}>
-                {group.label && (
-                  <div className="achievement-series-head">
-                    <span>{group.label}</span>
-                    <span>
-                      {groupUnlocked} / {group.items.length}
-                    </span>
-                  </div>
-                )}
-                {group.items.map((item) => (
-                  <AchievementCard item={item} category={active} key={item.id} />
-                ))}
-              </div>
+              <button
+                key={category}
+                className={`side-nav-item${active === category ? ' active' : ''}`}
+                onClick={() => setActive(category)}
+                aria-current={active === category ? 'page' : undefined}
+              >
+                <Icon name={CATEGORY_ICON[category]} size={17} />
+                <span className="side-nav-copy">
+                  <strong>{CATEGORY_LABEL[category]}</strong>
+                  <small>
+                    {categoryUnlocked} / {items.length} 已解锁
+                  </small>
+                </span>
+                <Icon name="chevron-right" size={14} className="chev" />
+              </button>
             );
           })}
-        </div>
-      </section>
+        </nav>
+
+        <section
+          className="panel achievement-panel side-content"
+          role="tabpanel"
+          key={active}
+          aria-label={CATEGORY_LABEL[active]}
+        >
+        <div className="achievement-list">
+            {groupBySeries(activeItems).map((group) => {
+              const groupUnlocked = group.items.filter((item) => item.unlocked).length;
+              return (
+                <div className="achievement-series" key={group.key}>
+                  {group.label && (
+                    <div className="achievement-series-head">
+                      <span>{group.label}</span>
+                      <span>
+                        {groupUnlocked} / {group.items.length}
+                      </span>
+                    </div>
+                  )}
+                  {group.items.map((item) => (
+                    <AchievementCard item={item} category={active} key={item.id} />
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

@@ -113,31 +113,6 @@ export function HomeView() {
                         </div>
                     )}
                 </section>
-                <section className="panel achievement-teaser">
-                    <button
-                        className="achievement-link"
-                        onClick={() => setView("achievements")}>
-                        <span className={`achievement-badge${unlockedCount === achievements.length ? " all" : ""}`}>
-                            <Icon
-                                name="trophy"
-                                size={20}
-                            />
-                        </span>
-                        <span className="achievement-copy">
-                            <strong>
-                                成就 {unlockedCount} / {achievements.length}
-                            </strong>
-                            <span className="progress thin">
-                                <i style={{ transform: `scaleX(${unlockedCount / achievements.length})` }} />
-                            </span>
-                        </span>
-                        <Icon
-                            name="chevron-right"
-                            size={15}
-                            className="chev"
-                        />
-                    </button>
-                </section>
                 <aside className="home-aside">
                     <section className="panel">
                         <div className="panel-head">
@@ -161,6 +136,32 @@ export function HomeView() {
                                 <span>连续打卡</span>
                             </div>
                         </div>
+                    </section>
+
+                    <section className="panel achievement-teaser">
+                        <button
+                            className="achievement-link"
+                            onClick={() => setView("achievements")}>
+                            <span className={`achievement-badge${unlockedCount === achievements.length ? " all" : ""}`}>
+                                <Icon
+                                    name="trophy"
+                                    size={20}
+                                />
+                            </span>
+                            <span className="achievement-copy">
+                                <strong>
+                                    成就 {unlockedCount} / {achievements.length}
+                                </strong>
+                                <span className="progress thin">
+                                    <i style={{ transform: `scaleX(${unlockedCount / achievements.length})` }} />
+                                </span>
+                            </span>
+                            <Icon
+                                name="chevron-right"
+                                size={15}
+                                className="chev"
+                            />
+                        </button>
                     </section>
 
                     <section className="panel">
@@ -284,7 +285,7 @@ export function HomeView() {
                             </button>
                             <button
                                 className="mode-row"
-                                onClick={startFavorites}>
+                                onClick={() => startFavorites()}>
                                 <span className="mode-icon">
                                     <Icon
                                         name="star"

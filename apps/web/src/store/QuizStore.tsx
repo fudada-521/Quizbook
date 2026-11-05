@@ -205,7 +205,8 @@ export interface QuizApp {
   startRandom: () => void;
   startUnanswered: () => void;
   startWrong: () => void;
-  startFavorites: () => void;
+  /** 不传章节则练全部收藏，传章节则只练该章的收藏题 */
+  startFavorites: (chapter?: number) => void;
   startDaily: () => void;
   startTimed: () => void;
   startExam: () => void;
@@ -617,6 +618,12 @@ export function QuizProvider(props: {
         const list = questionsOfChapter(data, c);
         return list.length ? { list, title: chapterTitleOf(data, c) } : null;
       }
+      if (origin.startsWith('favorites:')) {
+        const c = Number(origin.slice('favorites:'.length));
+        const list = favoriteQuestions(data, persistRef.current).filter((q) => q.c === c);
+        if (!list.length) return null;
+        return { list, title: `收藏练习 · ${chapterTitleOf(data, c)}` };
+      }
       if (origin.startsWith('daily:')) {
         const date = origin.slice('daily:'.length) || dateKey();
         return {
@@ -715,7 +722,11 @@ export function QuizProvider(props: {
   const startRandom = useCallback(() => startOrigin('random'), [startOrigin]);
   const startUnanswered = useCallback(() => startOrigin('unanswered'), [startOrigin]);
   const startWrong = useCallback(() => startOrigin('wrong'), [startOrigin]);
-  const startFavorites = useCallback(() => startOrigin('favorites'), [startOrigin]);
+  const startFavorites = useCallback(
+    (chapter?: number) =>
+      startOrigin(chapter == null ? 'favorites' : `favorites:${chapter}`),
+    [startOrigin],
+  );
   const startDaily = useCallback(() => startOrigin(`daily:${dateKey()}`), [startOrigin]);
   const startTimed = useCallback(() => startOrigin('timed'), [startOrigin]);
   const startExam = useCallback(() => startOrigin('exam'), [startOrigin]);

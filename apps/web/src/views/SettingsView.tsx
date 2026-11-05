@@ -14,6 +14,18 @@ const PHASE_LABEL: Record<CloudPhase, string> = {
 
 type Section = 'account' | 'practice' | 'data';
 
+/** 自动下一题的预设档位（毫秒）；不在这几个值里的都算自定义 */
+const AUTO_PRESETS = [0, 1000, 1600, 2500, 4000];
+const CUSTOM_MIN_SEC = 0.5;
+const CUSTOM_MAX_SEC = 10;
+
+/** 自定义秒数收敛到 0 或 0.5–10，并保留一位小数 */
+function normalizeSeconds(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  const clamped = Math.min(Math.max(value, CUSTOM_MIN_SEC), CUSTOM_MAX_SEC);
+  return Math.round(clamped * 10) / 10;
+}
+
 const SECTIONS: { id: Section; label: string; hint: string; icon: IconName }[] = [
   { id: 'account', label: '账号与同步', hint: '登录、设备与服务器', icon: 'cloud' },
   { id: 'practice', label: '答题设置', hint: '题量、判分与反馈', icon: 'settings' },
@@ -38,6 +50,15 @@ export function SettingsView() {
   const [serverInput, setServerInput] = useState(cloud.serverUrl);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  // 自定义自动跳转时长：进入页面时若当前值不在预设里就直接展开输入框
+  const [customAuto, setCustomAuto] = useState(
+    () => !AUTO_PRESETS.includes(settings.autoNext),
+  );
+  const [customSeconds, setCustomSeconds] = useState(() =>
+    String(normalizeSeconds(settings.autoNext / 1000)),
+  );
+  // 同步回来的值不在预设里（或用户刚选了「自定义…」）时展示输入框
+  const showCustom = customAuto || !AUTO_PRESETS.includes(settings.autoNext);
 
   const signingIn = cloud.phase === 'signing-in';
   const canSubmit = username.trim().length > 0 && password.length > 0 && !signingIn;
@@ -45,6 +66,37 @@ export function SettingsView() {
   const submit = (mode: 'login' | 'register') => {
     if (!canSubmit) return;
     void (mode === 'login' ? login(username.trim(), password) : register(username.trim(), password));
+  };
+
+  /** 切到「自定义…」时以当前时长作为起点，没有时长就用 2 秒 */
+  const changeAutoNext = (raw: string) => {
+    if (raw === 'custom') {
+      const seed = normalizeSeconds(settings.autoNext / 1000) || 2;
+      setCustomAuto(true);
+      setCustomSeconds(String(seed));
+      patchSettings({ autoNext: Math.round(seed * 1000) });
+      return;
+    }
+    setCustomAuto(false);
+    patchSettings({ autoNext: +raw });
+  };
+
+  /** 输入过程中即时生效；空值或非数字先不写入，等失焦再兜底 */
+  const editCustomSeconds = (raw: string) => {
+    setCustomSeconds(raw);
+    const n = Number(raw);
+    if (raw.trim() === '' || !Number.isFinite(n)) return;
+    patchSettings({ autoNext: Math.round(normalizeSeconds(n) * 1000) });
+  };
+
+  const commitCustomSeconds = () => {
+    const n = Number(customSeconds);
+    const sec =
+      customSeconds.trim() === '' || !Number.isFinite(n)
+        ? normalizeSeconds(settings.autoNext / 1000)
+        : normalizeSeconds(n);
+    setCustomSeconds(String(sec));
+    patchSettings({ autoNext: Math.round(sec * 1000) });
   };
 
   useEffect(() => {
@@ -92,23 +144,25 @@ export function SettingsView() {
   };
 
   return (
-    <div className="settings-page">
-      <header className="settings-head">
-        <h1>设置与数据</h1>
-        <p className="page-sub">账号同步、答题偏好与本机数据管理</p>
+    <div className="view-page">
+      <header className="view-head">
+        <div className="view-head-copy">
+          <h1>设置与数据</h1>
+          <p className="page-sub">账号同步、答题偏好与本机数据管理</p>
+        </div>
       </header>
 
-      <div className="settings-layout">
-        <nav className="settings-nav" aria-label="设置分类">
+      <div className="side-layout">
+        <nav className="side-nav" aria-label="设置分类">
           {SECTIONS.map((item) => (
             <button
               key={item.id}
-              className={`settings-nav-item${section === item.id ? ' active' : ''}`}
+              className={`side-nav-item${section === item.id ? ' active' : ''}`}
               onClick={() => setSection(item.id)}
               aria-current={section === item.id ? 'page' : undefined}
             >
               <Icon name={item.icon} size={17} />
-              <span className="settings-nav-copy">
+              <span className="side-nav-copy">
                 <strong>{item.label}</strong>
                 <small>{item.hint}</small>
               </span>
@@ -117,7 +171,7 @@ export function SettingsView() {
           ))}
         </nav>
 
-        <div className="settings-content">
+        <div className="side-content">
           {section === 'account' && (
             <section className="panel settings-panel" aria-labelledby="settings-account">
               <div className="panel-head">
@@ -297,20 +351,36 @@ export function SettingsView() {
               <div className="setting-row">
                 <div className="setting-copy">
                   <label htmlFor="set-auto">答对后自动下一题</label>
-                  <p>答错始终停留，便于阅读解析</p>
+                  <p>答错始终停留；自定义可设 0–10 秒</p>
                 </div>
-                <div className="setting-control">
+                <div className="setting-control auto-custom">
                   <select
                     id="set-auto"
-                    value={settings.autoNext}
-                    onChange={(e) => patchSettings({ autoNext: +e.target.value })}
+                    value={showCustom ? 'custom' : String(settings.autoNext)}
+                    onChange={(e) => changeAutoNext(e.target.value)}
                   >
                     <option value={1000}>1 秒</option>
                     <option value={1600}>1.6 秒</option>
                     <option value={2500}>2.5 秒</option>
                     <option value={4000}>4 秒</option>
                     <option value={0}>不自动</option>
+                    <option value="custom">自定义…</option>
                   </select>
+                  {showCustom && (
+                    <span className="auto-custom-field">
+                      <input
+                        className="auto-seconds"
+                        type="text"
+                        inputMode="decimal"
+                        autoComplete="off"
+                        aria-label="自定义自动跳转秒数，0 表示不自动"
+                        value={customSeconds}
+                        onChange={(e) => editCustomSeconds(e.target.value)}
+                        onBlur={commitCustomSeconds}
+                      />
+                      <span className="auto-custom-unit">秒</span>
+                    </span>
+                  )}
                 </div>
               </div>
 

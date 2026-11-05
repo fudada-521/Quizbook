@@ -4,6 +4,41 @@
 
 ## 待办
 
+> 优先级：P0 = 影响正常使用；P1 = 明确的体验缺陷；P2 = 优化项；P3 = 规划/需先做方案。
+
+### 体验优化（2026-11-05 整理并完成）
+
+#### 本轮已完成
+
+- [x] **统一页面骨架与标题**：新增 `.view-page` / `.view-head`（`max-width: 920px`），收藏、成就、设置三页共用；成就页 h1 改为「成就」，解锁进度下沉到副标题，标题字号统一为 32px（移动端 28/26px）
+- [x] **收藏详情复用答题页 UI**：抽出 `components/AnswerParts.tsx` 的 `AnswerOptions` / `RevealCard`，答题页与收藏详情共用；删除 `.fav-stem-full`、`.fav-explain` 等重复样式
+- [x] **移动端字号**：`max-width: 720px` 下题干 17.5px、选项 16px、行高 1.7+
+- [x] **宽屏题干提前换行**：根因是 `base.css` 给所有 `h2` 设了 `max-width: 30ch`，题干在 30 字符处就断行；`.stem` 已改为 `max-width: none`
+- [x] **解析移到选项下方**：`QuizView` 中 `Reveal` 挪到 `Options` 之后，相邻间距规则改为 `.options + .reveal`
+- [x] **判分动效**：答对时正确选项复用解析卡的 `okReveal`（弹起 + 绿色光晕），答错时错误选项用 `badReveal` 震动，与原生触觉并存
+- [x] **手机端隐藏键盘提示**：媒体查询改为 `(hover: none), (pointer: coarse)`；解析页「按 Enter」拆到 `.kbd-only` 中按设备隐藏
+- [x] **滑动关闭/返回**：新增 `gestures.ts`，实现左缘右滑返回（收藏/成就/设置/结算）、收藏详情头部下滑关闭、答题页左右滑动翻题；同时接入 History API，系统返回键/手势与应用内视图一致（`Shell` 中统一维护一条二级页历史）
+- [x] **首页成就卡片位置**：从「继续练习」与右侧栏之间移入右侧栏「学习概览」之后
+- [x] **音效音量与失灵**：主输出串联 `DynamicsCompressorNode` 并提升音量（tone 0.13–0.18 + master 1.6）；在首个 pointerdown / touchstart / keydown 中同步 `resume()` 并播 0 振幅预热音，判分时等上下文 running 后再调度
+- [x] **答题中达成成就的祝贺**：由右下角 toast 改为居中祝贺弹窗（遮罩 + 徽章弹入 + 卡片动画），可点击关闭或等待自动关闭；展示期间暂停自动跳题，关闭后重新计时
+
+#### 待验证（真机）
+
+- [ ] 真机回归：iOS Safari / Android WebView 上的音效解锁、边缘右滑返回、答题页横向滑动、收藏详情下滑关闭
+- [ ] 系统返回键在 Tauri / Capacitor 壳内的行为（Web 已按 History API 处理）
+
+#### 规划（需先出方案）
+
+- [ ] **本地每日提醒（P2）**：接入系统通知，按日提醒刷题
+  - Web/PWA：Notifications API + Service Worker（已用 `vite-plugin-pwa`），受权限与「是否安装到主屏」限制，定时不可靠，作为降级方案
+  - Capacitor：优先 `@capacitor/local-notifications`，支持每日重复的原生本地通知
+  - Tauri：`tauri-plugin-notification` + 启动时补发或系统级定时
+  - 需新增设置项：开关、提醒时间、权限申请与拒绝后的引导；注意三端能力差异与「单文件离线可用」约束
+- [ ] **多题库支持（P3）**
+  - 现状：`apps/web/src/App.tsx` 直接 `import` `data/questions.json`，题库编进 bundle；进度题目键 `${c}-${n}` 不含题库维度
+  - 关键改造：题库元数据（id/名称/版本/题量）与运行时数据源；存储按题库分区或给题目键加前缀；`@quiz/core` 的判分/抽题/合并需接受题库上下文；`mergeStates()` 与云同步需兼容
+  - 先做方案：题库来源（内置多份按需加载 vs 远程下载）、切换后的进度隔离策略、离线可用性权衡
+
 ### 云同步与成就
 
 - [ ] **三端实机验证**：设备码登录（系统浏览器确认）、自动同步、断网回归
