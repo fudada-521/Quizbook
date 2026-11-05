@@ -69,25 +69,18 @@ function groupBySeries(items: AchievementStatus[]): SeriesGroup[] {
   return groups;
 }
 
-function AchievementCard({
-  item,
-  category,
-}: {
-  item: AchievementStatus;
-  category: AchievementCategory;
-}) {
+function AchievementCard({ item }: { item: AchievementStatus }) {
   const secret = Boolean(item.hidden && !item.unlocked);
   const current = Math.min(item.current, item.target);
   const pct = item.target ? Math.min(100, (current / item.target) * 100) : 100;
 
   return (
     <div className={`achievement-card${item.unlocked ? ' unlocked' : ''}${secret ? ' secret' : ''}`}>
-      <span className="achievement-icon">
-        <Icon
-          name={secret ? 'lock' : category === 'hidden' ? 'trophy' : CATEGORY_ICON[category]}
-          size={18}
-        />
-      </span>
+      {secret && (
+        <span className="achievement-icon">
+          <Icon name="lock" size={18} />
+        </span>
+      )}
       <span className="achievement-main">
         <span className="achievement-title">
           <strong>{secret ? '？？？' : item.title}</strong>
@@ -99,7 +92,7 @@ function AchievementCard({
         <span className="achievement-desc">
           {secret ? item.hint ?? '达成隐藏条件后揭晓' : item.description}
         </span>
-        {!secret && (
+        {!secret && current > 0 && (
           <span className="progress thin">
             <i style={{ transform: `scaleX(${pct / 100})` }} />
           </span>
@@ -188,7 +181,7 @@ export function AchievementsView() {
                     </div>
                   )}
                   {group.items.map((item) => (
-                    <AchievementCard item={item} category={active} key={item.id} />
+                    <AchievementCard item={item} key={item.id} />
                   ))}
                 </div>
               );

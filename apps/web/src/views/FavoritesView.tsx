@@ -90,9 +90,11 @@ export function FavoritesView() {
         <div className="view-head-copy">
           <h1>收藏的题目</h1>
           <p className="page-sub">
-            {active === 'all'
-              ? `共 ${favorites.length} 道 · 按收藏时间从新到旧`
-              : `${scopeLabel} · ${visible.length} 道`}
+            {favorites.length === 0
+              ? '共 0 道'
+              : active === 'all'
+                ? `共 ${favorites.length} 道 · 按收藏时间从新到旧`
+                : `${scopeLabel} · ${visible.length} 道`}
           </p>
         </div>
         {favorites.length > 0 && (
@@ -168,9 +170,6 @@ export function FavoritesView() {
         </div>
       ) : (
         <div className="empty-state">
-          <span className="empty-icon">
-            <Icon name="star" size={22} />
-          </span>
           <h2>还没有收藏题目</h2>
           <p>答题时点题卡右上角的星标，题目就会出现在这里。</p>
           <button className="btn" onClick={startUnanswered}>

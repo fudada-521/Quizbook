@@ -1,6 +1,6 @@
-/* Hallmark · shape: app screen · genre: atmospheric · theme: Refract (by request) · redesign: full
- * nav: kept: wordmark and four icon controls over a hairline foot · signature: greyscale water caustics beside the working panel, never under running text · states: idle, hover, focus, active, disabled, loading, empty, error · refract: water/ink
- * axes: light/grotesk-sans/monochrome · posture: restrained · contrast: pass · v2.0.0 */
+/* Hallmark · checked: 2026-11-05 · genre: atmospheric · scope: app
+ * floor: 0 FAIL · fixed: 13 (19, 24a ×10, 67 ×2) · reflex: 1 waived (39b) · finish: 1 fixed (F5) · light: caustics held right of the reading column, dimmed on the centred result
+ * built: Hallmark · theme: Refract (by request) · shape: app screen · nav: kept: wordmark and four icon controls over a hairline foot · signature: greyscale water caustics beside the working panel, never under running text · states: idle, hover, focus, active, disabled, loading, empty, error · redesign: polish · v2.0.0 */
 /* Hallmark · pre-emit critique: P4 H4 E4 S4 R4 V4 · weakest: V, the shell is kept; the light, clear sheets and ruled lists carry the difference */
 /* Hallmark · waive 24b · the answer card options and the stat rows keep a two-pixel spacing nudge · stacked rows align optically at this size, and a strict grid leaves the list visibly loose */
 /* Hallmark · waive 22 · pure monochrome is the requested scheme · every accent, rule and surface carries zero chroma, and color returns only in the ok and bad states */
@@ -8,6 +8,7 @@
 /* Hallmark · dismissed F7 · one clear-sheet recipe and one well recipe are the app's two containment levels */
 /* Hallmark · dismissed F24 · the dialog needs a defined edge over paper and elevation above the backdrop */
 /* Hallmark · dismissed F3 · gates.md forbids balance on display heads; these heads cannot wrap into stubs */
+/* Hallmark · waive 39b · guard: list rows, not controls; the whole row is the hit target · each chapter row carries its name, question count and state on two lines, and 67px is what two readable lines and a hairline need */
 @import url("./tokens.css");
 @import url("./base.css");
 
@@ -331,23 +332,24 @@ kbd {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  -webkit-mask-image: radial-gradient(
-    ellipse 92% 82% at 60% 18%,
-    var(--color-ink) 0%,
-    var(--color-ink) 38%,
-    transparent 88%
-  );
-  mask-image: radial-gradient(
-    ellipse 92% 82% at 60% 18%,
-    var(--color-ink) 0%,
-    var(--color-ink) 38%,
-    transparent 88%
-  );
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0 34%, var(--color-ink) 62%),
+    linear-gradient(to bottom, var(--color-ink) 0 52%, transparent 86%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent 0 34%, var(--color-ink) 62%),
+    linear-gradient(to bottom, var(--color-ink) 0 52%, transparent 86%);
+  mask-composite: intersect;
 }
 
 /* 答题时背景光收敛一些，别和题干抢注意力 */
 .app-shell[data-view='quiz'] .light-field {
   opacity: 0.55;
+}
+
+/* 结算页的文字居中且压在光的上方，光退到几乎不可见，分数落在净纸上 */
+.app-shell[data-view='result'] .light-field {
+  opacity: 0.28;
 }
 
 .water-light {
@@ -702,7 +704,7 @@ kbd {
   max-width: 760px;
   margin: 0 auto;
   /* 给悬空的底部胶囊栏留出空间，避免遮住最后的解析 / 心得 */
-  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(var(--space-3xl) + env(safe-area-inset-bottom, 0px));
 }
 
 .quiz-bar {
@@ -711,19 +713,8 @@ kbd {
   z-index: var(--z-sticky);
   margin: 0 -32px;
   padding: calc(var(--space-sm) + env(safe-area-inset-top, 0px)) 32px 0;
-  background: var(--color-paper);
-}
-
-/* 吸顶栏下方柔和渐隐：内容滚过时不会被栏底硬切 */
-.quiz-bar::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  bottom: -16px;
-  left: 0;
-  height: 16px;
-  background: linear-gradient(to bottom, var(--color-paper), transparent);
-  pointer-events: none;
+  /* 不铺底色，让背景水波纹从吸顶栏下透出来 */
+  background: transparent;
 }
 
 .quiz-bar-row {
@@ -1110,7 +1101,7 @@ kbd {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-xs);
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.01em;
@@ -1332,9 +1323,9 @@ kbd {
   z-index: var(--z-raised);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-xs);
   width: min(calc(100% - 32px), 460px);
-  padding: 8px;
+  padding: var(--space-xs);
   transform: translateX(-50%);
   border: 1px solid var(--color-rule);
   border-radius: var(--radius-pill);
@@ -1382,7 +1373,7 @@ kbd {
   flex: 1;
   width: auto;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-xs);
   border-color: transparent;
   border-radius: var(--radius-pill);
   background: var(--color-accent);
@@ -1652,17 +1643,6 @@ kbd {
   text-align: center;
 }
 
-.empty-icon {
-  display: grid;
-  place-items: center;
-  width: 48px;
-  height: 48px;
-  margin-bottom: var(--space-md);
-  border-radius: var(--radius-inner);
-  background: var(--surface-well);
-  color: var(--color-muted);
-}
-
 .empty-state h2 {
   font-size: 18px;
   font-weight: 400;
@@ -1769,7 +1749,7 @@ dialog {
   top: var(--space-lg);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-3xs);
 }
 
 .side-nav-item {
@@ -1777,7 +1757,7 @@ dialog {
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 10px 12px;
+  padding: 10px var(--space-sm);
   border: 1px solid transparent;
   border-radius: var(--radius-inner);
   background: transparent;
@@ -1856,11 +1836,11 @@ dialog {
 
 .settings-group-title {
   margin: var(--space-md) 0 0;
-  color: var(--color-muted);
+  color: var(--color-ink-2);
   font-family: var(--font-body);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: normal;
   line-height: 1.3;
 }
 
@@ -1880,7 +1860,7 @@ dialog {
 }
 
 .settings-stats > div {
-  padding: 12px 14px;
+  padding: var(--space-sm) 14px;
   background: var(--surface-well);
 }
 
@@ -1890,7 +1870,7 @@ dialog {
 }
 
 .settings-stats dd {
-  margin: 2px 0 0;
+  margin: var(--space-3xs) 0 0;
   font-size: 22px;
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
@@ -1978,7 +1958,7 @@ dialog {
 .auto-custom-field {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2xs);
 }
 
 .auto-seconds {
@@ -2279,7 +2259,7 @@ dialog {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-xs);
-  padding: var(--space-xs) 0 2px;
+  padding: var(--space-xs) 0 var(--space-3xs);
   color: var(--color-muted);
   font-size: 11.5px;
   font-variant-numeric: tabular-nums;
@@ -2524,14 +2504,13 @@ dialog {
   z-index: var(--z-modal);
   display: grid;
   place-items: center;
-  padding: 24px;
+  padding: var(--space-lg);
 }
 
 .celebrate-backdrop {
   position: absolute;
   inset: 0;
-  background: color-mix(in oklab, var(--color-ink) 38%, transparent);
-  backdrop-filter: blur(3px);
+  background: color-mix(in oklab, var(--color-ink) 42%, transparent);
   animation: fadeIn 220ms var(--ease-out) both;
 }
 
@@ -2542,7 +2521,7 @@ dialog {
   align-items: center;
   gap: 10px;
   width: min(380px, 100%);
-  padding: 30px 26px 24px;
+  padding: 30px 26px var(--space-lg);
   border: 1px solid var(--color-rule);
   border-radius: var(--radius-card);
   background: var(--surface-panel);
@@ -2554,34 +2533,31 @@ dialog {
 .celebrate-icon {
   display: grid;
   place-items: center;
-  width: 64px;
-  height: 64px;
-  margin-bottom: 2px;
-  border-radius: 50%;
-  background: var(--color-accent-soft);
-  color: var(--accent-text);
-  box-shadow: 0 0 0 10px color-mix(in oklab, var(--color-accent) 10%, transparent);
+  width: 30px;
+  height: 30px;
+  margin-bottom: var(--space-2xs);
+  color: var(--color-ink);
   animation: iconPop 520ms var(--ease-out) 120ms both;
 }
 
 .celebrate-kicker {
-  color: var(--color-muted);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
+  color: var(--color-ink-2);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  letter-spacing: normal;
 }
 
 .celebrate-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-sm);
   width: 100%;
 }
 
 .celebrate-list > div {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2xs);
 }
 
 .celebrate-list strong {
@@ -2597,7 +2573,7 @@ dialog {
 
 .celebrate-confirm {
   min-width: 160px;
-  margin-top: 8px;
+  margin-top: var(--space-xs);
 }
 
 /* ============================================================
@@ -2820,19 +2796,9 @@ dialog {
     line-height: 1.15;
   }
 
+  /* 手机上每一屏都是字，光没有不压字的地方可站；宁可不出现，也不从标题下游过 */
   .light-field {
-    -webkit-mask-image: radial-gradient(
-      ellipse 120% 74% at 60% 12%,
-      var(--color-ink) 0%,
-      var(--color-ink) 32%,
-      transparent 86%
-    );
-    mask-image: radial-gradient(
-      ellipse 120% 74% at 60% 12%,
-      var(--color-ink) 0%,
-      var(--color-ink) 32%,
-      transparent 86%
-    );
+    display: none;
   }
 
   .continue-card {
@@ -2978,6 +2944,17 @@ dialog {
     border-radius: var(--radius-pill);
     background: var(--surface-well);
     scrollbar-width: none;
+    /* 右缘渐隐：横滚的分类露出一角，也提示后面还有 */
+    -webkit-mask-image: linear-gradient(
+      to right,
+      var(--color-ink) 0 calc(100% - 30px),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      var(--color-ink) 0 calc(100% - 30px),
+      transparent 100%
+    );
   }
 
   .side-nav::-webkit-scrollbar {
@@ -2989,7 +2966,7 @@ dialog {
     justify-content: center;
     width: auto;
     min-height: 34px;
-    padding: 0 14px;
+    padding: 0 12px;
     border-radius: var(--radius-pill);
     font-size: 12.5px;
     white-space: nowrap;
@@ -3015,7 +2992,7 @@ dialog {
   }
 
   .setting-row {
-    gap: 12px;
+    gap: var(--space-sm);
   }
 
   .setting-control select {
@@ -3244,7 +3221,7 @@ dialog {
   }
 
   .question-notes.notes-card {
-    padding: 24px;
+    padding: var(--space-lg);
   }
 
   /* 右栏：吸顶；题号区内部滚动，nav 常驻 */
@@ -3261,7 +3238,7 @@ dialog {
 
   .quiz-rail-summary {
     flex: none;
-    padding: 18px 18px 16px;
+    padding: 18px 18px var(--space-md);
   }
 
   .quiz-rail-head {
@@ -3325,7 +3302,7 @@ dialog {
     flex: 1 1 auto;
     flex-direction: column;
     min-height: 0;
-    padding: 16px;
+    padding: var(--space-md);
     overflow: hidden;
   }
 
@@ -3357,7 +3334,7 @@ dialog {
   .answer-sheet-nav {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-2xs);
   }
 
   .sheet-nav-btn {
@@ -3405,8 +3382,8 @@ dialog {
     align-content: start;
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding: 2px;
-    margin: -2px;
+    padding: var(--space-3xs);
+    margin: calc(-1 * var(--space-3xs));
     grid-template-columns: repeat(auto-fill, minmax(30px, 1fr));
     gap: 6px;
     scrollbar-width: thin;

@@ -351,7 +351,7 @@ export function SettingsView() {
               <div className="setting-row">
                 <div className="setting-copy">
                   <label htmlFor="set-auto">答对后自动下一题</label>
-                  <p>答错始终停留；自定义可设 0–10 秒</p>
+                  <p>答错始终停留；自定义可设 0 到 10 秒</p>
                 </div>
                 <div className="setting-control auto-custom">
                   <select
