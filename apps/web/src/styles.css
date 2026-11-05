@@ -2891,11 +2891,6 @@ dialog {
     margin-top: var(--space-md);
   }
 
-  /* 手机上每一屏都是字，光没有不压字的地方可站；宁可不出现，也不从标题下游过 */
-  .light-field {
-    display: none;
-  }
-
   .continue-card {
     gap: 18px;
     padding: 22px;
