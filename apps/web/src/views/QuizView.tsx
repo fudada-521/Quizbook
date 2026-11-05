@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuiz } from '../store/QuizStore';
-import { isFavorite, qkey, shouldAutoAdvance, type SessionItem } from '@quiz/core';
+import { chapterTitle, isFavorite, qkey, shouldAutoAdvance, type SessionItem } from '@quiz/core';
 import { Icon } from '../components/Icon';
 import { QuestionNotes } from '../components/QuestionNotes';
 import { AnswerOptions, LETTERS, RevealCard } from '../components/AnswerParts';
@@ -9,6 +9,7 @@ import { useHorizontalSwipe } from '../gestures';
 export function QuizView() {
   const {
     app,
+    data,
     state,
     settings,
     pick,
@@ -145,7 +146,7 @@ export function QuizView() {
           <article className="question-card" key={sess.idx} {...swipeHandlers}>
             <div className="q-head">
               <p className="q-meta">
-                {sess.title}，原题 {it.q.n}
+                第{String(it.q.c).padStart(2, '0')}章 {chapterTitle(data, it.q.c)}，原题 {it.q.n}
               </p>
               <button
                 className={`fav-btn${fav ? ' active' : ''}`}

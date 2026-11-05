@@ -1,6 +1,6 @@
 /* Hallmark · checked: 2026-11-05 · genre: atmospheric · scope: app
  * floor: 0 FAIL · fixed: 15 (19 ×2, 26b, 63 ×11, 67) · reflex: 2 waived (24b, 39b) · finish: 5 fixed (F14, F19, F21 ×2, F23) · finish-review: subagent · 5 findings · 5 resolved · light: caustics held right of the reading column, dimmed on the centred result, off on phones where every surface carries text
- * built: Hallmark · theme: Refract (by request) · shape: app screen · nav: kept: wordmark and four icon controls over a hairline foot · signature: greyscale water caustics beside the working panel, never under running text · states: idle, hover, focus, active, disabled, loading, empty, error · redesign: polish · v2.0.0 */
+ * built: Hallmark · theme: Refract (by request) · shape: app screen · home: continue card first, chapters beside a bare stats column and one merged mode panel, chapters before the aside on phones · nav: kept: wordmark and four icon controls over a hairline foot · signature: greyscale water caustics beside the working panel, never under running text · states: idle, hover, focus, active, disabled, loading, empty, error · redesign: polish · v2.0.0 */
 /* Hallmark · pre-emit critique: P4 H4 E4 S4 R4 V4 · weakest: V, the shell is kept; the light, clear sheets and ruled lists carry the difference */
 /* Hallmark · waive 24b · guard: dense app chrome only (settings rows, dialogs, the quiz rail, chapter and answer-sheet lists) · optical offsets from 3px to 30px align type to rules and to 30-36px controls; every layout-level gap uses the 4px space scale */
 /* Hallmark · waive 22 · pure monochrome is the requested scheme · every accent, rule and surface carries zero chroma, and color returns only in the ok and bad states */
@@ -365,18 +365,6 @@ kbd {
   height: 100%;
 }
 
-.page-head {
-  position: relative;
-  z-index: 1;
-  padding: var(--space-xl) 0 32px;
-}
-
-.page-head h1 {
-  max-width: 22ch;
-  font-size: var(--text-3xl);
-  line-height: 1.1;
-}
-
 .page-sub {
   margin-top: var(--space-sm);
   color: var(--color-ink-2);
@@ -393,6 +381,31 @@ kbd {
     'chapters aside';
   align-items: start;
   gap: var(--space-lg) 28px;
+  margin-top: var(--space-xl);
+}
+
+/* 概览与成就直接排在纸面上，不再各自套一张同款卡片 */
+.home-stats {
+  padding: 0 var(--space-2xs) var(--space-md);
+  border-bottom: 1px solid var(--color-rule);
+}
+
+.home-achievement {
+  padding: var(--space-md) var(--space-2xs);
+}
+
+.mode-group-title {
+  margin: var(--space-md) 0 var(--space-2xs);
+  color: var(--color-muted);
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.3;
+}
+
+.mode-group-title:first-of-type {
+  margin-top: 0;
 }
 
 .home-hero {
@@ -439,6 +452,8 @@ kbd {
 }
 
 .continue-title {
+  max-width: none;
+  margin: 0;
   font-size: 24px;
   font-weight: 400;
   line-height: 1.18;
@@ -666,8 +681,12 @@ kbd {
 
 .chapter-index {
   color: var(--color-muted);
-  font-size: 11.5px;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 300;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
 }
 
 .chapter-main {
@@ -2834,10 +2853,11 @@ dialog {
 @media (max-width: 900px) {
   .home-grid {
     grid-template-columns: minmax(0, 1fr);
+    /* 章节是最主要的入口，手机上紧跟主卡，模式面板排在最后 */
     grid-template-areas:
       'hero'
-      'aside'
-      'chapters';
+      'chapters'
+      'aside';
     gap: 20px;
   }
 
@@ -2877,13 +2897,8 @@ dialog {
     padding: 22px var(--space-md) calc(32px + env(safe-area-inset-bottom, 0px));
   }
 
-  .page-head {
-    padding: var(--space-lg) 0 22px;
-  }
-
-  .page-head h1 {
-    font-size: var(--text-2xl);
-    line-height: 1.15;
+  .home-grid {
+    margin-top: var(--space-md);
   }
 
   /* 手机上每一屏都是字，光没有不压字的地方可站；宁可不出现，也不从标题下游过 */

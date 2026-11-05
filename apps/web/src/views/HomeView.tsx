@@ -59,18 +59,11 @@ export function HomeView() {
 
     return (
         <div className="home">
-            <header className="page-head">
-                <h1>保持节奏，继续推进。</h1>
-                <p className="page-sub">
-                    已作答 {answered.toLocaleString()} / {total.toLocaleString()} 题，正确率 {acc}
-                </p>
-            </header>
-
             <div className="home-grid">
                 <section className="continue-card home-hero">
                     <div className="continue-main">
                         <div className="continue-head">
-                            <h2 className="continue-title">{resume ? resume.title : "智能推进，新题优先"}</h2>
+                            <h1 className="continue-title">{resume ? resume.title : "智能推进，新题优先"}</h1>
                             <span className="continue-status">{resume ? "未完成练习" : "准备开始"}</span>
                         </div>
                         <p className="continue-meta">
@@ -114,7 +107,9 @@ export function HomeView() {
                     )}
                 </section>
                 <aside className="home-aside">
-                    <section className="panel">
+                    <section
+                        className="home-stats"
+                        aria-label="学习概览">
                         <div className="panel-head">
                             <h2>学习概览</h2>
                         </div>
@@ -138,7 +133,7 @@ export function HomeView() {
                         </div>
                     </section>
 
-                    <section className="panel achievement-teaser">
+                    <section className="home-achievement">
                         <button
                             className="achievement-link"
                             onClick={() => setView("achievements")}>
@@ -164,10 +159,13 @@ export function HomeView() {
                         </button>
                     </section>
 
-                    <section className="panel">
+                    <section
+                        className="panel"
+                        aria-label="练习模式">
                         <div className="panel-head">
-                            <h2>挑战模式</h2>
+                            <h2>练习模式</h2>
                         </div>
+                        <h3 className="mode-group-title">挑战</h3>
                         <div className="mode-list">
                             <button
                                 className="mode-row"
@@ -223,12 +221,8 @@ export function HomeView() {
                                 />
                             </button>
                         </div>
-                    </section>
 
-                    <section className="panel">
-                        <div className="panel-head">
-                            <h2>练习方式</h2>
-                        </div>
+                        <h3 className="mode-group-title">练习</h3>
                         <div className="mode-list">
                             <button
                                 className="mode-row"
