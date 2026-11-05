@@ -142,6 +142,13 @@ export interface SessionItem {
 }
 
 export interface QuizSession {
+  /**
+   * 练习来源标识（如 `chapter:3` / `random` / `daily:2026-11-04`）。
+   * 同一来源的未完成会话会被记住，下次从同一入口进入时续做。
+   */
+  origin?: string;
+  /** 最近一次保存时间，用于首页「继续练习」选取最近活动的一份 */
+  updatedAt?: number;
   title: string;
   idx: number;
   reviewOnly: boolean;

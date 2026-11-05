@@ -41,7 +41,7 @@ pnpm server:dev       # 后端本地开发（Fastify，默认 http://127.0.0.1:8
 ### Web 应用
 
 - `apps/web/src/store/QuizStore.tsx` 是唯一状态中枢：`useReducer` 管理视图/会话/答题卡（`AppState`），`useState` 管理持久化进度（`PersistedState`），通过 Context + `useQuiz()` 暴露。
-- 断点续做由 `store/sessionPersistence.ts` 负责：会话快照存 localStorage 键 `quizbook_quiz_session_v1`（首次读取自动迁移旧键），只保存题目键 `${c}-${n}` 与作答状态，加载时按当前题库重新关联。会话在答题中持续写入，进入结算页或导入/清空进度时清除；答题中退出则保留，首页据此显示「继续练习」。
+- 断点续做由 `store/sessionPersistence.ts` 负责：会话快照存 localStorage 键 `quizbook_quiz_sessions_v2`，按练习来源（`chapter:3`、`random`、`wrong`、`daily:2026-11-04` 等）各存一份，互不覆盖；旧单份键 `quizbook_quiz_session_v1` 首次读取自动迁移。快照只保存题目键 `${c}-${n}` 与作答状态，加载时按当前题库重新关联。从同一入口再次进入会恢复该来源上次中断的位置；进入结算页只清除当前这一份，导入/清空进度会清除全部；答题中退出则保留，首页「继续练习」显示最近活动的一份。
 - 关键设计：`@quiz/core` 的 `gradeAnswer()` 会**原地修改** `PersistedState` 和 `SessionItem`（设置 `done`、`lastPick`）。QuizStore 因此用 `persistRef` 持有最新进度、修改后 `setPersisted({...persistRef.current})` 触发刷新。改动状态管理时要保持这个“可变 core + 不可变 React 快照”的约定。
 - 视图切换在 `App.tsx` 中按 `app.view` 渲染 `HomeView` / `QuizView` / `ResultView` / `FavoritesView`；`SettingsDialog` 是常驻的 `<dialog>`。收藏夹详情弹窗由 `FavoritesView` 自行管理，打开时用 `showModal()` 并把焦点放在对话框容器上。
 - 题目心得统一由 `components/QuestionNotes.tsx` 渲染，答题解析（`Reveal`）与收藏详情复用。解析页传入 `onComposeStart`，用户聚焦输入框即暂停本题自动跳转倒计时。

@@ -71,6 +71,9 @@
   --shadow-dialog: 0 28px 80px -24px oklch(0% 0 0 / 0.22);
   --backdrop: oklch(0% 0 0 / 0.42);
 
+  /* 表单控件字号。触屏设备会提升到 16px，否则 iOS 聚焦输入框时会自动放大页面 */
+  --field-font-size: 13px;
+
   --font-display: 'Funnel Display', ui-sans-serif, system-ui, 'PingFang SC',
     'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   --font-body: 'Funnel Sans', ui-sans-serif, system-ui, 'PingFang SC',
@@ -136,5 +139,12 @@
     --shadow-bar: 0 -18px 32px -26px oklch(0% 0 0 / 0.7);
     --shadow-dialog: 0 28px 90px -24px oklch(0% 0 0 / 0.85);
     --backdrop: oklch(0% 0 0 / 0.72);
+  }
+}
+
+/* 触屏设备上输入框字号不小于 16px，避免 iOS/Android 聚焦时自动放大页面 */
+@media (pointer: coarse) {
+  :root {
+    --field-font-size: 16px;
   }
 }

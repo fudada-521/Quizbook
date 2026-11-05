@@ -17,6 +17,9 @@ ok(ch1.length===2 && ch1[0].n===1 && ch1[1].n===2, 'chapter order');
 
 const sess = createSession(ch1, 't', { shuffle: true });
 ok(sess.list.length===2, 'session length');
+
+const sourced = createSession(ch1, '第一章', { origin: 'chapter:1' });
+ok(sourced.origin==='chapter:1' && sourced.idx===0 && (sourced.updatedAt ?? 0)>0, 'session origin + timestamp');
 const item = sess.list[0];
 const sortedMap = [...item.map].sort((a,b)=>a-b);
 ok(JSON.stringify(sortedMap)==='[0,1,2,3]', 'map is permutation');

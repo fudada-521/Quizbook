@@ -52,6 +52,7 @@ export function createSession(
     durationMs?: number;
     date?: string;
     seed?: number;
+    origin?: string;
   } = {},
 ): QuizSession {
   const items: SessionItem[] = list.map((q) => ({
@@ -62,6 +63,8 @@ export function createSession(
     lastPick: -1,
   }));
   return {
+    origin: opts.origin,
+    updatedAt: Date.now(),
     title,
     idx: 0,
     reviewOnly: !!opts.reviewOnly,

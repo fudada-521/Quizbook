@@ -42,7 +42,8 @@ export function QuizView() {
       setRemainingMs(Math.max(0, left));
       if (left <= 0 && !expiredRef.current) {
         expiredRef.current = true;
-        finish();
+        // 延后一拍再交卷：恢复旧会话时，父组件的会话 ref 要等本次 effect 之后才更新
+        window.setTimeout(finish, 0);
       }
     };
     tick();

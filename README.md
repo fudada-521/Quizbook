@@ -86,7 +86,7 @@ gradle assembleDebug            # 或 ./gradlew assembleDebug
   Web 用 `localStorage`（`@quiz/storage/web`），桌面/移动可注入文件或原生存储实现。
 - **`@quiz/server`**：Fastify + TypeScript + SQLite。用户名 + 密码注册/登录（scrypt 哈希、失败限流），Bearer token 鉴权，服务端用 `mergeStates()` 合并多端进度并权威校验成就。详见 `apps/server/README.md`。
 - **`@quiz/web`**：React UI，通过 `QuizStore`（Context + hook）封装状态；极简工具风界面（浅色/深色自动跟随系统）、百词斩式答题卡片、答对自动跳转（答错停留）、章节进度、错题本、收藏夹、题目心得、答题卡、键盘快捷键。
-- **断点续做**：未完成的练习会话保存在本机（`quizbook_quiz_session_v1`），退出或重新打开后可回到原题继续。
+- **断点续做**：每个练习入口（章节、随机、错题、收藏、挑战等）的未完成进度分别保存在本机（`quizbook_quiz_sessions_v2`），从同一入口进入或退出后重新打开，都可回到该练习上次的原题继续。
 
 ## 功能
 
@@ -103,7 +103,7 @@ gradle assembleDebug            # 或 ./gradlew assembleDebug
 | 成就系统 | 50 个成就（进度 / 习惯 / 收藏 / 挑战 / 准确率 / 隐藏），按系列分级展示，解锁后弹提示；服务端登录时权威校验，防篡改 |
 | 云同步 | 用户名 + 密码登录；离线优先，本地照常记录，登录后自动合并多端进度（收藏、心得、打卡、成就） |
 | 进度保存 | 本地存 localStorage；可导出/导入 JSON 手动迁移；可选云端同步 |
-| 断点续做 | 未完成的练习自动保存，退出或重新打开后从原题继续 |
+| 断点续做 | 各练习入口的未完成进度分别保存，退出或重新打开后从原题继续 |
 
 ## 已知限制
 

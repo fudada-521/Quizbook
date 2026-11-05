@@ -33,6 +33,7 @@ import {
   applyAchievements,
   dailyQuestions,
   randomQuestions,
+  shuffle,
   makeChallengeRecord,
   recordChallenge,
   markDailyCompleted,
@@ -62,7 +63,7 @@ import {
   loadServerUrl,
   saveServerUrl,
 } from '@quiz/storage/auth';
-import { clearSavedSession, loadSession, saveSession } from './sessionPersistence';
+import { clearAllSessions, clearSession, loadSessions, saveSession } from './sessionPersistence';
 import { emitAnswerFeedback } from '../feedback';
 
 export type View = 'home' | 'quiz' | 'result' | 'favorites' | 'achievements' | 'settings';
@@ -73,7 +74,19 @@ function clearFresh(session: QuizSession | null | undefined): void {
   for (const it of session.list) it.fresh = false;
 }
 
+/** 新建会话时可选的练习参数 */
+type SessionOpts = {
+  shuffle?: boolean;
+  reviewOnly?: boolean;
+  mode?: SessionMode;
+  startedAt?: number;
+  durationMs?: number;
+  date?: string;
+  seed?: number;
+};
+
 export interface ResumeSummary {
+  origin: string;
   title: string;
   idx: number;
   total: number;
@@ -174,10 +187,14 @@ export interface QuizApp {
   cloud: CloudState;
   /** 刚解锁的成就（用于弹提示） */
   newAchievements: string[];
-  /** 未完成的练习会话（用于首页「继续练习」） */
+  /** 最近活动的未完成练习会话（用于首页「继续练习」） */
   resume: ResumeSummary | null;
-  resumeSession: () => void;
-  discardResume: () => void;
+  /** 全部未完成会话，按来源索引（章节行据此显示「继续」） */
+  savedSessions: QuizSession[];
+  resumeSession: (origin?: string) => void;
+  discardResume: (origin?: string) => void;
+  /** 丢弃当前 resume 并从头开始同一来源的练习 */
+  restartResume: () => void;
   // 进度操作
   persist: () => void;
   patchSettings: (patch: Partial<Settings>) => void;
@@ -195,19 +212,7 @@ export interface QuizApp {
   reviewWrong: () => void;
   toggleFavorite: (q: Question) => void;
   addNote: (q: Question, text: string) => void;
-  startSessionRaw: (
-    list: Question[],
-    title: string,
-    opts?: {
-      shuffle?: boolean;
-      reviewOnly?: boolean;
-      mode?: SessionMode;
-      startedAt?: number;
-      durationMs?: number;
-      date?: string;
-      seed?: number;
-    },
-  ) => void;
+  startSessionRaw: (list: Question[], title: string, opts?: SessionOpts) => void;
   grade: (pickIdx: number) => void;
   pick: (pickIdx: number) => void;
   move: (d: number) => void;
@@ -287,7 +292,17 @@ export function QuizProvider(props: {
     [],
   );
   const [app, dispatch] = useReducer(reducer, initialState);
-  const [savedSession, setSavedSession] = useState<QuizSession | null>(() => loadSession(data));
+  // 每个练习来源各存一份未完成会话；昨日的每日一练不再续做，顺手清理
+  const [savedSessions, setSavedSessions] = useState<QuizSession[]>(() => {
+    const today = `daily:${dateKey()}`;
+    return loadSessions(data).filter((s) => {
+      if (!s.origin?.startsWith('daily:')) return true;
+      if (s.origin === today) return true;
+      clearSession(s.origin);
+      return false;
+    });
+  });
+  const savedSessionsRef = useRef(savedSessions);
   const [newAchievements, setNewAchievements] = useState<string[]>([]);
 
   const [cloud, setCloud] = useState<CloudState>(() => ({
@@ -304,14 +319,23 @@ export function QuizProvider(props: {
   const lastPushedRef = useRef('');
   const syncRunningRef = useRef(false);
 
-  // 答题过程中持续保存会话快照；本轮结束（结算页）即清除，答题中退出则保留供下次继续
+  // 答题过程中持续保存会话快照；本来源结束（结算页）只清除这一份，其他练习不受影响
   useEffect(() => {
     if (app.view === 'quiz' && app.session) {
-      saveSession(app.session);
-      setSavedSession(app.session);
+      const session = app.session;
+      saveSession(session);
+      if (!session.origin) return;
+      savedSessionsRef.current = [
+        session,
+        ...savedSessionsRef.current.filter((s) => s.origin !== session.origin),
+      ];
+      setSavedSessions(savedSessionsRef.current);
     } else if (app.view === 'result') {
-      clearSavedSession();
-      setSavedSession(null);
+      const origin = app.session?.origin;
+      if (!origin) return;
+      clearSession(origin);
+      savedSessionsRef.current = savedSessionsRef.current.filter((s) => s.origin !== origin);
+      setSavedSessions(savedSessionsRef.current);
     }
   }, [app.session, app.tick, app.view]);
 
@@ -555,121 +579,176 @@ export function QuizProvider(props: {
 
   const replaceState = useCallback(
     (s: PersistedState) => {
-      clearSavedSession();
-      setSavedSession(null);
+      clearAllSessions();
+      savedSessionsRef.current = [];
+      setSavedSessions([]);
       setPersisted(s);
     },
     [setPersisted],
   );
 
   const resetProgress = useCallback(() => {
-    clearSavedSession();
-    setSavedSession(null);
+    clearAllSessions();
+    savedSessionsRef.current = [];
+    setSavedSessions([]);
     setPersisted((s: PersistedState) => resetProgressState(s));
   }, [setPersisted]);
 
   const setView = useCallback((v: View) => dispatch({ type: 'GOTO', view: v }), []);
 
-  const startSessionRaw = useCallback(
-    (
-      list: Question[],
-      title: string,
-      opts: {
-        shuffle?: boolean;
-        reviewOnly?: boolean;
-        mode?: SessionMode;
-        startedAt?: number;
-        durationMs?: number;
-        date?: string;
-        seed?: number;
-      } = {},
-    ) => {
-      clearSavedSession();
-      setSavedSession(null);
-      const session = createSession(list, title, opts);
-      dispatch({ type: 'START_SESSION', session });
-    },
+  /** 无条件新建会话（一次性入口用，不参与断点续做） */
+  const startSessionRaw = useCallback((list: Question[], title: string, opts: SessionOpts = {}) => {
+    dispatch({ type: 'START_SESSION', session: createSession(list, title, opts) });
+  }, []);
+
+  const cloneSession = useCallback(
+    (s: QuizSession): QuizSession => ({
+      ...s,
+      list: s.list.map((it) => ({ ...it })),
+    }),
     [],
   );
 
-  const resumeSession = useCallback(() => {
-    if (!savedSession) return;
-    dispatch({
-      type: 'RESTORE_SESSION',
-      session: { ...savedSession, list: savedSession.list.map((it) => ({ ...it })) },
-    });
-  }, [savedSession]);
+  /** 按练习来源构建一组新题；没有可练的题时返回 null */
+  const buildSession = useCallback(
+    (origin: string): { list: Question[]; title: string; opts?: SessionOpts } | null => {
+      if (origin.startsWith('chapter:')) {
+        const c = Number(origin.slice('chapter:'.length));
+        const list = questionsOfChapter(data, c);
+        return list.length ? { list, title: chapterTitleOf(data, c) } : null;
+      }
+      if (origin.startsWith('daily:')) {
+        const date = origin.slice('daily:'.length) || dateKey();
+        return {
+          list: dailyQuestions(data, date, DAILY_COUNT),
+          title: '每日一练',
+          opts: { mode: 'daily', date, startedAt: Date.now() },
+        };
+      }
+      switch (origin) {
+        case 'random': {
+          const pool = shuffle(data.questions);
+          const n = Math.min(persistRef.current.settings.count || 20, pool.length);
+          return {
+            list: pool.slice(0, n),
+            title: '随机练习',
+            opts: { shuffle: persistRef.current.settings.shuffle === 1 },
+          };
+        }
+        case 'unanswered': {
+          const un = unansweredQuestions(data, persistRef.current);
+          const pool = shuffle(un.length ? un : data.questions);
+          const n = Math.min(persistRef.current.settings.count || 20, pool.length);
+          return {
+            list: pool.slice(0, n),
+            title: un.length ? '智能推进 · 新题' : '随机练习',
+            opts: { shuffle: persistRef.current.settings.shuffle === 1 },
+          };
+        }
+        case 'wrong': {
+          const w = wrongQuestions(data, persistRef.current);
+          if (!w.length) {
+            alert('暂无错题，先去做题吧 🎉');
+            return null;
+          }
+          return { list: w, title: '错题重练' };
+        }
+        case 'favorites': {
+          const list = favoriteQuestions(data, persistRef.current);
+          if (!list.length) {
+            alert('还没有收藏题目，答题时点题卡右上角的星标即可收藏。');
+            return null;
+          }
+          return { list, title: '收藏练习' };
+        }
+        case 'timed':
+          return {
+            list: randomQuestions(data, TIMED_COUNT),
+            title: '限时挑战',
+            opts: { mode: 'timed', startedAt: Date.now(), durationMs: TIMED_DURATION_MS },
+          };
+        case 'exam':
+          return {
+            list: randomQuestions(data, EXAM_COUNT),
+            title: '模拟考',
+            opts: { mode: 'exam', startedAt: Date.now(), durationMs: EXAM_DURATION_MS },
+          };
+        default:
+          return null;
+      }
+    },
+    [data],
+  );
 
-  const discardResume = useCallback(() => {
-    clearSavedSession();
-    setSavedSession(null);
-  }, []);
+  /**
+   * 从某个练习入口进入：已有该来源的未完成会话就续上，否则新建一组。
+   * fresh 为真时丢弃旧会话，强制从头开始。
+   */
+  const startOrigin = useCallback(
+    (origin: string, fresh = false) => {
+      if (fresh) {
+        clearSession(origin);
+        savedSessionsRef.current = savedSessionsRef.current.filter((s) => s.origin !== origin);
+        setSavedSessions(savedSessionsRef.current);
+      } else {
+        const existing = savedSessionsRef.current.find((s) => s.origin === origin);
+        if (existing) {
+          dispatch({ type: 'RESTORE_SESSION', session: cloneSession(existing) });
+          return;
+        }
+      }
+
+      const spec = buildSession(origin);
+      if (!spec) return;
+      dispatch({
+        type: 'START_SESSION',
+        session: createSession(spec.list, spec.title, { ...spec.opts, origin }),
+      });
+    },
+    [buildSession, cloneSession],
+  );
 
   const startChapter = useCallback(
-    (c: number) => startSessionRaw(questionsOfChapter(data, c), chapterTitleOf(data, c), {}),
-    [data, startSessionRaw],
+    (c: number) => startOrigin(`chapter:${c}`),
+    [startOrigin],
   );
-  const startRandom = useCallback(() => {
-    const shuffleQs = [...data.questions];
-    for (let i = shuffleQs.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffleQs[i], shuffleQs[j]] = [shuffleQs[j], shuffleQs[i]];
-    }
-    const n = Math.min(persistRef.current.settings.count || 20, shuffleQs.length);
-    startSessionRaw(shuffleQs.slice(0, n), '随机练习', {
-      shuffle: persistRef.current.settings.shuffle === 1,
-    });
-  }, [data, startSessionRaw]);
-  const startUnanswered = useCallback(() => {
-    const un = unansweredQuestions(data, persistRef.current);
-    const pool = (un.length ? un : [...data.questions]).slice();
-    for (let i = pool.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [pool[i], pool[j]] = [pool[j], pool[i]];
-    }
-    const n = Math.min(persistRef.current.settings.count || 20, pool.length);
-    startSessionRaw(pool.slice(0, n), un.length ? '智能推进 · 新题' : '随机练习', {
-      shuffle: persistRef.current.settings.shuffle === 1,
-    });
-  }, [data, startSessionRaw]);
-  const startWrong = useCallback(() => {
-    const w = wrongQuestions(data, persistRef.current);
-    if (!w.length) {
-      alert('暂无错题，先去做题吧 🎉');
+  const startRandom = useCallback(() => startOrigin('random'), [startOrigin]);
+  const startUnanswered = useCallback(() => startOrigin('unanswered'), [startOrigin]);
+  const startWrong = useCallback(() => startOrigin('wrong'), [startOrigin]);
+  const startFavorites = useCallback(() => startOrigin('favorites'), [startOrigin]);
+  const startDaily = useCallback(() => startOrigin(`daily:${dateKey()}`), [startOrigin]);
+  const startTimed = useCallback(() => startOrigin('timed'), [startOrigin]);
+  const startExam = useCallback(() => startOrigin('exam'), [startOrigin]);
+
+  /** 首页「继续练习」默认恢复最近活动的一份 */
+  const resumeSession = useCallback(
+    (origin?: string) => {
+      const target = origin
+        ? savedSessionsRef.current.find((s) => s.origin === origin)
+        : savedSessionsRef.current.find((s) => s.origin !== 'review');
+      if (!target) return;
+      dispatch({ type: 'RESTORE_SESSION', session: cloneSession(target) });
+    },
+    [cloneSession],
+  );
+
+  const discardResume = useCallback((origin?: string) => {
+    const target = origin ?? savedSessionsRef.current.find((s) => s.origin !== 'review')?.origin;
+    if (!target) return;
+    clearSession(target);
+    savedSessionsRef.current = savedSessionsRef.current.filter((s) => s.origin !== target);
+    setSavedSessions(savedSessionsRef.current);
+  }, []);
+
+  /** 丢弃当前 resume 并从头开始同一来源的练习 */
+  const restartResume = useCallback(() => {
+    const target = savedSessionsRef.current.find((s) => s.origin !== 'review');
+    if (!target?.origin) {
+      startUnanswered();
       return;
     }
-    startSessionRaw(w, '错题重练', {});
-  }, [data, startSessionRaw]);
-  const startFavorites = useCallback(() => {
-    const list = favoriteQuestions(data, persistRef.current);
-    if (!list.length) {
-      alert('还没有收藏题目，答题时点题卡右上角的星标即可收藏。');
-      return;
-    }
-    startSessionRaw(list, '收藏练习', {});
-  }, [data, startSessionRaw]);
-
-  const startDaily = useCallback(() => {
-    const date = dateKey();
-    const list = dailyQuestions(data, date, DAILY_COUNT);
-    startSessionRaw(list, '每日一练', { mode: 'daily', date, startedAt: Date.now() });
-  }, [data, startSessionRaw]);
-
-  const startTimed = useCallback(() => {
-    startSessionRaw(randomQuestions(data, TIMED_COUNT), '限时挑战', {
-      mode: 'timed',
-      startedAt: Date.now(),
-      durationMs: TIMED_DURATION_MS,
-    });
-  }, [data, startSessionRaw]);
-
-  const startExam = useCallback(() => {
-    startSessionRaw(randomQuestions(data, EXAM_COUNT), '模拟考', {
-      mode: 'exam',
-      startedAt: Date.now(),
-      durationMs: EXAM_DURATION_MS,
-    });
-  }, [data, startSessionRaw]);
+    startOrigin(target.origin, true);
+  }, [startOrigin, startUnanswered]);
 
   const toggleFavorite = useCallback(
     (q: Question) => {
@@ -784,12 +863,14 @@ export function QuizProvider(props: {
   const tickNow = useCallback(() => dispatch({ type: 'TICK' }), []);
 
   // 会话内的 item 是原地修改的，这里每次渲染重新汇总，避免拿到过期的已完成数量
-  const resume: ResumeSummary | null = savedSession
+  const latest = savedSessions.find((s) => s.origin !== 'review');
+  const resume: ResumeSummary | null = latest?.origin
     ? {
-        title: savedSession.title,
-        idx: savedSession.idx,
-        total: savedSession.list.length,
-        done: savedSession.list.filter((it) => it.done).length,
+        origin: latest.origin,
+        title: latest.title,
+        idx: latest.idx,
+        total: latest.list.length,
+        done: latest.list.filter((it) => it.done).length,
       }
     : null;
 
@@ -804,8 +885,10 @@ export function QuizProvider(props: {
       cloud,
       newAchievements,
       resume,
+      savedSessions,
       resumeSession,
       discardResume,
+      restartResume,
       persist,
       patchSettings,
       replaceState,
@@ -842,7 +925,8 @@ export function QuizProvider(props: {
       dismissAchievements,
     }),
     [
-      data, persisted, app, store, sync, cloud, newAchievements, resume, resumeSession, discardResume,
+      data, persisted, app, store, sync, cloud, newAchievements, resume, savedSessions,
+      resumeSession, discardResume, restartResume,
       persist, patchSettings, replaceState, resetProgress,
       startChapter, startRandom, startUnanswered, startWrong, startFavorites, startDaily, startTimed, startExam,
       reviewWrong, toggleFavorite, addNote, startSessionRaw,
