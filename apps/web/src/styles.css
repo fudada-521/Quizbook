@@ -1,6 +1,6 @@
 /* Hallmark · checked: 2026-11-05 · genre: atmospheric · scope: app
  * floor: 0 FAIL · fixed: 15 (19 ×2, 26b, 63 ×11, 67) · reflex: 2 waived (24b, 39b) · finish: 5 fixed (F14, F19, F21 ×2, F23) · finish-review: subagent · 5 findings · 5 resolved · light: caustics held right of the reading column, dimmed on the centred result, off on phones where every surface carries text
- * built: Hallmark · theme: Refract (by request) · shape: app screen · home: continue card first, chapters beside a bare stats column and one merged mode panel, chapters before the aside on phones · nav: kept: wordmark and four icon controls over a hairline foot · signature: greyscale water caustics beside the working panel, never under running text · states: idle, hover, focus, active, disabled, loading, empty, error · redesign: polish · v2.0.0 */
+ * built: Hallmark · theme: Refract (by request) · shape: app screen · home: continue card first, chapters beside stacked panels for stats, achievements and modes · nav: kept: wordmark and four icon controls over a hairline foot · signature: greyscale water caustics beside the working panel, never under running text · states: idle, hover, focus, active, disabled, loading, empty, error · redesign: polish · v2.0.0 */
 /* Hallmark · pre-emit critique: P4 H4 E4 S4 R4 V4 · weakest: V, the shell is kept; the light, clear sheets and ruled lists carry the difference */
 /* Hallmark · waive 24b · guard: dense app chrome only (settings rows, dialogs, the quiz rail, chapter and answer-sheet lists) · optical offsets from 3px to 30px align type to rules and to 30-36px controls; every layout-level gap uses the 4px space scale */
 /* Hallmark · waive 22 · pure monochrome is the requested scheme · every accent, rule and surface carries zero chroma, and color returns only in the ok and bad states */
@@ -384,16 +384,6 @@ kbd {
   margin-top: var(--space-xl);
 }
 
-/* 概览与成就直接排在纸面上，不再各自套一张同款卡片 */
-.home-stats {
-  padding: 0 var(--space-2xs) var(--space-md);
-  border-bottom: 1px solid var(--color-rule);
-}
-
-.home-achievement {
-  padding: var(--space-md) var(--space-2xs);
-}
-
 .mode-group-title {
   margin: var(--space-md) 0 var(--space-2xs);
   color: var(--color-muted);
@@ -735,7 +725,7 @@ kbd {
 .quiz-page {
   max-width: 760px;
   margin: 0 auto;
-  /* 给悬空的底部胶囊栏留出空间，避免遮住最后的解析 / 心得 */
+  /* 给底部通栏操作条留出空间，避免遮住最后的解析 / 心得 */
   padding-bottom: calc(var(--space-3xl) + env(safe-area-inset-bottom, 0px));
 }
 
@@ -1359,22 +1349,21 @@ kbd {
   white-space: pre-wrap;
 }
 
-/* 悬空胶囊操作栏：脱离文档流固定在视口底部，主操作占满余下宽度 */
+/* 底部通栏操作条：贴住安全区，主操作占满余下宽度 */
 .quiz-actionbar {
   position: fixed;
-  left: 50%;
-  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: var(--z-raised);
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  width: min(calc(100% - 32px), 460px);
-  padding: var(--space-xs);
-  transform: translateX(-50%);
-  border: 1px solid var(--color-rule);
-  border-radius: var(--radius-pill);
-  background: color-mix(in oklab, var(--surface-panel) 86%, transparent);
-  box-shadow: var(--shadow-card), var(--edge-light);
+  /* 平板宽度下与 760px 的答题栏对齐，不再随屏幕无限拉宽 */
+  padding: var(--space-xs) max(32px, calc((100% - 760px) / 2))
+    calc(var(--space-xs) + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--color-rule);
+  background: color-mix(in oklab, var(--surface-panel) 92%, transparent);
   -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
 }
@@ -2853,11 +2842,10 @@ dialog {
 @media (max-width: 900px) {
   .home-grid {
     grid-template-columns: minmax(0, 1fr);
-    /* 章节是最主要的入口，手机上紧跟主卡，模式面板排在最后 */
     grid-template-areas:
       'hero'
-      'chapters'
-      'aside';
+      'aside'
+      'chapters';
     gap: 20px;
   }
 
@@ -2867,6 +2855,11 @@ dialog {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-md);
     align-items: start;
+  }
+
+  /* 概览与成就并排后，练习面板横跨两列，避免半宽悬空 */
+  .home-modes {
+    grid-column: 1 / -1;
   }
 }
 
@@ -3145,9 +3138,15 @@ dialog {
     display: none;
   }
 
+  /* 通栏操作条与答题卡左右对齐 */
+  .quiz-actionbar {
+    padding-right: var(--space-md);
+    padding-left: var(--space-md);
+  }
+
   .qbar-btn {
-    width: 44px;
-    height: 44px;
+    width: 48px;
+    height: 48px;
   }
 
   .setting-row {

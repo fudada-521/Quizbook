@@ -108,7 +108,7 @@ export function HomeView() {
                 </section>
                 <aside className="home-aside">
                     <section
-                        className="home-stats"
+                        className="panel"
                         aria-label="学习概览">
                         <div className="panel-head">
                             <h2>学习概览</h2>
@@ -133,7 +133,7 @@ export function HomeView() {
                         </div>
                     </section>
 
-                    <section className="home-achievement">
+                    <section className="panel">
                         <button
                             className="achievement-link"
                             onClick={() => setView("achievements")}>
@@ -160,7 +160,7 @@ export function HomeView() {
                     </section>
 
                     <section
-                        className="panel"
+                        className="panel home-modes"
                         aria-label="练习模式">
                         <div className="panel-head">
                             <h2>练习模式</h2>
