@@ -1,5 +1,5 @@
 /**
- * 天权 Megrez 服务端入口。
+ * Megrez Megrez 服务端入口。
  * 本地启动：pnpm --filter @megrez/server dev
  * 生产：同一个进程同时提供 API 与 Web 静态产物（apps/web/dist）。
  */

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 天权 · iPhone 真机安装
+# Megrez · iPhone 真机安装
 # 构建 Web → cap sync → xcodebuild → devicectl 安装 → 启动。
 # 兼容 macOS 自带 bash 3.2（不使用 mapfile / 关联数组）。
 set -euo pipefail
@@ -193,9 +193,9 @@ if [[ "$DO_LAUNCH" -eq 0 ]]; then
   exit 0
 fi
 
-note "启动「天权」……"
+note "启动「Megrez」……"
 if xcrun devicectl device process launch --device "$UDID" "$BUNDLE_ID" >/dev/null 2>&1; then
   ok "已在 $DNAME 上打开"
 else
-  printf '! 安装成功，但自动启动失败（通常是手机锁屏）。解锁后手动点开「天权」即可。\n' >&2
+  printf '! 安装成功，但自动启动失败（通常是手机锁屏）。解锁后手动点开「Megrez」即可。\n' >&2
 fi

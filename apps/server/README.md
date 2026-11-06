@@ -1,6 +1,8 @@
+<!-- @format -->
+
 # @megrez/server
 
-天权 Megrez 后端：用户名 + 密码登录 + 多端进度合并同步 + 成就权威校验。
+Megrez Megrez 后端：用户名 + 密码登录 + 多端进度合并同步 + 成就权威校验。
 
 ## 本地启动
 
@@ -21,27 +23,27 @@ curl -X POST http://127.0.0.1:8787/api/auth/register \
 
 见 [`.env.example`](./.env.example)。关键项：
 
-| 变量 | 默认 | 说明 |
-|---|---|---|
-| `HOST` / `PORT` | `127.0.0.1` / `8787` | 监听地址；手机同局域网调试改为 `0.0.0.0` |
-| `PUBLIC_URL` | `http://localhost:8787` | 对外地址，仅用于展示/诊断 |
-| `DB_PATH` | `apps/server/data/megrez.db` | SQLite 文件（已 gitignore） |
-| `CORS_ORIGIN` | `*` | 允许的来源，逗号分隔 |
-| `TOKEN_TTL_DAYS` | `365` | 登录 token 有效期 |
+| 变量             | 默认                         | 说明                                     |
+| ---------------- | ---------------------------- | ---------------------------------------- |
+| `HOST` / `PORT`  | `127.0.0.1` / `8787`         | 监听地址；手机同局域网调试改为 `0.0.0.0` |
+| `PUBLIC_URL`     | `http://localhost:8787`      | 对外地址，仅用于展示/诊断                |
+| `DB_PATH`        | `apps/server/data/megrez.db` | SQLite 文件（已 gitignore）              |
+| `CORS_ORIGIN`    | `*`                          | 允许的来源，逗号分隔                     |
+| `TOKEN_TTL_DAYS` | `365`                        | 登录 token 有效期                        |
 
 ## 接口
 
-| 方法 | 路径 | 说明 |
-|---|---|---|
-| GET | `/api/health` | 健康检查 |
-| GET | `/api/config` | 客户端可读取的服务配置 |
-| POST | `/api/auth/register` | 注册并登录，返回 `token` / `user` |
-| POST | `/api/auth/login` | 用户名 + 密码登录，返回 `token` / `user` |
-| GET | `/api/me` | 当前用户（Bearer token） |
-| POST | `/api/auth/logout` | 吊销当前 token |
-| GET | `/api/sync` | 拉取进度快照 |
-| PUT | `/api/sync` | 推送进度；服务端与远端合并后返回权威快照和本次新解锁成就 |
-| GET | `/api/achievements` | 成就进度（服务端权威校验） |
+| 方法 | 路径                 | 说明                                                     |
+| ---- | -------------------- | -------------------------------------------------------- |
+| GET  | `/api/health`        | 健康检查                                                 |
+| GET  | `/api/config`        | 客户端可读取的服务配置                                   |
+| POST | `/api/auth/register` | 注册并登录，返回 `token` / `user`                        |
+| POST | `/api/auth/login`    | 用户名 + 密码登录，返回 `token` / `user`                 |
+| GET  | `/api/me`            | 当前用户（Bearer token）                                 |
+| POST | `/api/auth/logout`   | 吊销当前 token                                           |
+| GET  | `/api/sync`          | 拉取进度快照                                             |
+| PUT  | `/api/sync`          | 推送进度；服务端与远端合并后返回权威快照和本次新解锁成就 |
+| GET  | `/api/achievements`  | 成就进度（服务端权威校验）                               |
 
 登录 token 形如 `qbk_xxx`，服务端只保存 SHA-256 哈希；密码使用 scrypt 加盐哈希存储。
 登录/注册按 IP 限制频率（10 分钟内最多 20 次失败尝试）。

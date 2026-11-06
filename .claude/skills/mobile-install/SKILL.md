@@ -1,9 +1,11 @@
 ---
 name: mobile-install
-description: 把「天权」安装或更新到已连接的 iPhone 真机上（无线调试或数据线均可）。当用户说“安装到手机上”“装到 iPhone”“真机跑一下”“重新打包到手机”“更新手机上的 App”时使用。自动完成 Web 构建、cap sync、xcodebuild 签名打包、devicectl 安装与启动。Android 安装暂未实现。
+description: 把「Megrez」安装或更新到已连接的 iPhone 真机上（无线调试或数据线均可）。当用户说“安装到手机上”“装到 iPhone”“真机跑一下”“重新打包到手机”“更新手机上的 App”时使用。自动完成 Web 构建、cap sync、xcodebuild 签名打包、devicectl 安装与启动。Android 安装暂未实现。
 argument-hint: "[--list] [--device 名称或UDID] [--debug] [--no-sync] [--no-launch]"
 version: 1.0.0
 ---
+
+<!-- @format -->
 
 # 手机安装（iOS）
 
@@ -58,14 +60,14 @@ xcrun devicectl device process launch --device <UDID> <bundle-id>
 
 ## 常见失败
 
-| 现象 | 处理 |
-| --- | --- |
-| 列表里没有真机 | 解锁手机；确认同一 Wi-Fi；插一次数据线重新配对；检查手机 设置 → 隐私与安全 → 开发者模式 已开启 |
-| `device is locked` | 解锁屏幕后重跑；安装与启动都要求亮屏解锁 |
-| 签名/描述文件报错 | 用 `pnpm mobile:ios` 打开 Xcode，在 Signing & Capabilities 里确认 Team 与 Bundle ID |
-| 装完 7 天后打不开 | 开发证书过期，重新跑本 skill |
-| 首次打开提示“不受信任的开发者” | 手机 设置 → 通用 → VPN与设备管理 里信任该证书 |
-| 改完前端没变化 | 确认没加 `--no-sync`；脚本默认重新构建并同步 |
+| 现象                           | 处理                                                                                           |
+| ------------------------------ | ---------------------------------------------------------------------------------------------- |
+| 列表里没有真机                 | 解锁手机；确认同一 Wi-Fi；插一次数据线重新配对；检查手机 设置 → 隐私与安全 → 开发者模式 已开启 |
+| `device is locked`             | 解锁屏幕后重跑；安装与启动都要求亮屏解锁                                                       |
+| 签名/描述文件报错              | 用 `pnpm mobile:ios` 打开 Xcode，在 Signing & Capabilities 里确认 Team 与 Bundle ID            |
+| 装完 7 天后打不开              | 开发证书过期，重新跑本 skill                                                                   |
+| 首次打开提示“不受信任的开发者” | 手机 设置 → 通用 → VPN与设备管理 里信任该证书                                                  |
+| 改完前端没变化                 | 确认没加 `--no-sync`；脚本默认重新构建并同步                                                   |
 
 ## Android（后续）
 

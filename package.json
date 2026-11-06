@@ -2,7 +2,7 @@
   "name": "megrez",
   "version": "1.0.0",
   "private": true,
-  "description": "天权 Megrez · 跨平台答题应用（Web / 桌面 / 移动 共用同一套 React 代码）",
+  "description": "Megrez Megrez · 跨平台答题应用（Web / 桌面 / 移动 共用同一套 React 代码）",
   "packageManager": "pnpm@10.32.1",
   "workspaces": [
     "apps/*",

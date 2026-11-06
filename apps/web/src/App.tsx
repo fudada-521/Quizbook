@@ -154,9 +154,14 @@ function Shell() {
                         onClick={() => setView("home")}
                         aria-label="返回首页">
                         <span className="brand-mark">
-                            <Icon name="star" size={16} fill="currentColor" stroke="none" />
+                            <Icon
+                                name="star"
+                                size={16}
+                                fill="currentColor"
+                                stroke="none"
+                            />
                         </span>
-                        <span className="brand-name">天权</span>
+                        <span className="brand-name">Megrez</span>
                         <span className="brand-rule" />
                         <span className="brand-sub">
                             <span className="brand-sub-full">软考 · 信息系统项目管理师</span>
@@ -219,8 +224,7 @@ function AchievementToast() {
     const [holding, setHolding] = useState(false);
 
     // 限时挑战与模拟考有真实倒计时，祝贺层不抢断答题；离开该场次后再补显示
-    const timedQuiz =
-        app.view === "quiz" && (app.session?.mode === "timed" || app.session?.mode === "exam");
+    const timedQuiz = app.view === "quiz" && (app.session?.mode === "timed" || app.session?.mode === "exam");
     const visible = newAchievements.length > 0 && !timedQuiz;
 
     useEffect(() => {

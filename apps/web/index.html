@@ -1,41 +1,59 @@
-<!DOCTYPE html>
+<!-- @format -->
+
+<!doctype html>
 <html lang="zh-CN">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="color-scheme" content="light dark" />
-  <meta name="theme-color" content="#ffffff" />
-  <script>
-    // 首屏渲染前套用本机主题，避免深色模式下先闪一下白屏
-    (function () {
-      try {
-        var mode = localStorage.getItem('megrez_theme_v1');
-        var dark =
-          mode === 'dark' ||
-          ((!mode || mode === 'system') && matchMedia('(prefers-color-scheme: dark)').matches);
-        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-        document
-          .querySelector('meta[name="theme-color"]')
-          .setAttribute('content', dark ? '#0f0f0f' : '#ffffff');
-      } catch (e) {}
-    })();
-  </script>
-  <title>天权 Megrez · 答题练习</title>
-  <meta
-    name="description"
-    content="软考信息系统项目管理师综合知识刷题应用：章节练习、错题重练、每日一练、限时挑战与模拟考，进度与收藏多端同步。"
-  />
-  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="apple-touch-icon-180.png" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Funnel+Display:wght@300;400;500&family=Funnel+Sans:wght@400;500;600&display=swap"
-    rel="stylesheet"
-  />
-</head>
-<body>
-  <div id="root"></div>
-  <script type="module" src="/src/main.tsx"></script>
-</body>
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+        <meta
+            name="color-scheme"
+            content="light dark" />
+        <meta
+            name="theme-color"
+            content="#ffffff" />
+        <script>
+            // 首屏渲染前套用本机主题，避免深色模式下先闪一下白屏
+            (function () {
+                try {
+                    var mode = localStorage.getItem("megrez_theme_v1");
+                    var dark =
+                        mode === "dark" ||
+                        ((!mode || mode === "system") && matchMedia("(prefers-color-scheme: dark)").matches);
+                    document.documentElement.dataset.theme = dark ? "dark" : "light";
+                    document
+                        .querySelector('meta[name="theme-color"]')
+                        .setAttribute("content", dark ? "#0f0f0f" : "#ffffff");
+                } catch (e) {}
+            })();
+        </script>
+        <title>Megrez Megrez · 答题练习</title>
+        <meta
+            name="description"
+            content="软考信息系统项目管理师综合知识刷题应用：章节练习、错题重练、每日一练、限时挑战与模拟考，进度与收藏多端同步。" />
+        <link
+            rel="icon"
+            href="favicon.svg"
+            type="image/svg+xml" />
+        <link
+            rel="apple-touch-icon"
+            href="apple-touch-icon-180.png" />
+        <link
+            rel="preconnect"
+            href="https://fonts.googleapis.com" />
+        <link
+            rel="preconnect"
+            href="https://fonts.gstatic.com"
+            crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Funnel+Display:wght@300;400;500&family=Funnel+Sans:wght@400;500;600&display=swap"
+            rel="stylesheet" />
+    </head>
+    <body>
+        <div id="root"></div>
+        <script
+            type="module"
+            src="/src/main.tsx"></script>
+    </body>
 </html>

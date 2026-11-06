@@ -1,10 +1,12 @@
+<!-- @format -->
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## 项目概览
 
-「天权 Megrez」是软考·信息系统项目管理师（综合知识）刷题应用。一套 React + Vite 代码同时产出网页、Tauri 桌面端和 Capacitor 移动端。pnpm monorepo，Node >= 20，包管理器固定为 pnpm@10.32.1。
+「Megrez Megrez」是软考·信息系统项目管理师（综合知识）刷题应用。一套 React + Vite 代码同时产出网页、Tauri 桌面端和 Capacitor 移动端。pnpm monorepo，Node >= 20，包管理器固定为 pnpm@10.32.1。
 
 ## 常用命令
 

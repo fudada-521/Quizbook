@@ -1,4 +1,6 @@
-# 天权 Megrez · Hallmark 审计修复清单
+<!-- @format -->
+
+# Megrez Megrez · Hallmark 审计修复清单
 
 > 审计日期：2026-11-04。状态：**P0/P1/P2 已修复**（P0-2 为误报不改；4px 栅格豁免；渲染复检未执行）。
 
@@ -21,8 +23,8 @@
 
 **根因**：`--ink-3` 在两种模式下都低于 4.5:1。
 
-| Token | 当前值 | 背景 | 实测 |
-|---|---|---|---|
+| Token           | 当前值    | 背景      | 实测       |
+| --------------- | --------- | --------- | ---------- |
 | `--ink-3`（暗） | `#73736a` | `#0e0f0d` | **4.02:1** |
 | `--ink-3`（亮） | `#9a9a92` | `#f6f6f3` | **2.62:1** |
 
@@ -63,13 +65,13 @@ sloplint 静态报告 `.option.correct .letter` 1.85:1。实测：
 
 Gate 34 要求 `overflow-x: clip` 且不要用 `100vw`（滚动条会算进宽度）。
 
-| 位置 | 当前 | 建议 |
-|---|---|---|
-| `styles.css:1508` `.fav-dialog` | `width: min(640px, calc(100vw - 32px))` | `width: min(640px, calc(100% - 32px))` |
-| `styles.css:1602` `dialog#settings` | `width: min(480px, calc(100vw - 32px))` | `width: min(480px, calc(100% - 32px))` |
-| `styles.css:1963` `.fav-dialog` @media | `width: calc(100vw - 24px)` | `width: calc(100% - 24px)` |
-| `styles.css:2056` `.fav-dialog` @media | `width: calc(100vw - 16px)` | `width: calc(100% - 16px)` |
-| `styles.css:2480` `.toast-stack` | `width: min(380px, calc(100vw - 32px))` | `width: min(380px, calc(100% - 32px))` |
+| 位置                                   | 当前                                    | 建议                                   |
+| -------------------------------------- | --------------------------------------- | -------------------------------------- |
+| `styles.css:1508` `.fav-dialog`        | `width: min(640px, calc(100vw - 32px))` | `width: min(640px, calc(100% - 32px))` |
+| `styles.css:1602` `dialog#settings`    | `width: min(480px, calc(100vw - 32px))` | `width: min(480px, calc(100% - 32px))` |
+| `styles.css:1963` `.fav-dialog` @media | `width: calc(100vw - 24px)`             | `width: calc(100% - 24px)`             |
+| `styles.css:2056` `.fav-dialog` @media | `width: calc(100vw - 16px)`             | `width: calc(100% - 16px)`             |
+| `styles.css:2480` `.toast-stack`       | `width: min(380px, calc(100vw - 32px))` | `width: min(380px, calc(100% - 32px))` |
 
 ### P0-5 功能性文字过小
 
@@ -86,8 +88,14 @@ Gate 34 要求 `overflow-x: clip` 且不要用 `100vw`（滚动条会算进宽�
 `styles.css:957/967/981` 的 `#fff` 与 `:993` 的 `#12130f` 可合并成一个语义令牌：
 
 ```css
-:root { --on-accent: #ffffff; }
-@media (prefers-color-scheme: dark) { :root { --on-accent: #12130f; } }
+:root {
+    --on-accent: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --on-accent: #12130f;
+    }
+}
 ```
 
 然后把三条规则改为 `color: var(--on-accent)`，并删除 `styles.css:989-995` 的局部覆盖块（令牌已按模式切换）。
@@ -109,8 +117,8 @@ CSS：
 
 ```css
 .progress > i {
-  transform-origin: left center;
-  transition: transform 0.35s ease;
+    transform-origin: left center;
+    transition: transform 0.35s ease;
 }
 ```
 
@@ -170,22 +178,22 @@ CSS：
 2. `pnpm test`（本次只动 Web 层，core 预期不受影响）
 3. `pnpm build`
 4. 静态复检：
-   ```bash
-   node ~/.claude/skills/hallmark/scripts/sloplint.mjs apps/web/src --scope app
-   ```
-   目标：FAIL 从 33 降到 1（仅剩 Hallmark stamp，属 N/A）。
+    ```bash
+    node ~/.claude/skills/hallmark/scripts/sloplint.mjs apps/web/src --scope app
+    ```
+    目标：FAIL 从 33 降到 1（仅剩 Hallmark stamp，属 N/A）。
 5. 渲染复检（需先 `pnpm dev`，端口以输出为准）：
-   ```bash
-   HALLMARK_PUPPETEER=/tmp/hallmark-tools \
-     node ~/.claude/skills/hallmark/scripts/sloplint.mjs \
-     --url http://localhost:<port>/ --scope app --render
-   ```
-   目标：渲染 FAIL 从 7 降到 0。
+    ```bash
+    HALLMARK_PUPPETEER=/tmp/hallmark-tools \
+      node ~/.claude/skills/hallmark/scripts/sloplint.mjs \
+      --url http://localhost:<port>/ --scope app --render
+    ```
+    目标：渲染 FAIL 从 7 降到 0。
 6. 手工检查：
-   - 亮/暗两种系统主题下看首页、答题页、收藏详情、设置、成就页
-   - 键盘 Tab 走一遍，确认 `:focus-visible` 可见
-   - 1280×800 与 375 宽下确认无横向滚动
-   - 答题页确认选项字母在两种主题下都可读（P0-2）
+    - 亮/暗两种系统主题下看首页、答题页、收藏详情、设置、成就页
+    - 键盘 Tab 走一遍，确认 `:focus-visible` 可见
+    - 1280×800 与 375 宽下确认无横向滚动
+    - 答题页确认选项字母在两种主题下都可读（P0-2）
 7. 清理审计产物：决定删除 `.hallmark/` 或加入 `.gitignore`。
 
 ---

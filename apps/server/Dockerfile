@@ -1,4 +1,4 @@
-# 天权 Megrez server：单容器，同时提供 API 和 Web 静态产物。
+# Megrez Megrez server：单容器，同时提供 API 和 Web 静态产物。
 # 构建上下文必须是仓库根目录：
 #   docker build -f apps/server/Dockerfile -t megrez-server .
 FROM node:24-alpine
@@ -31,8 +31,8 @@ RUN pnpm --filter @megrez/web build
 
 WORKDIR /app/apps/server
 ENV NODE_ENV=production \
-    HOST=0.0.0.0 \
-    PORT=8787
+  HOST=0.0.0.0 \
+  PORT=8787
 
 EXPOSE 8787
 

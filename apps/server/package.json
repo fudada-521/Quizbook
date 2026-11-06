@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "天权 Megrez 后端：账号密码登录、进度同步",
+  "description": "Megrez Megrez 后端：账号密码登录、进度同步",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",

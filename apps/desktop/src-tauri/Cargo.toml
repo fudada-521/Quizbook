@@ -1,7 +1,7 @@
 [package]
 name = "megrez"
 version = "1.0.0"
-description = "天权 Megrez - 桌面答题应用"
+description = "Megrez Megrez - 桌面答题应用"
 authors = ["fukun"]
 edition = "2021"
 
