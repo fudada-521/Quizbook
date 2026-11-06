@@ -417,8 +417,7 @@ kbd {
   justify-content: space-between;
   gap: 28px;
   padding: 28px;
-  /* 大卡片不再描外框：保留 1px 占位，靠底色与投影分层 */
-  border: 1px solid transparent;
+  border: 1px solid var(--color-rule);
   border-radius: var(--radius-card);
   background: var(--surface-card);
   color: var(--color-ink);
@@ -491,7 +490,7 @@ kbd {
 
 .panel {
   padding: 20px;
-  border: 1px solid transparent;
+  border: 1px solid var(--color-rule);
   border-radius: var(--radius-card);
   background: var(--surface-card);
   color: var(--color-ink);
@@ -613,7 +612,7 @@ kbd {
 
 .chapters-panel {
   padding: 0 20px;
-  border: 1px solid transparent;
+  border: 1px solid var(--color-rule);
   border-radius: var(--radius-card);
   background: var(--surface-card);
   color: var(--color-ink);
@@ -882,7 +881,7 @@ kbd {
   width: 100%;
   margin-top: var(--space-lg);
   padding: var(--card-pad-y) var(--card-pad-x);
-  border: 1px solid transparent;
+  border: 1px solid var(--color-rule);
   border-radius: var(--radius-card);
   background: var(--surface-card);
   color: var(--color-ink);
@@ -1318,7 +1317,7 @@ kbd {
 .question-notes.notes-card {
   margin-top: 20px;
   padding: 20px;
-  border: 1px solid transparent;
+  border: 1px solid var(--color-rule);
   border-radius: var(--radius-card);
   background: var(--surface-card);
   color: var(--color-ink);
@@ -1732,7 +1731,7 @@ kbd {
 
 .fav-list {
   overflow: hidden;
-  border: 1px solid transparent;
+  border: 1px solid var(--color-rule);
   border-radius: var(--radius-card);
   background: var(--surface-card);
   box-shadow: var(--edge-light), var(--shadow-card);
@@ -1804,7 +1803,7 @@ kbd {
   align-items: center;
   flex-direction: column;
   padding: var(--space-2xl) var(--space-lg);
-  border: 1px solid transparent;
+  border: 1px solid var(--color-rule);
   border-radius: var(--radius-card);
   background: var(--surface-card);
   box-shadow: var(--edge-light), var(--shadow-card);
