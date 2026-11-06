@@ -39,8 +39,17 @@ function groupByChapter(list: Question[]): ChapterEntry[] {
 }
 
 export function FavoritesView() {
-  const { data, state, settings, app, setView, startFavorites, startUnanswered, toggleFavorite } =
-    useQuiz();
+  const {
+    data,
+    state,
+    settings,
+    app,
+    savedSessions,
+    setView,
+    startFavorites,
+    startUnanswered,
+    toggleFavorite,
+  } = useQuiz();
   const favorites = favoriteQuestions(data, state);
   const [detail, setDetail] = useState<Question | null>(null);
   const [scope, setScope] = useState<Scope>('all');
@@ -76,6 +85,11 @@ export function FavoritesView() {
     active === 'all'
       ? '全部收藏'
       : `第${String(active).padStart(2, '0')}章 ${chapterTitle(data, active)}`;
+
+  // 该范围是否有未完成的收藏练习；有则可选择重新开始而不是续做
+  const favoriteOrigin = active === 'all' ? 'favorites' : `favorites:${active}`;
+  const hasSaved = savedSessions.some((s) => s.origin === favoriteOrigin);
+  const scopeArg = active === 'all' ? undefined : active;
 
   // 收藏详情与答题页同一套结构：吸顶返回栏 + 题卡 + 心得，不再用弹窗
   if (app.view === 'favorite-detail' && detail && readonlyItem) {
@@ -133,13 +147,24 @@ export function FavoritesView() {
           </p>
         </div>
         {favorites.length > 0 && (
-          <button
-            className="btn primary"
-            onClick={() => startFavorites(active === 'all' ? undefined : active)}
-          >
-            {active === 'all' ? '开始收藏练习' : `练习本章 ${visible.length} 道`}
-            <Icon name="arrow-right" size={16} />
-          </button>
+          <div className="view-head-actions">
+            {hasSaved && (
+              <button className="btn ghost" onClick={() => startFavorites(scopeArg, true)}>
+                <Icon name="rotate" size={16} />
+                重新开始
+              </button>
+            )}
+            <button className="btn primary" onClick={() => startFavorites(scopeArg)}>
+              {active === 'all'
+                ? hasSaved
+                  ? '继续收藏练习'
+                  : '开始收藏练习'
+                : hasSaved
+                  ? `继续练习本章 ${visible.length} 道`
+                  : `练习本章 ${visible.length} 道`}
+              <Icon name="arrow-right" size={16} />
+            </button>
+          </div>
         )}
       </header>
 

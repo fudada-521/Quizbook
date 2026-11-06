@@ -29,11 +29,13 @@ import {
   EXAM_DURATION_MS,
   normalizeState,
   resetProgressState,
+  resetAllLearningState,
   mergeStates,
   applyAchievements,
   dailyQuestions,
   randomQuestions,
   shuffle,
+  makeMap,
   makeChallengeRecord,
   recordChallenge,
   markDailyCompleted,
@@ -86,6 +88,7 @@ function clearFresh(session: QuizSession | null | undefined): void {
 type SessionOpts = {
   shuffle?: boolean;
   reviewOnly?: boolean;
+  origin?: string;
   mode?: SessionMode;
   startedAt?: number;
   durationMs?: number;
@@ -207,18 +210,25 @@ export interface QuizApp {
   persist: () => void;
   patchSettings: (patch: Partial<Settings>) => void;
   replaceState: (s: PersistedState) => void;
+  /** 清空作答/错题等记录，保留收藏、心得、成就 */
   resetProgress: () => void;
+  /** 清空全部学习数据：作答、错题、收藏、心得、成就 */
+  resetAllLearningData: () => void;
   // 会话
   startChapter: (c: number) => void;
   startRandom: () => void;
   startUnanswered: () => void;
   startWrong: () => void;
-  /** 不传章节则练全部收藏，传章节则只练该章的收藏题 */
-  startFavorites: (chapter?: number) => void;
+  /** 不传章节则练全部收藏，传章节则只练该章的收藏题；fresh 为真时丢弃续做从头开始 */
+  startFavorites: (chapter?: number, fresh?: boolean) => void;
   startDaily: () => void;
   startTimed: () => void;
   startExam: () => void;
   reviewWrong: () => void;
+  /** 结算页「重做本轮」：用同一批题重新开始 */
+  redoSession: () => void;
+  /** 解析卡里的「重做本题」：撤销当前题的作答状态，重新选择 */
+  redoCurrent: () => void;
   toggleFavorite: (q: Question) => void;
   addNote: (q: Question, text: string) => void;
   startSessionRaw: (list: Question[], title: string, opts?: SessionOpts) => void;
@@ -603,6 +613,15 @@ export function QuizProvider(props: {
     setPersisted((s: PersistedState) => resetProgressState(s));
   }, [setPersisted]);
 
+  const resetAllLearningData = useCallback(() => {
+    clearAllSessions();
+    savedSessionsRef.current = [];
+    setSavedSessions([]);
+    setPersisted((s: PersistedState) => resetAllLearningState(s));
+    dispatch({ type: 'SET_AUTO_PENDING', pending: false });
+    dispatch({ type: 'GOTO', view: 'home' });
+  }, [setPersisted]);
+
   const setView = useCallback((v: View) => dispatch({ type: 'GOTO', view: v }), []);
 
   /** 无条件新建会话（一次性入口用，不参与断点续做） */
@@ -731,8 +750,8 @@ export function QuizProvider(props: {
   const startUnanswered = useCallback(() => startOrigin('unanswered'), [startOrigin]);
   const startWrong = useCallback(() => startOrigin('wrong'), [startOrigin]);
   const startFavorites = useCallback(
-    (chapter?: number) =>
-      startOrigin(chapter == null ? 'favorites' : `favorites:${chapter}`),
+    (chapter?: number, fresh = false) =>
+      startOrigin(chapter == null ? 'favorites' : `favorites:${chapter}`, fresh),
     [startOrigin],
   );
   const startDaily = useCallback(() => startOrigin(`daily:${dateKey()}`), [startOrigin]);
@@ -795,13 +814,50 @@ export function QuizProvider(props: {
       dispatch({ type: 'GOTO', view: 'home' });
       return;
     }
-    startSessionRaw(wrong, '本轮错题回顾', { reviewOnly: true });
+    startSessionRaw(wrong, '本轮错题重做', { reviewOnly: true });
   }, [app.session, startSessionRaw]);
 
   const appSessionRef = useRef(app.session);
   useEffect(() => {
     appSessionRef.current = app.session;
   }, [app.session]);
+
+  /** 结算页「重做本轮」：同一批题重新作答，挑战模式重新计时 */
+  const redoSession = useCallback(() => {
+    const sess = appSessionRef.current;
+    if (!sess) return;
+    const list = sess.list.map((it) => it.q);
+    if (!list.length) return;
+    const opts: SessionOpts = {
+      shuffle: persistRef.current.settings.shuffle === 1,
+      mode: sess.mode,
+      origin: sess.origin,
+      seed: sess.seed,
+    };
+    if (sess.mode === 'timed' || sess.mode === 'exam') {
+      opts.startedAt = Date.now();
+      opts.durationMs = sess.durationMs;
+    } else if (sess.mode === 'daily') {
+      opts.startedAt = Date.now();
+      opts.date = sess.date;
+    }
+    dispatch({ type: 'START_SESSION', session: createSession(list, sess.title, opts) });
+  }, []);
+
+  /** 解析卡里的「重做本题」：撤销本题作答，重新选择；乱序模式下重新洗牌选项 */
+  const redoCurrent = useCallback(() => {
+    const sess = appSessionRef.current;
+    if (!sess) return;
+    const item = sess.list[sess.idx];
+    if (!item) return;
+    item.done = false;
+    item.pick = null;
+    item.lastPick = -1;
+    item.fresh = false;
+    if (persistRef.current.settings.shuffle === 1) item.map = makeMap(true);
+    dispatch({ type: 'SET_AUTO_PENDING', pending: false });
+    dispatch({ type: 'TICK' });
+  }, []);
 
   const grade = useCallback(
     (pickIdx: number) => {
@@ -912,6 +968,7 @@ export function QuizProvider(props: {
       patchSettings,
       replaceState,
       resetProgress,
+      resetAllLearningData,
       startChapter,
       startRandom,
       startUnanswered,
@@ -921,6 +978,8 @@ export function QuizProvider(props: {
       startTimed,
       startExam,
       reviewWrong,
+      redoSession,
+      redoCurrent,
       toggleFavorite,
       addNote,
       startSessionRaw,
@@ -946,9 +1005,9 @@ export function QuizProvider(props: {
     [
       data, persisted, app, store, sync, cloud, newAchievements, resume, savedSessions,
       resumeSession, discardResume, restartResume,
-      persist, patchSettings, replaceState, resetProgress,
+      persist, patchSettings, replaceState, resetProgress, resetAllLearningData,
       startChapter, startRandom, startUnanswered, startWrong, startFavorites, startDaily, startTimed, startExam,
-      reviewWrong, toggleFavorite, addNote, startSessionRaw,
+      reviewWrong, redoSession, redoCurrent, toggleFavorite, addNote, startSessionRaw,
       grade, pick, move, jump, next, prev, quit, finish, setView, toggleSheet, setAutoPending, tickNow,
       login, register, logout, syncNow, setServerUrl, dismissAchievements,
     ],

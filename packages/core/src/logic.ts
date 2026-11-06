@@ -158,6 +158,7 @@ export function normalizeState(raw: unknown): PersistedState {
     challenges: Array.isArray(r.challenges) ? r.challenges : [],
     achievements: r.achievements ?? {},
     resetAt: typeof r.resetAt === 'number' ? r.resetAt : 0,
+    dataResetAt: typeof r.dataResetAt === 'number' ? r.dataResetAt : 0,
   };
 }
 
@@ -196,6 +197,27 @@ export function resetProgressState(state: PersistedState, now = Date.now()): Per
     daily: {},
     challenges: [],
     resetAt: now,
+  };
+}
+
+/**
+ * 清空全部学习数据：作答、错题、收藏、心得、挑战与成就都不再保留。
+ * dataResetAt 让云端合并时同样丢弃重置前的收藏/心得/成就，避免被其他设备复活。
+ * 设置（音效、乱序等）属于偏好而非学习数据，保留。
+ */
+export function resetAllLearningState(state: PersistedState, now = Date.now()): PersistedState {
+  return {
+    ...state,
+    answers: {},
+    wrong: {},
+    favorites: {},
+    favoriteRemovals: {},
+    notes: {},
+    daily: {},
+    challenges: [],
+    achievements: {},
+    resetAt: now,
+    dataResetAt: now,
   };
 }
 

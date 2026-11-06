@@ -116,8 +116,10 @@ export interface PersistedState {
   challenges: ChallengeRecord[];
   /** 成就 id → 解锁时间 */
   achievements: Record<string, AchievementUnlock>;
-  /** 最近一次「清空记录」的时间戳；早于它的记录在合并时被丢弃 */
+  /** 最近一次「清空答题记录」的时间戳；早于它的作答/错题/挑战记录在合并时被丢弃 */
   resetAt: number;
+  /** 最近一次「清空全部学习数据」的时间戳；早于它的收藏/心得/成就也会被丢弃 */
+  dataResetAt: number;
 }
 
 /** 练习模式 */
@@ -174,8 +176,8 @@ export const DEFAULT_SETTINGS: Settings = {
   haptics: 1,
 };
 
-/** 进度存储当前 schema 版本；v5 增加答题音效与触觉反馈开关 */
-export const SCHEMA_VERSION = 5;
+/** 进度存储当前 schema 版本；v6 增加「清空全部学习数据」的 dataResetAt 纪元 */
+export const SCHEMA_VERSION = 6;
 
 export function qkey(q: Pick<Question, 'c' | 'n'> | Question): string {
   return `${q.c}-${q.n}`;

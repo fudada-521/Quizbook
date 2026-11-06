@@ -1291,6 +1291,7 @@ kbd {
 .reveal-body p {
   /* base.css 的 p:not([class]) 会给无类名段落套 65ch 上限，解析会提前换行；
      这里显式占满卡片可用宽度 */
+  width: 100%;
   max-width: none;
   color: var(--color-ink);
   font-size: 13.5px;
@@ -1298,7 +1299,13 @@ kbd {
 }
 
 .reveal-body .reveal-text {
+  width: 100%;
   max-width: none;
+  /* Safari 的 text-wrap: pretty 会让右侧参差不齐、看起来像提前换行；
+     改为普通换行并两端对齐，中文解析行尾更整齐，也不浪费右侧空间 */
+  text-wrap: wrap;
+  text-align: justify;
+  text-justify: inter-ideograph;
 }
 
 .reveal-hint {
@@ -1306,6 +1313,27 @@ kbd {
   color: var(--color-muted);
   font-size: 12px;
   text-align: center;
+}
+
+/* 解析卡底部：提示文字与「重做本题」并排 */
+.reveal-foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+  padding: 0 var(--space-md) var(--space-sm);
+}
+
+.reveal-foot .reveal-hint {
+  padding: 0;
+}
+
+.reveal-redo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
 }
 
 .question-notes {
@@ -1722,6 +1750,13 @@ kbd {
 }
 
 .view-head > .btn {
+  flex: none;
+}
+
+.view-head-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
   flex: none;
 }
 
@@ -3131,8 +3166,13 @@ dialog {
     font-size: 28px;
   }
 
-  .view-head > .btn {
+  .view-head > .btn,
+  .view-head-actions {
     width: 100%;
+  }
+
+  .view-head-actions .btn {
+    flex: 1;
   }
 
   .fav-row {

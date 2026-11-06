@@ -56,15 +56,16 @@ function mergeWrong(a: PersistedState, b: PersistedState, answers: Record<string
   return wrong;
 }
 
-function mergeFavorites(a: PersistedState, b: PersistedState) {
+function mergeFavorites(a: PersistedState, b: PersistedState, dataResetAt: number) {
   const favorites: Record<string, number> = {};
   const favoriteRemovals: Record<string, number> = {};
   for (const key of unionKeys(a.favorites, b.favorites, a.favoriteRemovals, b.favoriteRemovals)) {
     const added = Math.max(a.favorites[key] ?? 0, b.favorites[key] ?? 0);
     const removed = Math.max(a.favoriteRemovals[key] ?? 0, b.favoriteRemovals[key] ?? 0);
-    if (added > 0 && added > removed) {
+    // 清空全部数据之前的收藏与墓碑都失效
+    if (added > dataResetAt && added > removed) {
       favorites[key] = added;
-    } else if (removed > 0) {
+    } else if (removed > dataResetAt) {
       // 保留墓碑，让删除继续传播到其他设备
       favoriteRemovals[key] = removed;
     }
@@ -72,11 +73,12 @@ function mergeFavorites(a: PersistedState, b: PersistedState) {
   return { favorites, favoriteRemovals };
 }
 
-function mergeNotes(a: PersistedState, b: PersistedState) {
+function mergeNotes(a: PersistedState, b: PersistedState, dataResetAt: number) {
   const notes: Record<string, QuestionNote[]> = {};
   for (const key of unionKeys(a.notes, b.notes)) {
     const byId = new Map<string, QuestionNote>();
     for (const note of [...(a.notes[key] ?? []), ...(b.notes[key] ?? [])]) {
+      if (note.at <= dataResetAt) continue;
       if (!byId.has(note.id)) byId.set(note.id, note);
     }
     if (byId.size) {
@@ -116,11 +118,12 @@ export function mergeStates(
   const local = normalizeState(a);
   const remote = normalizeState(b);
   const resetAt = Math.max(local.resetAt, remote.resetAt);
+  const dataResetAt = Math.max(local.dataResetAt, remote.dataResetAt);
 
   const answers = mergeAnswers(local, remote, resetAt);
   const wrong = mergeWrong(local, remote, answers, resetAt);
-  const { favorites, favoriteRemovals } = mergeFavorites(local, remote);
-  const notes = mergeNotes(local, remote);
+  const { favorites, favoriteRemovals } = mergeFavorites(local, remote, dataResetAt);
+  const notes = mergeNotes(local, remote, dataResetAt);
   const daily = mergeDaily(local, remote, resetAt);
 
   const settingsWinsLocal = local.settingsAt >= remote.settingsAt;
@@ -139,7 +142,7 @@ export function mergeStates(
     const left = local.achievements[id]?.unlockedAt ?? 0;
     const right = remote.achievements[id]?.unlockedAt ?? 0;
     const unlockedAt = Math.min(left || right, right || left);
-    if (unlockedAt > 0) achievements[id] = { unlockedAt };
+    if (unlockedAt > dataResetAt) achievements[id] = { unlockedAt };
   }
 
   return {
@@ -155,5 +158,6 @@ export function mergeStates(
     challenges,
     achievements,
     resetAt,
+    dataResetAt,
   };
 }

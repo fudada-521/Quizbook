@@ -57,8 +57,11 @@ function scheduleAnswerSound(ctx: AudioContext, kind: AnswerFeedback): void {
     tone(ctx, { freq: 990, at: t + 0.09, dur: 0.2, gain: 0.13 });
     tone(ctx, { freq: 1320, at: t + 0.16, dur: 0.16, gain: 0.06, type: 'sine' });
   } else {
-    tone(ctx, { freq: 220, at: t, dur: 0.18, gain: 0.18, type: 'triangle' });
-    tone(ctx, { freq: 165, at: t + 0.1, dur: 0.24, gain: 0.14, type: 'triangle' });
+    // 手机扬声器对 200Hz 以下的低频很不敏感，答错音从 440Hz 起下行，
+    // 保证在 iPhone 上也能清楚听到，同时与答对的上行三音区分开
+    tone(ctx, { freq: 440, at: t, dur: 0.13, gain: 0.2, type: 'triangle' });
+    tone(ctx, { freq: 330, at: t + 0.1, dur: 0.2, gain: 0.18, type: 'triangle' });
+    tone(ctx, { freq: 220, at: t + 0.19, dur: 0.22, gain: 0.12, type: 'sine' });
   }
 }
 

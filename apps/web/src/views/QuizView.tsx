@@ -269,7 +269,7 @@ function Reveal({
   paused: boolean;
   onPause: () => void;
 }) {
-  const { app, settings, next, setAutoPending } = useQuiz();
+  const { app, settings, next, setAutoPending, redoCurrent } = useQuiz();
   const pickedOrig = item.map[item.lastPick];
   const ok = pickedOrig === item.q.a;
 
@@ -359,12 +359,22 @@ function Reveal({
       ok={ok}
       right={right}
       footer={
-        !ok ? (
+        <div className="reveal-foot">
           <p className="reveal-hint">
-            读懂解析后，点「下一题」继续
-            <span className="kbd-only">（或按 Enter）</span>
+            {ok ? (
+              '答对了，也可以重做一遍巩固'
+            ) : (
+              <>
+                读懂解析后，点「下一题」继续
+                <span className="kbd-only">（或按 Enter）</span>
+              </>
+            )}
           </p>
-        ) : null
+          <button className="chip reveal-redo" onClick={redoCurrent}>
+            <Icon name="rotate" size={13} />
+            重做本题
+          </button>
+        </div>
       }
     />
   );

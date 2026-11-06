@@ -1,4 +1,4 @@
-import { createSession, gradeAnswer, normalizeState, shouldAutoAdvance, wrongQuestions, unansweredQuestions, questionsOfChapter, qkey, isFavorite, toggleFavorite, favoriteQuestions, notesFor, addQuestionNote, mergeStates, dailyQuestions, scoreSession, makeChallengeRecord, ACHIEVEMENTS, achievementStats, achievementProgress, evaluateAchievements, resetProgressState, gradeAnswer as grade, DEFAULT_SETTINGS, SCHEMA_VERSION, dateKey, type QuizData, type PersistedState } from '../src/index.ts';
+import { createSession, gradeAnswer, normalizeState, shouldAutoAdvance, wrongQuestions, unansweredQuestions, questionsOfChapter, qkey, isFavorite, toggleFavorite, favoriteQuestions, notesFor, addQuestionNote, mergeStates, dailyQuestions, scoreSession, makeChallengeRecord, ACHIEVEMENTS, achievementStats, achievementProgress, evaluateAchievements, resetProgressState, resetAllLearningState, gradeAnswer as grade, DEFAULT_SETTINGS, SCHEMA_VERSION, dateKey, type QuizData, type PersistedState } from '../src/index.ts';
 
 const data: QuizData = {
   generatedFrom: 'test',
@@ -93,11 +93,15 @@ ok(v4.resetAt === 0 && v4.settingsAt === 0, 'v4 migration defaults timestamps');
 
 // ---------- schema v5：音效 / 触觉开关 ----------
 const v5 = normalizeState({ schemaVersion: 4, answers: {}, wrong: {}, favorites: {}, notes: {}, settings: {} });
-ok(v5.schemaVersion === 5, 'schema bumped to v5');
+ok(v5.schemaVersion === SCHEMA_VERSION, 'schema bumped to current version');
 ok(v5.settings.sound === 1 && v5.settings.haptics === 1, 'v5 migration adds feedback settings');
 const v5off = normalizeState({ schemaVersion: 5, answers: {}, wrong: {}, favorites: {}, notes: {}, settings: { sound: 0, haptics: 0 } });
 ok(v5off.settings.sound === 0 && v5off.settings.haptics === 0, 'v5 keeps explicit feedback settings');
 ok(v5off.settings.count === DEFAULT_SETTINGS.count, 'v5 fills missing settings from defaults');
+
+// ---------- schema v6：清空全部数据的纪元 ----------
+const v6 = normalizeState({ schemaVersion: 5, answers: {}, wrong: {}, favorites: {}, notes: {}, settings: {} });
+ok(v6.schemaVersion === 6 && v6.dataResetAt === 0, 'v6 migration defaults dataResetAt');
 
 // ---------- 合并：作答 / 错题 ----------
 const base = normalizeState({});
@@ -302,6 +306,61 @@ ok(
 const resetState = resetProgressState(achState, 3000);
 ok(resetState.resetAt === 3000 && Object.keys(resetState.answers).length === 0, 'reset clears answers');
 ok(resetState.notes['1-1'].length === 1 && Object.keys(resetState.achievements).length === 0, 'reset keeps notes');
+
+// 清空全部学习数据：收藏 / 心得 / 成就一并清除，设置保留
+const clearAllState = resetAllLearningState(
+  normalizeState({
+    answers: { '1-1': { ok: true, tries: 1, t: 100 } },
+    wrong: { '1-2': 1 },
+    favorites: { '1-1': 50 },
+    favoriteRemovals: { '1-2': 60 },
+    notes: { '1-1': [{ id: 'n1', text: '记', at: 70 }] },
+    achievements: { first_steps: { unlockedAt: 80 } },
+    settings: { ...DEFAULT_SETTINGS, count: 33 },
+    settingsAt: 90,
+  }),
+  4000,
+);
+ok(
+  clearAllState.resetAt === 4000 &&
+    clearAllState.dataResetAt === 4000 &&
+    Object.keys(clearAllState.answers).length === 0 &&
+    Object.keys(clearAllState.wrong).length === 0,
+  'clear all resets answers and sets epochs',
+);
+ok(
+  Object.keys(clearAllState.favorites).length === 0 &&
+    Object.keys(clearAllState.favoriteRemovals).length === 0 &&
+    Object.keys(clearAllState.notes).length === 0 &&
+    Object.keys(clearAllState.achievements).length === 0,
+  'clear all removes favorites, notes and achievements',
+);
+ok(clearAllState.settings.count === 33 && clearAllState.settingsAt === 90, 'clear all keeps settings');
+
+// dataResetAt 让云端合并丢弃重置前的收藏 / 心得 / 成就
+const afterClear = normalizeState({ dataResetAt: 1000, resetAt: 1000 });
+const stalePeer = normalizeState({
+  favorites: { '1-1': 100 },
+  notes: { '1-1': [{ id: 'n1', text: 'old', at: 100 }] },
+  achievements: { first_steps: { unlockedAt: 100 } },
+});
+const clearedMerge = mergeStates(afterClear, stalePeer);
+ok(
+  !clearedMerge.favorites['1-1'] && !clearedMerge.notes['1-1'] && !clearedMerge.achievements.first_steps,
+  'dataResetAt drops pre-reset favorites, notes and achievements',
+);
+const freshPeer = normalizeState({
+  favorites: { '1-2': 2000 },
+  notes: { '1-2': [{ id: 'n2', text: 'new', at: 2000 }] },
+  achievements: { note_first: { unlockedAt: 2000 } },
+});
+const freshMerge = mergeStates(afterClear, freshPeer);
+ok(
+  freshMerge.favorites['1-2'] === 2000 &&
+    freshMerge.notes['1-2'].length === 1 &&
+    freshMerge.achievements.note_first.unlockedAt === 2000,
+  'dataResetAt keeps post-reset data',
+);
 
 // ---------- 判分写入每日记录 ----------
 const dailyGrade = normalizeState({});

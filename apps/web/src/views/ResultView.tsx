@@ -39,7 +39,7 @@ function useCountUp(target: number, duration = 620): number {
 }
 
 export function ResultView() {
-  const { app, quit, reviewWrong, settings } = useQuiz();
+  const { app, quit, reviewWrong, redoSession, settings } = useQuiz();
   const sess = app.session;
 
   const done = sess ? sess.list.filter((it) => it.done).length : 0;
@@ -142,9 +142,12 @@ export function ResultView() {
             返回首页
           </button>
         )}
+        <button className="btn ghost" onClick={redoSession}>
+          重做本轮
+        </button>
         {wrong > 0 ? (
           <button className="btn primary" onClick={reviewWrong}>
-            回顾本轮错题
+            重做本轮错题
           </button>
         ) : (
           <button className="btn primary" onClick={quit}>

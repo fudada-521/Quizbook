@@ -43,6 +43,7 @@ export function SettingsView() {
     state,
     replaceState,
     resetProgress,
+    resetAllLearningData,
     cloud,
     login,
     register,
@@ -522,6 +523,30 @@ export function SettingsView() {
                     }}
                   >
                     清空
+                  </button>
+                </div>
+              </div>
+
+              <div className="setting-row">
+                <div className="setting-copy">
+                  <label>清空全部学习数据</label>
+                  <p>作答、错题、收藏、题目心得、挑战与成就全部清除，仅保留答题设置</p>
+                </div>
+                <div className="setting-control">
+                  <button
+                    className="btn ghost sm danger"
+                    onClick={() => {
+                      void confirmAction({
+                        title: '清空全部学习数据？',
+                        body: '作答、错题、收藏、题目心得、挑战与成就都会被清除，且会同步到其他设备。此操作不可恢复。',
+                        confirmLabel: '全部清空',
+                        danger: true,
+                      }).then((ok) => {
+                        if (ok) resetAllLearningData();
+                      });
+                    }}
+                  >
+                    全部清空
                   </button>
                 </div>
               </div>
