@@ -16,7 +16,7 @@ export default defineConfig({
       manifest: {
         name: '天权 Megrez',
         short_name: '天权',
-        description: '刷题·即时判分·错题本（2210 题）',
+        description: '刷题·即时判分·错题本（2726 题）',
         lang: 'zh-CN',
         theme_color: '#f6f6f3',
         background_color: '#f6f6f3',
@@ -32,6 +32,8 @@ export default defineConfig({
         // 单文件下直接缓存 index.html 本身
         globPatterns: ['**/*.{html,css,js,svg,png}'],
         navigateFallback: 'index.html',
+        // 题库扩大后单文件超过 Workbox 默认 2 MiB 预缓存上限
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       },
     }),
   ],
