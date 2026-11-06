@@ -38,4 +38,4 @@ apps/server/*.db-*
 .hallmark/
 
 .qwen
-.qwen/
+.qwen/ 
