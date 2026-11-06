@@ -67,7 +67,14 @@ import { clearAllSessions, clearSession, loadSessions, saveSession } from './ses
 import { emitAnswerFeedback } from '../feedback';
 import { notify } from '../components/Feedback';
 
-export type View = 'home' | 'quiz' | 'result' | 'favorites' | 'achievements' | 'settings';
+export type View =
+  | 'home'
+  | 'quiz'
+  | 'result'
+  | 'favorites'
+  | 'favorite-detail'
+  | 'achievements'
+  | 'settings';
 
 /** 翻题离开时清掉“刚判分”标记，回看已答题不再触发自动跳转 */
 function clearFresh(session: QuizSession | null | undefined): void {

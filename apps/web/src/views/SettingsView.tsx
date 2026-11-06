@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { normalizeState } from '@megrez/core';
 import { useQuiz, type CloudPhase } from '../store/QuizStore';
 import { Icon, type IconName } from '../components/Icon';
+import { SideNav } from '../components/SideNav';
 import { confirmAction, notify } from '../components/Feedback';
 import { loadThemeMode, saveThemeMode, type ThemeMode } from '../theme';
 
@@ -157,23 +158,12 @@ export function SettingsView() {
       </header>
 
       <div className="side-layout">
-        <nav className="side-nav" aria-label="设置分类">
-          {SECTIONS.map((item) => (
-            <button
-              key={item.id}
-              className={`side-nav-item${section === item.id ? ' active' : ''}`}
-              onClick={() => setSection(item.id)}
-              aria-current={section === item.id ? 'page' : undefined}
-            >
-              <Icon name={item.icon} size={17} />
-              <span className="side-nav-copy">
-                <strong>{item.label}</strong>
-                <small>{item.hint}</small>
-              </span>
-              <Icon name="chevron-right" size={14} className="chev" />
-            </button>
-          ))}
-        </nav>
+        <SideNav
+          ariaLabel="设置分类"
+          items={SECTIONS}
+          active={section}
+          onChange={setSection}
+        />
 
         <div className="side-content">
           {section === 'account' && (

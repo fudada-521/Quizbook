@@ -729,6 +729,9 @@ kbd {
    ============================================================ */
 
 .quiz-page {
+  /* 手机端答题页的 .app-main 是 flex 列容器，只有 margin:auto 的元素会按内容
+     宽度收缩（fit-content），短题时整列跟着变窄；显式 100% 再交给 max-width 收口 */
+  width: 100%;
   max-width: 760px;
   margin: 0 auto;
   /* 给悬空的底部胶囊栏留出空间，避免遮住最后的解析 / 心得 */
@@ -1824,62 +1827,10 @@ kbd {
   margin-top: 20px;
 }
 
-.fav-dialog {
-  width: min(660px, calc(100% - 32px));
-  max-height: calc(100dvh - 48px);
-  margin: auto;
-  padding: 0;
-  border: 1px solid var(--color-rule);
-  border-radius: var(--radius-card);
-  background: var(--color-paper-2);
-  color: var(--color-ink);
-  box-shadow: var(--shadow-dialog);
-  overflow: auto;
-}
-
-.fav-dialog[open] {
-  animation: dialogIn var(--dur-short) var(--ease-out);
-}
-
-.fav-dialog:focus-visible {
-  outline: none;
-}
-
-.fav-dialog::backdrop {
-  background: var(--backdrop);
-}
-
-.fav-dialog .dialog-head {
-  align-items: flex-start;
-  padding: 22px var(--space-lg) 0;
-}
-
-.fav-dialog-meta {
-  margin-top: var(--space-2xs);
-  color: var(--color-ink-2);
-  font-size: 11.5px;
-}
-
-.fav-dialog .dialog-head h2 {
-  font-size: 18px;
-  font-weight: 400;
-}
-
-.fav-dialog-body {
-  padding: 18px var(--space-lg) var(--space-2xs);
-}
-
-
-.fav-dialog .dialog-foot {
-  position: sticky;
-  bottom: 0;
-  padding: var(--space-sm) var(--space-lg) var(--space-md);
-  border-top: 1px solid var(--color-rule);
-  background: var(--color-paper-2);
-}
-
-.fav-dialog .text-btn svg {
+/* 收藏详情顶部栏：右侧占位让标题与答题页一样居中 */
+.fav-detail-spacer {
   flex: none;
+  width: 76px;
 }
 
 /* ============================================================
@@ -1994,6 +1945,11 @@ dialog {
 .side-content {
   min-width: 0;
   animation: questionIn var(--dur-short) var(--ease-out);
+}
+
+/* 移动端选择器形态默认不出现，只在窄屏替换胶囊 tab */
+.side-nav-picker {
+  display: none;
 }
 
 .settings-panel {
@@ -3189,23 +3145,6 @@ dialog {
     padding: 48px 20px;
   }
 
-  .fav-dialog {
-    width: calc(100% - 24px);
-    max-height: calc(100dvh - 32px);
-  }
-
-  .fav-dialog .dialog-head {
-    padding: 20px 18px 0;
-  }
-
-  .fav-dialog-body {
-    padding: var(--space-md) 18px var(--space-2xs);
-  }
-
-  .fav-dialog .dialog-foot {
-    padding: var(--space-sm) 18px calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
-  }
-
   .account-row {
     flex-wrap: wrap;
   }
@@ -3276,6 +3215,44 @@ dialog {
   .side-nav-item .chev,
   .side-nav-item > svg:first-child {
     display: none;
+  }
+
+  /* 分类过多（收藏按章节）时改用下拉选择器，避免胶囊横滚找不到目标 */
+  .side-nav--picker {
+    display: none;
+  }
+
+  .side-nav-picker {
+    display: block;
+    margin-bottom: var(--space-md);
+  }
+
+  .side-nav-picker-label {
+    position: relative;
+    display: block;
+  }
+
+  .side-nav-picker select {
+    width: 100%;
+    height: 42px;
+    padding: 0 38px 0 14px;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-pill);
+    background: var(--surface-well);
+    color: var(--color-ink);
+    font-size: var(--field-font-size);
+    text-overflow: ellipsis;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  .side-nav-picker .chev {
+    position: absolute;
+    top: 50%;
+    right: 14px;
+    color: var(--color-muted);
+    pointer-events: none;
+    transform: translateY(-50%) rotate(90deg);
   }
 
   .settings-panel {
@@ -3389,10 +3366,6 @@ dialog {
   .option .mark svg {
     width: 14px;
     height: 14px;
-  }
-
-  .fav-dialog {
-    width: calc(100% - 16px);
   }
 
   .view-head h1 {

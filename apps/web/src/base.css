@@ -4,6 +4,9 @@ html { scrollbar-color: var(--color-muted) var(--color-paper); scroll-padding-to
 body { margin: 0; background: var(--color-paper); color: var(--color-ink); font-family: var(--font-body); font-size: var(--text-md); line-height: 1.55; -webkit-font-smoothing: antialiased; caret-color: var(--color-accent); }
 ::selection { background: color-mix(in oklab, var(--color-accent) 22%, transparent); color: var(--color-ink); }
 :focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+/* 触屏上点按控件后焦点会留在元素上，iOS 还会把它算作 focus-visible，留下一个很重的
+   键盘焦点框；触屏没有键盘焦点导航，改由控件自身的选中状态表达，不画焦点框 */
+@media (hover: none) and (pointer: coarse) { :focus-visible { outline: none; } }
 a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 0.16em; }
 h1, h2, h3 { margin: 0; font-family: var(--font-display); font-weight: var(--display-weight, 700); font-synthesis: none; letter-spacing: var(--tracking-display); line-height: 1.05; overflow-wrap: break-word; min-width: 0; }
 h1 { max-width: 20ch; font-size: var(--text-display); } h2 { max-width: 30ch; font-size: var(--text-section); } h3 { max-width: 40ch; font-size: var(--text-title); line-height: 1.2; }

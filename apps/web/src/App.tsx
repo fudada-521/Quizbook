@@ -65,7 +65,8 @@ function useDialogScrollLock() {
 
 function Shell() {
     const { app, setView, cloud } = useQuiz();
-    const inQuiz = app.view === "quiz";
+    // 答题页和收藏详情都使用答题页式布局：隐藏品牌栏、收窄主栏
+    const inQuiz = app.view === "quiz" || app.view === "favorite-detail";
 
     const openSettings = () => setView("settings");
 
@@ -78,7 +79,15 @@ function Shell() {
     useEffect(() => {
         const nav = navRef.current;
         if (nav.view === app.view) return;
+        const prev = nav.view;
         nav.view = app.view;
+
+        // 收藏详情叠加在收藏列表之上，返回时走历史回退
+        if (prev === "favorite-detail" && app.view === "favorites") {
+            if (nav.pushed) window.history.back();
+            return;
+        }
+
         if (app.view === "home") {
             if (nav.pushed) {
                 nav.pushed = false;
@@ -86,6 +95,13 @@ function Shell() {
             }
             return;
         }
+
+        if (app.view === "favorite-detail") {
+            window.history.pushState({ megrezView: app.view }, "");
+            nav.pushed = true;
+            return;
+        }
+
         if (!nav.pushed) {
             window.history.pushState({ megrezView: app.view }, "");
             nav.pushed = true;
@@ -185,7 +201,7 @@ function Shell() {
                 {app.view === "home" && <HomeView />}
                 {app.view === "quiz" && <QuizView />}
                 {app.view === "result" && <ResultView />}
-                {app.view === "favorites" && <FavoritesView />}
+                {(app.view === "favorites" || app.view === "favorite-detail") && <FavoritesView />}
                 {app.view === "achievements" && <AchievementsView />}
                 {app.view === "settings" && <SettingsView />}
             </main>

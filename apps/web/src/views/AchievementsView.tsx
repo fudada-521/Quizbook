@@ -8,6 +8,7 @@ import {
 } from '@megrez/core';
 import { useQuiz } from '../store/QuizStore';
 import { Icon } from '../components/Icon';
+import { SideNav } from '../components/SideNav';
 
 const CATEGORY_LABEL: Record<AchievementCategory, string> = {
   progress: '进度',
@@ -138,28 +139,17 @@ export function AchievementsView() {
       </header>
 
       <div className="side-layout">
-        <nav className="side-nav" aria-label="成就分类">
-          {categories.map(({ category, items }) => {
-            const categoryUnlocked = items.filter((item) => item.unlocked).length;
-            return (
-              <button
-                key={category}
-                className={`side-nav-item${active === category ? ' active' : ''}`}
-                onClick={() => setActive(category)}
-                aria-current={active === category ? 'page' : undefined}
-              >
-                <Icon name={CATEGORY_ICON[category]} size={17} />
-                <span className="side-nav-copy">
-                  <strong>{CATEGORY_LABEL[category]}</strong>
-                  <small>
-                    {categoryUnlocked} / {items.length} 已解锁
-                  </small>
-                </span>
-                <Icon name="chevron-right" size={14} className="chev" />
-              </button>
-            );
-          })}
-        </nav>
+        <SideNav
+          ariaLabel="成就分类"
+          items={categories.map(({ category, items }) => ({
+            id: category,
+            label: CATEGORY_LABEL[category],
+            hint: `${items.filter((item) => item.unlocked).length} / ${items.length} 已解锁`,
+            icon: CATEGORY_ICON[category],
+          }))}
+          active={active}
+          onChange={setActive}
+        />
 
         <section
           className="panel achievement-panel side-content"

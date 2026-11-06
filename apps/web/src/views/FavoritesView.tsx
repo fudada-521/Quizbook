@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import {
   chapterTitle,
   favoriteQuestions,
@@ -9,10 +9,10 @@ import {
 import { useQuiz } from '../store/QuizStore';
 import { emitFavoriteFeedback } from '../feedback';
 import { Icon } from '../components/Icon';
+import { SideNav } from '../components/SideNav';
 import { QuestionNotes } from '../components/QuestionNotes';
 import { RevealCard } from '../components/AnswerParts';
 import { QuestionCard } from '../components/QuestionCard';
-import { useSwipeDownToClose } from '../gestures';
 
 /** 收藏详情没有乱序，显示顺序即原始顺序 */
 const READONLY_MAP: [number, number, number, number] = [0, 1, 2, 3];
@@ -39,11 +39,11 @@ function groupByChapter(list: Question[]): ChapterEntry[] {
 }
 
 export function FavoritesView() {
-  const { data, state, settings, startFavorites, startUnanswered, toggleFavorite } = useQuiz();
+  const { data, state, settings, app, setView, startFavorites, startUnanswered, toggleFavorite } =
+    useQuiz();
   const favorites = favoriteQuestions(data, state);
   const [detail, setDetail] = useState<Question | null>(null);
   const [scope, setScope] = useState<Scope>('all');
-  const dlgRef = useRef<HTMLDialogElement>(null);
 
   const chapters = groupByChapter(favorites);
   // 取消收藏可能让当前章节清空，此时自动回到「全部收藏」
@@ -52,30 +52,20 @@ export function FavoritesView() {
   const visible =
     active === 'all' ? favorites : (chapters.find((entry) => entry.c === active)?.items ?? []);
 
-  useEffect(() => {
-    const dlg = dlgRef.current;
-    if (detail && dlg && !dlg.open) {
-      dlg.showModal();
-      dlg.scrollTop = 0;
-      // 焦点放在弹窗容器上，避免打开瞬间选中关闭按钮
-      dlg.focus();
-    }
-  }, [detail]);
-
-  const closeDetail = () => {
-    dlgRef.current?.close();
-    setDetail(null);
+  const openDetail = (q: Question) => {
+    setDetail(q);
+    setView('favorite-detail');
   };
+
+  const closeDetail = () => setView('favorites');
 
   const removeDetail = () => {
     if (!detail) return;
     toggleFavorite(detail);
     emitFavoriteFeedback(false, settings);
-    closeDetail();
+    setDetail(null);
+    setView('favorites');
   };
-
-  // 手机上从弹窗头部向下滑动即可关闭
-  useSwipeDownToClose(dlgRef.current, closeDetail);
 
   // 只读会话项：数据已判分、无选中记录，交给答题页组件按「正确答案」渲染
   const readonlyItem: SessionItem | null = detail
@@ -86,6 +76,48 @@ export function FavoritesView() {
     active === 'all'
       ? '全部收藏'
       : `第${String(active).padStart(2, '0')}章 ${chapterTitle(data, active)}`;
+
+  // 收藏详情与答题页同一套结构：吸顶返回栏 + 题卡 + 心得，不再用弹窗
+  if (app.view === 'favorite-detail' && detail && readonlyItem) {
+    return (
+      <div className="quiz-page fav-detail-page">
+        <div className="quiz-bar">
+          <div className="quiz-bar-row">
+            <button className="btn ghost sm" onClick={closeDetail}>
+              <Icon name="arrow-left" size={16} />
+              返回
+            </button>
+            <div className="quiz-title">
+              <h1 className="quiz-title-name">题目详情</h1>
+              <span className="count">收藏</span>
+            </div>
+            <span className="fav-detail-spacer" aria-hidden="true" />
+          </div>
+        </div>
+
+        <article className="question-card">
+          <QuestionCard
+            item={readonlyItem}
+            meta={`第${String(detail.c).padStart(2, '0')}章 ${chapterTitle(data, detail.c)}，原题 ${detail.n}`}
+            action={
+              <button
+                className="fav-btn active"
+                onClick={removeDetail}
+                aria-pressed={true}
+                aria-label="取消收藏"
+                title="取消收藏"
+              >
+                <Icon name="star" size={17} />
+              </button>
+            }
+            reveal={<RevealCard item={readonlyItem} ok reference />}
+          />
+        </article>
+
+        <QuestionNotes className="notes-card" question={detail} />
+      </div>
+    );
+  }
 
   return (
     <div className="view-page">
@@ -113,41 +145,22 @@ export function FavoritesView() {
 
       {favorites.length > 0 ? (
         <div className="side-layout">
-          <nav className="side-nav" aria-label="收藏章节目录">
-            <button
-              className={`side-nav-item${active === 'all' ? ' active' : ''}`}
-              onClick={() => setScope('all')}
-              aria-current={active === 'all' ? 'page' : undefined}
-            >
-              <Icon name="star" size={17} />
-              <span className="side-nav-copy">
-                <strong>全部收藏</strong>
-                <small>{favorites.length} 道</small>
-              </span>
-              <Icon name="chevron-right" size={14} className="chev" />
-            </button>
-            {chapters.map(({ c, items }) => {
-              const title = chapterTitle(data, c);
-              return (
-                <button
-                  key={c}
-                  className={`side-nav-item${active === c ? ' active' : ''}`}
-                  onClick={() => setScope(c)}
-                  aria-current={active === c ? 'page' : undefined}
-                  title={title}
-                >
-                  <Icon name="book" size={17} />
-                  <span className="side-nav-copy">
-                    <strong>{title}</strong>
-                    <small>
-                      第{String(c).padStart(2, '0')}章，{items.length} 道
-                    </small>
-                  </span>
-                  <Icon name="chevron-right" size={14} className="chev" />
-                </button>
-              );
-            })}
-          </nav>
+          <SideNav<Scope>
+            ariaLabel="收藏章节目录"
+            pickerLabel="选择收藏范围"
+            mobile="picker"
+            items={[
+              { id: 'all', label: '全部收藏', hint: `${favorites.length} 道`, icon: 'star' },
+              ...chapters.map(({ c, items }) => ({
+                id: c,
+                label: chapterTitle(data, c),
+                hint: `第${String(c).padStart(2, '0')}章，${items.length} 道`,
+                icon: 'book' as const,
+              })),
+            ]}
+            active={active}
+            onChange={setScope}
+          />
 
           <div
             className="fav-list side-content"
@@ -156,7 +169,7 @@ export function FavoritesView() {
             aria-label={scopeLabel}
           >
             {visible.map((q) => (
-              <button className="fav-row" key={qkey(q)} onClick={() => setDetail(q)}>
+              <button className="fav-row" key={qkey(q)} onClick={() => openDetail(q)}>
                 <span className="fav-main">
                   <span className="fav-chapter">
                     第{String(q.c).padStart(2, '0')}章 {chapterTitle(data, q.c)}，原题 {q.n}
@@ -181,61 +194,7 @@ export function FavoritesView() {
         </div>
       )}
 
-      <dialog
-        ref={dlgRef}
-        className="fav-dialog"
-        tabIndex={-1}
-        aria-labelledby="fav-detail-title"
-        onClose={() => setDetail(null)}
-        onMouseDown={(e) => {
-          if (e.target === dlgRef.current) closeDetail();
-        }}
-      >
-        {detail && readonlyItem && (
-          <>
-            <div className="dialog-head">
-              <div>
-                <h2 id="fav-detail-title">题目详情</h2>
-              </div>
-              <button className="icon-btn" onClick={closeDetail} aria-label="关闭">
-                <Icon name="x" size={17} />
-              </button>
-            </div>
-
-            <div className="fav-dialog-body">
-              <QuestionCard
-                item={readonlyItem}
-                headingLevel="h3"
-                meta={`第${String(detail.c).padStart(2, '0')}章 ${chapterTitle(data, detail.c)}，原题 ${detail.n}`}
-                action={
-                  <button
-                    className="fav-btn active"
-                    onClick={removeDetail}
-                    aria-pressed={true}
-                    aria-label="取消收藏"
-                    title="取消收藏"
-                  >
-                    <Icon name="star" size={17} />
-                  </button>
-                }
-                reveal={<RevealCard item={readonlyItem} ok reference />}
-              />
-              <QuestionNotes question={detail} />
-            </div>
-
-            <div className="dialog-foot">
-              <button className="text-btn danger" onClick={removeDetail}>
-                <Icon name="star" size={14} fill="currentColor" />
-                取消收藏
-              </button>
-              <button className="btn primary sm" onClick={closeDetail}>
-                关闭
-              </button>
-            </div>
-          </>
-        )}
-      </dialog>
-    </div>
+      </div>
   );
 }
 
