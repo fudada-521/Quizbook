@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { THEME_EVENT } from '../theme';
 
 /**
  * Refract 主题的生成式水光：一组互相穿过的波形线，模拟泳池水面
@@ -14,7 +15,8 @@ export function WaterLight({ className }: { className?: string }) {
     if (!ctx) return;
 
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const dark = window.matchMedia('(prefers-color-scheme: dark)');
+    // 主题由 <html data-theme> 决定，可能是手动切换，不再直接读系统偏好
+    const isNight = () => document.documentElement.dataset.theme === 'dark';
     let width = 0;
     let height = 0;
     let phase = 4.7;
@@ -24,7 +26,7 @@ export function WaterLight({ className }: { className?: string }) {
 
     const draw = () => {
       if (!width || !height) return;
-      const night = dark.matches;
+      const night = isNight();
       ctx.clearRect(0, 0, width, height);
 
       const wash = ctx.createLinearGradient(0, 0, width, height);
@@ -159,7 +161,7 @@ export function WaterLight({ className }: { className?: string }) {
 
     document.addEventListener('visibilitychange', onVisibility);
     reduce.addEventListener('change', onMoodChange);
-    dark.addEventListener('change', onMoodChange);
+    window.addEventListener(THEME_EVENT, onMoodChange);
     start();
 
     return () => {
@@ -168,7 +170,7 @@ export function WaterLight({ className }: { className?: string }) {
       seen.disconnect();
       document.removeEventListener('visibilitychange', onVisibility);
       reduce.removeEventListener('change', onMoodChange);
-      dark.removeEventListener('change', onMoodChange);
+      window.removeEventListener(THEME_EVENT, onMoodChange);
     };
   }, []);
 

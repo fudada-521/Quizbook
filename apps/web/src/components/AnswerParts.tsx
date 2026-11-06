@@ -92,7 +92,7 @@ export function RevealCard({
       </div>
       <div className="reveal-body">
         <span className="label">解析</span>
-        <p>{item.q.e || '（本题原书无解析）'}</p>
+        <p className="reveal-text">{item.q.e || '（本题原书无解析）'}</p>
       </div>
       {footer}
     </div>

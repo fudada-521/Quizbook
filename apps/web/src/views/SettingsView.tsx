@@ -3,6 +3,7 @@ import { normalizeState } from '@megrez/core';
 import { useQuiz, type CloudPhase } from '../store/QuizStore';
 import { Icon, type IconName } from '../components/Icon';
 import { confirmAction, notify } from '../components/Feedback';
+import { loadThemeMode, saveThemeMode, type ThemeMode } from '../theme';
 
 const PHASE_LABEL: Record<CloudPhase, string> = {
   'signed-out': '未登录',
@@ -13,7 +14,7 @@ const PHASE_LABEL: Record<CloudPhase, string> = {
   error: '连接出错',
 };
 
-type Section = 'account' | 'practice' | 'data';
+type Section = 'account' | 'practice' | 'appearance' | 'data';
 
 /** 自动下一题的预设档位（毫秒）；不在这几个值里的都算自定义 */
 const AUTO_PRESETS = [0, 1000, 1600, 2500, 4000];
@@ -30,6 +31,7 @@ function normalizeSeconds(value: number): number {
 const SECTIONS: { id: Section; label: string; hint: string; icon: IconName }[] = [
   { id: 'account', label: '账号与同步', hint: '登录、账户与服务器', icon: 'cloud' },
   { id: 'practice', label: '答题设置', hint: '题量、判分与反馈', icon: 'settings' },
+  { id: 'appearance', label: '外观', hint: '颜色主题', icon: 'sun' },
   { id: 'data', label: '数据与备份', hint: '导入、导出与清空', icon: 'download' },
 ];
 
@@ -48,6 +50,7 @@ export function SettingsView() {
     setServerUrl,
   } = useQuiz();
   const [section, setSection] = useState<Section>('account');
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => loadThemeMode());
   const [serverInput, setServerInput] = useState(cloud.serverUrl);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -149,7 +152,7 @@ export function SettingsView() {
       <header className="view-head">
         <div className="view-head-copy">
           <h1>设置与数据</h1>
-          <p className="page-sub">账号同步、答题偏好与本机数据管理</p>
+          <p className="page-sub">账号同步、答题偏好、颜色主题与本机数据管理</p>
         </div>
       </header>
 
@@ -422,6 +425,39 @@ export function SettingsView() {
                   >
                     <option value={1}>开启</option>
                     <option value={0}>关闭</option>
+                  </select>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {section === 'appearance' && (
+            <section className="panel settings-panel" aria-labelledby="settings-appearance">
+              <div className="panel-head">
+                <h2 id="settings-appearance">外观</h2>
+                <span>仅本机生效</span>
+              </div>
+
+              <h3 className="settings-group-title">颜色主题</h3>
+
+              <div className="setting-row">
+                <div className="setting-copy">
+                  <label htmlFor="set-theme">主题</label>
+                  <p>跟随系统，或固定为浅色 / 深色；不影响其他设备</p>
+                </div>
+                <div className="setting-control">
+                  <select
+                    id="set-theme"
+                    value={themeMode}
+                    onChange={(e) => {
+                      const mode = e.target.value as ThemeMode;
+                      setThemeMode(mode);
+                      saveThemeMode(mode);
+                    }}
+                  >
+                    <option value="system">跟随系统</option>
+                    <option value="light">浅色</option>
+                    <option value="dark">深色</option>
                   </select>
                 </div>
               </div>

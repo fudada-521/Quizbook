@@ -1,5 +1,7 @@
+import { useEffect, useRef, useState } from 'react';
 import { EXAM_PASS_SCORE, scoreSession, type SessionMode } from '@megrez/core';
 import { useQuiz } from '../store/QuizStore';
+import { emitResultFeedback, type ResultFeedback } from '../feedback';
 
 const MODE_LABEL: Record<SessionMode, string> = {
   practice: '练习',
@@ -8,18 +10,67 @@ const MODE_LABEL: Record<SessionMode, string> = {
   exam: '模拟考',
 };
 
-export function ResultView() {
-  const { app, quit, reviewWrong } = useQuiz();
-  const sess = app.session;
-  if (!sess) return null;
+const REDUCED_MOTION =
+  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const done = sess.list.filter((it) => it.done).length;
-  const { score, total } = scoreSession(sess);
+/** 分数从 0 滚到位；减少动态效果时直接显示终值 */
+function useCountUp(target: number, duration = 620): number {
+  const [value, setValue] = useState(REDUCED_MOTION ? target : 0);
+
+  useEffect(() => {
+    if (REDUCED_MOTION) {
+      setValue(target);
+      return;
+    }
+    setValue(0);
+    const start = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setValue(Math.round(target * eased));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+
+  return value;
+}
+
+export function ResultView() {
+  const { app, quit, reviewWrong, settings } = useQuiz();
+  const sess = app.session;
+
+  const done = sess ? sess.list.filter((it) => it.done).length : 0;
+  const { score, total } = sess ? scoreSession(sess) : { score: 0, total: 0 };
   const wrong = done - score;
   const pct = total ? Math.round((score / total) * 100) : 0;
-  const mode = sess.mode ?? 'practice';
+  const mode = sess?.mode ?? 'practice';
   const isExam = mode === 'exam';
   const passed = isExam && score >= EXAM_PASS_SCORE;
+
+  const target = isExam ? score : pct;
+  const shown = useCountUp(target);
+  const tone: ResultFeedback = isExam
+    ? passed
+      ? 'great'
+      : 'low'
+    : pct >= 80
+      ? 'great'
+      : pct >= 60
+        ? 'good'
+        : 'low';
+
+  // StrictMode 会重复执行 effect，用 ref 保证一轮结算只响一次
+  const played = useRef(false);
+  useEffect(() => {
+    if (played.current) return;
+    played.current = true;
+    emitResultFeedback(tone, settings);
+  }, [tone, settings]);
+
+  if (!sess) return null;
 
   const msg =
     mode === 'daily'
@@ -47,12 +98,12 @@ export function ResultView() {
 
       {isExam ? (
         <div className={`result-score${passed ? ' pass' : ''}`}>
-          {score}
+          {shown}
           <small>/ {total}</small>
         </div>
       ) : (
         <div className="result-score">
-          {pct}
+          {shown}
           <small>%</small>
         </div>
       )}

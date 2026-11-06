@@ -48,7 +48,7 @@ pnpm server:dev       # 后端本地开发（Fastify，默认 http://127.0.0.1:8
 - 移动端手势集中在 `gestures.ts`（左缘右滑返回、答题页左右滑翻题、收藏详情下滑关闭），用 touch 事件实现；`Shell` 通过 History API 维护一条二级页历史，系统返回键/手势与应用内视图共用同一套切换逻辑。
 - 题目心得统一由 `components/QuestionNotes.tsx` 渲染，答题解析（`AnswerParts.RevealCard`）与收藏详情复用。解析页传入 `onComposeStart`，用户聚焦输入框即暂停本题自动跳转倒计时。
 - 构建使用 `vite-plugin-singlefile`（JS/CSS 全部内联进一个 `index.html`）并配合 `inlineDynamicImports`；同时用 `vite-plugin-pwa` 提供「安装到主屏」。产物约 1.5 MB 属正常。不要引入需要额外静态资源的运行时加载方式，否则会破坏“双击离线打开”。
-- UI 不使用组件库：设计令牌集中在 `apps/web/src/styles.css`（浅色/深色两套 CSS 变量，自动跟随系统），线性图标在 `components/Icon.tsx`。改视觉时优先调整变量和已有类，不要在视图里写内联样式或另起一套配色。
+- UI 不使用组件库：设计令牌集中在 `apps/web/src/tokens.css`（浅色/深色两套 CSS 变量），深色由 `<html data-theme>` 决定；`src/theme.ts` 负责「跟随系统 / 浅色 / 深色」的本机偏好（localStorage 键 `megrez_theme_v1`，不同步），设置页「外观」可切换，线性图标在 `components/Icon.tsx`。改视觉时优先调整变量和已有类，不要在视图里写内联样式或另起一套配色。
 
 ### 领域约定
 

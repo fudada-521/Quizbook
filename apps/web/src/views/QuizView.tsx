@@ -3,7 +3,9 @@ import { useQuiz } from '../store/QuizStore';
 import { chapterTitle, isFavorite, qkey, shouldAutoAdvance, type SessionItem } from '@megrez/core';
 import { Icon } from '../components/Icon';
 import { QuestionNotes } from '../components/QuestionNotes';
-import { AnswerOptions, LETTERS, RevealCard } from '../components/AnswerParts';
+import { LETTERS, RevealCard } from '../components/AnswerParts';
+import { QuestionCard } from '../components/QuestionCard';
+import { emitFavoriteFeedback } from '../feedback';
 import { useHorizontalSwipe } from '../gestures';
 
 export function QuizView() {
@@ -28,6 +30,7 @@ export function QuizView() {
   const deadline = sess?.durationMs && sess.startedAt ? sess.startedAt + sess.durationMs : null;
   const [remainingMs, setRemainingMs] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [favPop, setFavPop] = useState(false);
   const expiredRef = useRef(false);
 
   // 切换题目时恢复自动跳转
@@ -147,39 +150,41 @@ export function QuizView() {
       <div className="quiz-workspace" ref={workspaceRef}>
         <div className="quiz-main-col">
           <article className="question-card" key={sess.idx} {...swipeHandlers}>
-            <div className="q-head">
-              <p className="q-meta">
-                第{String(it.q.c).padStart(2, '0')}章 {chapterTitle(data, it.q.c)}，原题 {it.q.n}
-              </p>
-              <button
-                className={`fav-btn${fav ? ' active' : ''}`}
-                onClick={() => toggleFavorite(it.q)}
-                aria-pressed={fav}
-                aria-label={fav ? '取消收藏' : '收藏题目'}
-                title={fav ? '取消收藏' : '收藏题目'}
-              >
-                <Icon name="star" size={16} />
-                <span>{fav ? '已收藏' : '收藏'}</span>
-              </button>
-            </div>
-            <h2 className="stem">{it.q.s}</h2>
-
-            <AnswerOptions item={it} onPick={pick} showPicked={settings.instant === 0} />
-
-            {!it.done && settings.instant === 0 && it.pick != null && (
-              <div className="submit-row">
-                <button className="btn primary" onClick={() => pick(it.pick!)}>
-                  确认答案
+            <QuestionCard
+              item={it}
+              meta={`第${String(it.q.c).padStart(2, '0')}章 ${chapterTitle(data, it.q.c)}，原题 ${it.q.n}`}
+              action={
+                <button
+                  className={`fav-btn${fav ? ' active' : ''}${favPop ? ' pop' : ''}`}
+                  onClick={() => {
+                    const added = !fav;
+                    toggleFavorite(it.q);
+                    emitFavoriteFeedback(added, settings);
+                    setFavPop(true);
+                  }}
+                  onAnimationEnd={() => setFavPop(false)}
+                  aria-pressed={fav}
+                  aria-label={fav ? '取消收藏' : '收藏题目'}
+                  title={fav ? '取消收藏' : '收藏题目'}
+                >
+                  <Icon name="star" size={17} />
                 </button>
-              </div>
-            )}
-
-            {/* 解析排在选项下方，选项先给出对错反馈，再向下读解析 */}
-            {it.done && (
-              <Reveal item={it} paused={paused} onPause={() => setPaused(true)} />
-            )}
-
-            <p className="shortcut-hint">A、B、C、D 选择；Enter 继续；← → 翻题</p>
+              }
+              onPick={pick}
+              showPicked={settings.instant === 0}
+              beforeReveal={
+                !it.done && settings.instant === 0 && it.pick != null ? (
+                  <div className="submit-row">
+                    <button className="btn primary" onClick={() => pick(it.pick!)}>
+                      确认答案
+                    </button>
+                  </div>
+                ) : null
+              }
+              // 解析排在选项下方，选项先给出对错反馈，再向下读解析
+              reveal={it.done ? <Reveal item={it} paused={paused} onPause={() => setPaused(true)} /> : null}
+              footer={<p className="shortcut-hint">A、B、C、D 选择；Enter 继续；← → 翻题</p>}
+            />
           </article>
 
           {it.done && (

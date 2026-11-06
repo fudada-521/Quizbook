@@ -4,8 +4,22 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="color-scheme" content="light dark" />
-  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#0f0f0f" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#ffffff" />
+  <script>
+    // 首屏渲染前套用本机主题，避免深色模式下先闪一下白屏
+    (function () {
+      try {
+        var mode = localStorage.getItem('megrez_theme_v1');
+        var dark =
+          mode === 'dark' ||
+          ((!mode || mode === 'system') && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        document
+          .querySelector('meta[name="theme-color"]')
+          .setAttribute('content', dark ? '#0f0f0f' : '#ffffff');
+      } catch (e) {}
+    })();
+  </script>
   <title>天权 Megrez · 答题练习</title>
   <meta
     name="description"

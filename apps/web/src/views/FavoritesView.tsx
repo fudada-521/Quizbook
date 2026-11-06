@@ -7,9 +7,11 @@ import {
   type SessionItem,
 } from '@megrez/core';
 import { useQuiz } from '../store/QuizStore';
+import { emitFavoriteFeedback } from '../feedback';
 import { Icon } from '../components/Icon';
 import { QuestionNotes } from '../components/QuestionNotes';
-import { AnswerOptions, RevealCard } from '../components/AnswerParts';
+import { RevealCard } from '../components/AnswerParts';
+import { QuestionCard } from '../components/QuestionCard';
 import { useSwipeDownToClose } from '../gestures';
 
 /** 收藏详情没有乱序，显示顺序即原始顺序 */
@@ -37,7 +39,7 @@ function groupByChapter(list: Question[]): ChapterEntry[] {
 }
 
 export function FavoritesView() {
-  const { data, state, startFavorites, startUnanswered, toggleFavorite } = useQuiz();
+  const { data, state, settings, startFavorites, startUnanswered, toggleFavorite } = useQuiz();
   const favorites = favoriteQuestions(data, state);
   const [detail, setDetail] = useState<Question | null>(null);
   const [scope, setScope] = useState<Scope>('all');
@@ -68,6 +70,7 @@ export function FavoritesView() {
   const removeDetail = () => {
     if (!detail) return;
     toggleFavorite(detail);
+    emitFavoriteFeedback(false, settings);
     closeDetail();
   };
 
@@ -193,10 +196,6 @@ export function FavoritesView() {
             <div className="dialog-head">
               <div>
                 <h2 id="fav-detail-title">题目详情</h2>
-                <p className="fav-dialog-meta">
-                  第{String(detail.c).padStart(2, '0')}章 {chapterTitle(data, detail.c)}，原题{' '}
-                  {detail.n}
-                </p>
               </div>
               <button className="icon-btn" onClick={closeDetail} aria-label="关闭">
                 <Icon name="x" size={17} />
@@ -204,9 +203,23 @@ export function FavoritesView() {
             </div>
 
             <div className="fav-dialog-body">
-              <h3 className="stem">{detail.s}</h3>
-              <AnswerOptions item={readonlyItem} />
-              <RevealCard item={readonlyItem} ok reference />
+              <QuestionCard
+                item={readonlyItem}
+                headingLevel="h3"
+                meta={`第${String(detail.c).padStart(2, '0')}章 ${chapterTitle(data, detail.c)}，原题 ${detail.n}`}
+                action={
+                  <button
+                    className="fav-btn active"
+                    onClick={removeDetail}
+                    aria-pressed={true}
+                    aria-label="取消收藏"
+                    title="取消收藏"
+                  >
+                    <Icon name="star" size={17} />
+                  </button>
+                }
+                reveal={<RevealCard item={readonlyItem} ok reference />}
+              />
               <QuestionNotes question={detail} />
             </div>
 

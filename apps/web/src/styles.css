@@ -417,9 +417,10 @@ kbd {
   justify-content: space-between;
   gap: 28px;
   padding: 28px;
-  border: 1px solid var(--color-rule);
+  /* 大卡片不再描外框：保留 1px 占位，靠底色与投影分层 */
+  border: 1px solid transparent;
   border-radius: var(--radius-card);
-  background: var(--surface-panel);
+  background: var(--surface-card);
   color: var(--color-ink);
   box-shadow: var(--edge-light), var(--shadow-card);
 }
@@ -490,12 +491,13 @@ kbd {
 
 .panel {
   padding: 20px;
-  border: 1px solid var(--color-rule);
+  border: 1px solid transparent;
   border-radius: var(--radius-card);
-  background: var(--surface-panel);
+  background: var(--surface-card);
   color: var(--color-ink);
   box-shadow: var(--edge-light), var(--shadow-card);
 }
+
 
 .panel-head {
   display: flex;
@@ -611,9 +613,9 @@ kbd {
 
 .chapters-panel {
   padding: 0 20px;
-  border: 1px solid var(--color-rule);
+  border: 1px solid transparent;
   border-radius: var(--radius-card);
-  background: var(--surface-panel);
+  background: var(--surface-card);
   color: var(--color-ink);
   box-shadow: var(--edge-light), var(--shadow-card);
 }
@@ -708,6 +710,14 @@ kbd {
   font-size: 11.5px;
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+.chapter-pct.high {
+  color: var(--ok);
+}
+
+.chapter-pct.low {
+  color: var(--bad);
 }
 
 .chapter-row .chev {
@@ -858,14 +868,20 @@ kbd {
   color: var(--color-ink);
 }
 
+.quiz-main-col {
+  width: 100%;
+}
+
 .question-card {
   --card-pad-x: 32px;
   --card-pad-y: 32px;
+  /* 显式占满主栏：手机端短题时不让卡片跟着内容收缩 */
+  width: 100%;
   margin-top: var(--space-lg);
   padding: var(--card-pad-y) var(--card-pad-x);
-  border: 1px solid var(--color-rule);
+  border: 1px solid transparent;
   border-radius: var(--radius-card);
-  background: var(--surface-panel);
+  background: var(--surface-card);
   color: var(--color-ink);
   box-shadow: var(--edge-light), var(--shadow-card);
   animation: questionIn var(--dur-short) var(--ease-out);
@@ -886,21 +902,40 @@ kbd {
 }
 
 .fav-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   flex: none;
-  gap: 5px;
-  min-height: 30px;
-  padding: 0 10px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
   border: 1px solid transparent;
-  border-radius: var(--radius-pill);
+  border-radius: 50%;
   background: transparent;
   color: var(--color-muted);
-  font-size: 11.5px;
-  line-height: 1.4;
   transition: background var(--dur-micro) var(--ease-out),
     border-color var(--dur-micro) var(--ease-out),
     color var(--dur-micro) var(--ease-out);
+}
+
+/* 点击收藏时向外扩散的一圈光环 */
+.fav-btn::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.fav-btn.pop::after {
+  animation: favRing 380ms var(--ease-out) both;
+}
+
+.fav-btn.pop svg {
+  animation: favStarPop 380ms var(--ease-out) both;
 }
 
 .fav-btn:hover {
@@ -923,6 +958,32 @@ kbd {
   fill: currentColor;
 }
 
+@keyframes favStarPop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.35) rotate(-10deg);
+  }
+  70% {
+    transform: scale(0.94) rotate(2deg);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes favRing {
+  0% {
+    opacity: 0.45;
+    transform: scale(0.65);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
 .stem {
   /* base.css 给 h2 设了 30ch 上限，题干需要占满卡片宽度 */
   max-width: none;
@@ -938,6 +999,7 @@ kbd {
 .options {
   display: flex;
   flex-direction: column;
+  width: 100%;
   gap: var(--space-sm);
 }
 
@@ -1101,15 +1163,18 @@ kbd {
   gap: var(--space-xs);
   overflow: hidden;
   padding: 13px var(--space-md);
-  color: var(--on-solid);
+  color: var(--color-ink-2);
 }
 
+/* 浅色底 + 深色字：比实色横幅更轻，解析正文也更耐看 */
 .reveal.ok .reveal-head {
-  background: var(--ok-solid);
+  background: color-mix(in oklab, var(--ok) 10%, var(--ok-soft));
+  color: var(--ok);
 }
 
 .reveal.bad .reveal-head {
-  background: var(--bad-solid);
+  background: color-mix(in oklab, var(--bad) 10%, var(--bad-soft));
+  color: var(--bad);
 }
 
 .reveal.ok .reveal-head::after {
@@ -1119,7 +1184,7 @@ kbd {
   background: linear-gradient(
     100deg,
     transparent 32%,
-    color-mix(in oklab, var(--on-solid) 32%, transparent) 48%,
+    oklch(100% 0 0 / 0.55) 48%,
     transparent 64%
   );
   transform: translateX(-110%);
@@ -1143,16 +1208,19 @@ kbd {
   animation: iconPop 420ms var(--ease-out) 120ms 1 both;
 }
 
-.reveal.ok .reveal-status,
+.reveal.ok .reveal-status {
+  color: var(--ok);
+}
+
 .reveal.bad .reveal-status {
-  color: var(--on-solid);
+  color: var(--bad);
 }
 
 .answer-ref {
   padding: 3px 10px;
   border-radius: var(--radius-pill);
-  background: color-mix(in oklab, var(--on-solid) 18%, transparent);
-  color: var(--on-solid);
+  background: color-mix(in oklab, currentColor 12%, transparent);
+  color: inherit;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -1162,7 +1230,7 @@ kbd {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  color: var(--on-solid);
+  color: inherit;
   font-size: 11.5px;
   font-variant-numeric: tabular-nums;
 }
@@ -1200,6 +1268,14 @@ kbd {
   border-top: 1px solid color-mix(in oklab, var(--color-rule) 65%, transparent);
 }
 
+.reveal.ok .reveal-body {
+  border-top-color: color-mix(in oklab, var(--ok) 22%, transparent);
+}
+
+.reveal.bad .reveal-body {
+  border-top-color: color-mix(in oklab, var(--bad) 22%, transparent);
+}
+
 .reveal-body .label {
   display: block;
   margin-bottom: 6px;
@@ -1211,9 +1287,16 @@ kbd {
 }
 
 .reveal-body p {
+  /* base.css 的 p:not([class]) 会给无类名段落套 65ch 上限，解析会提前换行；
+     这里显式占满卡片可用宽度 */
+  max-width: none;
   color: var(--color-ink);
   font-size: 13.5px;
   line-height: 1.78;
+}
+
+.reveal-body .reveal-text {
+  max-width: none;
 }
 
 .reveal-hint {
@@ -1232,9 +1315,9 @@ kbd {
 .question-notes.notes-card {
   margin-top: 20px;
   padding: 20px;
-  border: 1px solid var(--color-rule);
+  border: 1px solid transparent;
   border-radius: var(--radius-card);
-  background: var(--surface-panel);
+  background: var(--surface-card);
   color: var(--color-ink);
   box-shadow: var(--edge-light), var(--shadow-card);
 }
@@ -1441,6 +1524,7 @@ kbd {
   margin: 8vh auto 0;
   padding: 0 var(--space-xs);
   text-align: center;
+  animation: resultIn var(--dur-long) var(--ease-out) both;
 }
 
 .result-meta {
@@ -1473,6 +1557,7 @@ kbd {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.06em;
   line-height: 0.92;
+  animation: scorePop 620ms var(--ease-out) both;
 }
 
 .result-score small {
@@ -1521,6 +1606,12 @@ kbd {
   background: var(--bad);
 }
 
+.result-bar .r,
+.result-bar .w {
+  transform-origin: left;
+  animation: barGrow 700ms var(--ease-out) 120ms both;
+}
+
 .result-stats {
   display: flex;
   max-width: 360px;
@@ -1559,6 +1650,40 @@ kbd {
   justify-content: center;
   gap: var(--space-xs);
   margin-top: 32px;
+}
+
+@keyframes resultIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes scorePop {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes barGrow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 
 /* ============================================================
@@ -1604,9 +1729,9 @@ kbd {
 
 .fav-list {
   overflow: hidden;
-  border: 1px solid var(--color-rule);
+  border: 1px solid transparent;
   border-radius: var(--radius-card);
-  background: var(--surface-panel);
+  background: var(--surface-card);
   box-shadow: var(--edge-light), var(--shadow-card);
 }
 
@@ -1676,9 +1801,9 @@ kbd {
   align-items: center;
   flex-direction: column;
   padding: var(--space-2xl) var(--space-lg);
-  border: 1px solid var(--color-rule);
+  border: 1px solid transparent;
   border-radius: var(--radius-card);
-  background: var(--surface-panel);
+  background: var(--surface-card);
   box-shadow: var(--edge-light), var(--shadow-card);
   text-align: center;
 }

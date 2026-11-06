@@ -1,107 +1,108 @@
+/** @format */
+
 :root {
-  color-scheme: light dark;
+    color-scheme: light;
 
-  --space-3xs: 2px;
-  --space-2xs: 4px;
-  --space-xs: 8px;
-  --space-sm: 12px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --space-xl: 40px;
-  --space-2xl: 64px;
-  --space-3xl: 96px;
-  --space-4xl: 144px;
+    --space-3xs: 2px;
+    --space-2xs: 4px;
+    --space-xs: 8px;
+    --space-sm: 12px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 40px;
+    --space-2xl: 64px;
+    --space-3xl: 96px;
+    --space-4xl: 144px;
 
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
-  --text-md: 1rem;
-  --text-lg: 1.2rem;
-  --text-xl: 1.44rem;
-  --text-2xl: 1.728rem;
-  --text-3xl: 2.074rem;
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-md: 1rem;
+    --text-lg: 1.2rem;
+    --text-xl: 1.44rem;
+    --text-2xl: 1.728rem;
+    --text-3xl: 2.074rem;
 
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
-  --dur-micro: 120ms;
-  --dur-short: 220ms;
-  --dur-long: 420ms;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+    --dur-micro: 120ms;
+    --dur-short: 220ms;
+    --dur-long: 420ms;
 
-  --color-paper: oklch(99.7% 0 0);
-  --color-paper-2: oklch(98.6% 0 0);
-  --color-paper-3: oklch(96.8% 0 0);
-  --color-ink: oklch(17.5% 0 0);
-  --color-ink-2: oklch(31% 0 0);
-  --color-muted: oklch(46% 0 0);
-  --color-rule: oklch(90% 0 0);
-  --color-rule-2: oklch(94.5% 0 0);
-  --color-accent: oklch(17.5% 0 0);
-  --color-accent-hi: oklch(9% 0 0);
-  --color-accent-ink: oklch(99.7% 0 0);
-  --color-accent-soft: oklch(94.5% 0 0);
-  --color-focus: oklch(17.5% 0 0);
-  --color-shade: oklch(92% 0 0);
-  --color-shade-2: oklch(84% 0 0);
-  --color-light: oklch(99.7% 0 0);
-  --spec-1: oklch(82% 0 0);
-  --spec-2: oklch(90% 0 0);
-  --spec-3: oklch(76% 0 0);
-  --spec-4: oklch(68% 0 0);
+    --color-paper: oklch(99.7% 0 0);
+    --color-paper-2: oklch(98.6% 0 0);
+    --color-paper-3: oklch(96.8% 0 0);
+    --color-ink: oklch(17.5% 0 0);
+    --color-ink-2: oklch(31% 0 0);
+    --color-muted: oklch(46% 0 0);
+    --color-rule: oklch(90% 0 0);
+    --color-rule-2: oklch(94.5% 0 0);
+    --color-accent: oklch(17.5% 0 0);
+    --color-accent-hi: oklch(9% 0 0);
+    --color-accent-ink: oklch(99.7% 0 0);
+    --color-accent-soft: oklch(94.5% 0 0);
+    --color-focus: oklch(17.5% 0 0);
+    --color-shade: oklch(92% 0 0);
+    --color-shade-2: oklch(84% 0 0);
+    --color-light: oklch(99.7% 0 0);
+    --spec-1: oklch(82% 0 0);
+    --spec-2: oklch(90% 0 0);
+    --spec-3: oklch(76% 0 0);
+    --spec-4: oklch(68% 0 0);
 
-  --surface-panel: oklch(100% 0 0 / 0.9);
-  --surface-panel-2: oklch(98.8% 0 0 / 0.94);
-  --surface-well: oklch(97% 0 0);
-  --accent-text: oklch(17.5% 0 0);
-  --on-accent: oklch(99.7% 0 0);
-  --ok: oklch(44% 0.055 160);
-  --ok-soft: oklch(96% 0.012 160);
-  --bad: oklch(47% 0.09 27);
-  --bad-soft: oklch(96.5% 0.016 27);
-  /* 答对/答错横幅的实色底，配 --on-solid 反白文字 */
-  --ok-solid: oklch(42% 0.1 158);
-  --bad-solid: oklch(45% 0.15 27);
-  --on-solid: oklch(99.5% 0 0);
+    --surface-panel: oklch(100% 0 0 / 0.9);
+    --surface-panel-2: oklch(98.8% 0 0 / 0.94);
+    /* 卡片表面：比面板再透一点，配合磨砂让背景水光轻轻透出 */
+    /* 大卡片去掉了外框，底色略提不透明度，让边界靠明度差而不是描边 */
+    --surface-card: oklch(100% 0 0 / 0.72);
+    --surface-well: oklch(97% 0 0);
+    --accent-text: oklch(17.5% 0 0);
+    --on-accent: oklch(99.7% 0 0);
+    --ok: oklch(45% 0.085 158);
+    --ok-soft: oklch(96.6% 0.024 158);
+    --bad: oklch(49% 0.13 25);
+    --bad-soft: oklch(96.8% 0.026 25);
 
-  --edge-light: inset 0 1px 0 oklch(100% 0 0 / 0.9),
-    inset 0 0 0 1px oklch(100% 0 0 / 0.5);
-  --shadow-card: 18px 28px 48px -26px oklch(0% 0 0 / 0.14),
-    2px 3px 6px -2px oklch(0% 0 0 / 0.06);
-  --shadow-cast: 28px 40px 70px -30px oklch(0% 0 0 / 0.16);
-  --shadow-bar: 0 -18px 32px -26px oklch(0% 0 0 / 0.2);
-  --shadow-dialog: 0 28px 80px -24px oklch(0% 0 0 / 0.22);
-  --backdrop: oklch(0% 0 0 / 0.42);
+    --edge-light: inset 0 1px 0 oklch(100% 0 0 / 0.9), inset 0 0 0 1px oklch(100% 0 0 / 0.5);
+    --shadow-card: 18px 28px 48px -26px oklch(0% 0 0 / 0.14), 2px 3px 6px -2px oklch(0% 0 0 / 0.06);
+    --shadow-cast: 28px 40px 70px -30px oklch(0% 0 0 / 0.16);
+    --shadow-bar: 0 -18px 32px -26px oklch(0% 0 0 / 0.2);
+    --shadow-dialog: 0 28px 80px -24px oklch(0% 0 0 / 0.22);
+    --backdrop: oklch(0% 0 0 / 0.42);
 
-  /* 表单控件字号。触屏设备会提升到 16px，否则 iOS 聚焦输入框时会自动放大页面 */
-  --field-font-size: 13px;
+    /* 表单控件字号。触屏设备会提升到 16px，否则 iOS 聚焦输入框时会自动放大页面 */
+    --field-font-size: 13px;
 
-  --font-display: 'Funnel Display', ui-sans-serif, system-ui, 'PingFang SC',
-    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-  --font-body: 'Funnel Sans', ui-sans-serif, system-ui, 'PingFang SC',
-    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+    --font-display:
+        "Funnel Display", ui-sans-serif, system-ui, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    --font-body:
+        "Funnel Sans", ui-sans-serif, system-ui, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    --font-mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
 
-  --radius-card: 22px;
-  --radius-inner: 12px;
-  --radius-pill: 999px;
-  --rule-hair: 1px;
-  --tracking-display: -0.032em;
-  --display-weight: 400;
+    --radius-card: 22px;
+    --radius-inner: 12px;
+    --radius-pill: 999px;
+    --rule-hair: 1px;
+    --tracking-display: -0.032em;
+    --display-weight: 400;
 
-  --maxw: 1120px;
-  --maxw-quiz: 840px;
+    --maxw: 1120px;
+    --maxw-quiz: 840px;
 
-  --z-base: 1;
-  --z-raised: 10;
-  --z-dropdown: 100;
-  --z-sticky: 200;
-  --z-sticky-nav: 300;
-  --z-modal: 400;
-  --z-toast: 500;
-  --z-tooltip: 600;
+    --z-base: 1;
+    --z-raised: 10;
+    --z-dropdown: 100;
+    --z-sticky: 200;
+    --z-sticky-nav: 300;
+    --z-modal: 400;
+    --z-toast: 500;
+    --z-tooltip: 600;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
+/* 深色主题由 <html data-theme> 决定：system 模式在 JS 里解析成 light/dark 后写入 */
+:root[data-theme='dark'] {
+    color-scheme: dark;
+
     --color-paper: oklch(14.5% 0 0);
     --color-paper-2: oklch(18% 0 0);
     --color-paper-3: oklch(21.5% 0 0);
@@ -121,30 +122,26 @@
 
     --surface-panel: oklch(17.5% 0 0 / 0.92);
     --surface-panel-2: oklch(19.5% 0 0 / 0.9);
+    --surface-card: oklch(17.5% 0 0 / 0.76);
     --surface-well: oklch(21% 0 0);
     --accent-text: oklch(92% 0 0);
     --on-accent: oklch(14.5% 0 0);
-    --ok: oklch(75% 0.055 160);
-    --ok-soft: oklch(23% 0.012 160);
-    --bad: oklch(72% 0.075 27);
-    --bad-soft: oklch(25% 0.015 27);
-    --ok-solid: oklch(48% 0.1 158);
-    --bad-solid: oklch(50% 0.15 27);
+    --ok: oklch(78% 0.09 160);
+    --ok-soft: oklch(25.5% 0.025 160);
+    --bad: oklch(76% 0.1 25);
+    --bad-soft: oklch(27% 0.03 25);
 
-    --edge-light: inset 0 1px 0 oklch(96% 0 0 / 0.07),
-      inset 0 0 0 1px oklch(96% 0 0 / 0.05);
-    --shadow-card: 0 18px 48px -26px oklch(0% 0 0 / 0.7),
-      0 2px 6px -2px oklch(0% 0 0 / 0.5);
+    --edge-light: inset 0 1px 0 oklch(96% 0 0 / 0.07), inset 0 0 0 1px oklch(96% 0 0 / 0.05);
+    --shadow-card: 0 18px 48px -26px oklch(0% 0 0 / 0.7), 0 2px 6px -2px oklch(0% 0 0 / 0.5);
     --shadow-cast: 0 28px 70px -30px oklch(0% 0 0 / 0.75);
     --shadow-bar: 0 -18px 32px -26px oklch(0% 0 0 / 0.7);
     --shadow-dialog: 0 28px 90px -24px oklch(0% 0 0 / 0.85);
     --backdrop: oklch(0% 0 0 / 0.72);
-  }
 }
 
 /* 触屏设备上输入框字号不小于 16px，避免 iOS/Android 聚焦时自动放大页面 */
 @media (pointer: coarse) {
-  :root {
-    --field-font-size: 16px;
-  }
+    :root {
+        --field-font-size: 16px;
+    }
 }

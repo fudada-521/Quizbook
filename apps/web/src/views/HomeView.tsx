@@ -315,6 +315,7 @@ export function HomeView() {
                                 const qs = byCh[c];
                                 const done = qs.filter((q) => state.answers[`${q.c}-${q.n}`]).length;
                                 const r = qs.filter((q) => state.answers[`${q.c}-${q.n}`]?.ok).length;
+                                const wrong = done - r;
                                 const pct = done ? Math.round((r / done) * 100) : 0;
                                 const pending = resumeByOrigin.get(`chapter:${c}`);
                                 return (
@@ -333,7 +334,7 @@ export function HomeView() {
                                                     {pending
                                                         ? `继续，第 ${pending.idx + 1}/${pending.list.length} 题`
                                                         : done
-                                                          ? `已做 ${done}`
+                                                          ? `已做 ${done} · 错 ${wrong}`
                                                           : "未开始"}
                                                 </span>
                                             </span>
@@ -347,7 +348,11 @@ export function HomeView() {
                                                 </span>
                                             )}
                                         </span>
-                                        <span className="chapter-pct">{done ? `${pct}%` : ""}</span>
+                                        <span
+                                            className={`chapter-pct${done ? (pct >= 80 ? " high" : pct < 60 ? " low" : "") : ""}`}
+                                            title={done ? `正确率 ${pct}%` : undefined}>
+                                            {done ? `${pct}%` : ""}
+                                        </span>
                                         <Icon
                                             name="chevron-right"
                                             size={15}
