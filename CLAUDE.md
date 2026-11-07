@@ -23,6 +23,8 @@ pnpm mobile:sync      # 构建 Web 后 cap sync（同步到 ios/ 与 android/）
 pnpm mobile:ios       # 打开 Xcode 工程
 pnpm mobile:android   # 打开 Android Studio / Gradle 工程
 pnpm server:dev       # 后端本地开发（Fastify，默认 http://127.0.0.1:8787）
+pnpm admin:dev        # 管理后台开发（Vite，默认 http://127.0.0.1:5174，/api 代理到 8787）
+pnpm admin:build      # 管理后台构建（apps/admin/dist，生产由 server 挂到 /admin/）
 ```
 
 - 单测没有测试框架，也没有按用例过滤的参数：入口是 `packages/core/test/core.test.ts`，用 `tsx` 直接运行并靠 `ok()/fails` 计数、`process.exit` 返回退出码。运行单个包用 `pnpm --filter @megrez/core test`，或 `pnpm exec tsx packages/core/test/core.test.ts`。新增用例直接写进该文件。
@@ -33,17 +35,23 @@ pnpm server:dev       # 后端本地开发（Fastify，默认 http://127.0.0.1:8
 
 ### 数据流与包边界
 
-- `data/questions.json` 是唯一题库数据源（清晖题库 2726 题、68 章）。它由 `apps/web/src/App.tsx` 直接 `import`（依赖 `resolveJsonModule`）打进 Web bundle，因此三端共享同一份数据；改题库后必须重新 `pnpm build`，桌面/移动端也需要重新 sync/打包。`.history/` 里的旧 `questions.js` 只是编辑器历史，不要恢复使用。
-- `packages/core`：平台无关的纯函数领域逻辑（判分、抽题、错题本、收藏、题目心得、进度、schema 兼容），不依赖 DOM 或框架。
+- `data/questions.json` 是**内置题库**的原始数据（清晖题库 2726 题、68 章）。它由 `apps/web/src/App.tsx` 直接 `import`（依赖 `resolveJsonModule`）打进 Web bundle，因此三端共享同一份数据；服务端首次启动也用它 seed 成 `id = builtin` 的题库并发布 v1。改题库后必须重新 `pnpm build`，桌面/移动端也需要重新 sync/打包。`.history/` 里的旧 `questions.js` 只是编辑器历史，不要恢复使用。
+- `packages/core`：平台无关的纯函数领域逻辑（判分、抽题、错题本、收藏、题目心得、进度、schema 兼容、题库规范化与校验），不依赖 DOM 或框架。题库读入的唯一入口是 `normalizeQuizData()`（补齐题库元数据与题目 `id`），校验是 `validateBank()`（导入、后台、单测共用）。
 - `packages/storage`：`ProgressStore`（`load`/`save`/`subscribe`）与 `SyncBackend` 接口及适配器。`src/web.ts` 是 localStorage 实现，键名 `megrez_quiz_v1`（首次加载自动迁移旧键 `quizbook_quiz_v1`、`gaoxiang_quiz_v1`）；`src/sync.ts` 是手动导入/导出的序列化辅助；`src/http.ts` 是云同步客户端 `CloudClient`（设备码登录、`pull`/`push`、成就），`src/auth.ts` 存 token（`megrez_auth_v1`）与服务器地址（`megrez_server_v1`）。
 - 所有 workspace 包都通过 `package.json` 的 `main`/`exports` 直接暴露 `src/*.ts` 源码，没有包级编译步骤；Vite、tsx、tsconfig paths 直接消费 TS 源码。不要为它们增加 `dist` 构建产物。
-- `apps/server`：Fastify + TypeScript 后端（`pnpm server:dev`）。使用 Node 24 内置 `node:sqlite`，无需原生依赖。登录采用**用户名 + 密码**：`POST /api/auth/register` 开放注册、`POST /api/auth/login` 登录，密码用 scrypt 加盐哈希存储，失败尝试按 IP 限流。token 只存 SHA-256 哈希。进度按用户存一份 JSON 快照 + `version`；`PUT /api/sync` 不再拒绝旧版本，而是用 `@megrez/core` 的 `mergeStates()` 与远端快照合并（`baseVersion` 仅供诊断），并顺带执行成就权威校验。部署产物在 `apps/server/Dockerfile` 与 `apps/server/deploy/`（compose + Caddy）。配置见 `apps/server/.env.example`；`apps/server/data/` 与 `.env` 已 gitignore。旧版 GitHub/设备码认证已移除，旧库在首次启动时自动删除旧认证表。
+- `apps/server`：Fastify + TypeScript 后端（`pnpm server:dev`）。使用 Node 24 内置 `node:sqlite`，无需原生依赖。登录采用**用户名 + 密码**：`POST /api/auth/register` 开放注册（首个用户自动 `admin`，新用户送 7 天试用）、`POST /api/auth/login` 登录，密码用 scrypt 加盐哈希存储，失败尝试按 IP 限流。token 只存 SHA-256 哈希。
+  - 题库分两层：`banks`/`bank_chapters`/`bank_questions` 是草稿，`bank_releases` 是每次发布生成的**不可变完整包**，客户端只读发布包。导入/发布在 `src/banks.ts`（`importBank` / `publishBank` / `getPublishedBank`），seed 是 `seedBuiltinBank()`（幂等，已有题目就跳过）。
+  - 进度按「用户 × 题库」存 `user_states_v2(user_id, bank_id)` 一份 JSON 快照 + `version`；`PUT /api/banks/:id/sync` 用 `mergeStates()` 与远端合并（`baseVersion` 仅供诊断），并用**该题库自己的题目**复核成就。旧 `/api/sync` 返回 426。
+  - 权限四层：公开 / 登录 / 会员（`member_until > now`）/ 管理员（`role = 'admin'`），中间件在 `src/routes.ts`。`builtin` 题库包公开，其他题库包与全部同步接口需要会员。会员与兑换码在 `src/membership.ts`。
+  - 旧库启动时自动迁移：`user_states` → `user_states_v2`（老数据落 `builtin`）、`users` 补 `role`/`member_until`/`disabled_at`、无管理员时提升最早注册的用户。
+  - 部署产物在 `apps/server/Dockerfile` 与 `apps/server/deploy/`（compose + Caddy）；镜像同时托管 `apps/web/dist`（`/`）与 `apps/admin/dist`（`/admin/`）。配置见 `apps/server/.env.example`；`apps/server/data/` 与 `.env` 已 gitignore。旧版 GitHub/设备码认证已移除，旧库在首次启动时自动删除旧认证表。
+- `apps/admin`：运营后台（React + Vite，`base: '/admin/'`，开发端口 5174 并把 `/api` 代理到 8787）。当前是可登录的骨架：登录、管理员校验、已发布题库列表；题库编辑/发布、兑换码、用户管理尚未接入。它**不复用** `apps/web` 的样式令牌，自带一套中性后台样式。
 - 三端目前共用 `apps/web` 的 localStorage 存储：桌面与移动端尚未接文件/原生存储（`TODO.md` 有明确待办）。桌面端 `src-tauri` 没有自定义 Rust command，`frontendDist` 指向 `../web/dist`；移动端 `webDir` 同样指向 `../web/dist`。
 
 ### Web 应用
 
 - `apps/web/src/store/QuizStore.tsx` 是唯一状态中枢：`useReducer` 管理视图/会话/答题卡（`AppState`），`useState` 管理持久化进度（`PersistedState`），通过 Context + `useQuiz()` 暴露。
-- 断点续做由 `store/sessionPersistence.ts` 负责：会话快照存 localStorage 键 `megrez_quiz_sessions_v2`，按练习来源（`chapter:3`、`favorites:8`、`random`、`wrong`、`daily:2026-11-04` 等）各存一份，互不覆盖；上一品牌的整份表 `quizbook_quiz_sessions_v2` 与更早的旧单份键 `quizbook_quiz_session_v1`、`gaoxiang_quiz_session_v1` 首次读取自动迁移。快照只保存题目键 `${c}-${n}` 与作答状态，加载时按当前题库重新关联。从同一入口再次进入会恢复该来源上次中断的位置；进入结算页只清除当前这一份，导入/清空进度会清除全部；答题中退出则保留，首页「继续练习」显示最近活动的一份。
+- 断点续做由 `store/sessionPersistence.ts` 负责：会话快照存 localStorage 键 `megrez_quiz_sessions_v2`，按练习来源（`chapter:3`、`favorites:8`、`random`、`wrong`、`daily:2026-11-04` 等）各存一份，互不覆盖；上一品牌的整份表 `quizbook_quiz_sessions_v2` 与更早的旧单份键 `quizbook_quiz_session_v1`、`gaoxiang_quiz_session_v1` 首次读取自动迁移。快照只保存题目键（`qkey()`，即稳定 `id`）与作答状态，加载时按当前题库重新关联。从同一入口再次进入会恢复该来源上次中断的位置；进入结算页只清除当前这一份，导入/清空进度会清除全部；答题中退出则保留，首页「继续练习」显示最近活动的一份。
 - 关键设计：`@megrez/core` 的 `gradeAnswer()` 会**原地修改** `PersistedState` 和 `SessionItem`（设置 `done`、`lastPick`）。QuizStore 因此用 `persistRef` 持有最新进度、修改后 `setPersisted({...persistRef.current})` 触发刷新。改动状态管理时要保持这个“可变 core + 不可变 React 快照”的约定。
 - 视图切换在 `App.tsx` 中按 `app.view` 渲染 `HomeView` / `QuizView` / `ResultView` / `FavoritesView`；`SettingsDialog` 是常驻的 `<dialog>`。收藏夹详情弹窗由 `FavoritesView` 自行管理，打开时用 `showModal()` 并把焦点放在对话框容器上。
 - 收藏、成就、设置三页共用 `.view-page` / `.view-head` 骨架（宽度以设置页 920px 为准）；题干、选项与解析卡统一用 `components/AnswerParts.tsx` 的 `AnswerOptions` / `RevealCard`，答题页与收藏详情不得各写一套。
@@ -54,7 +62,8 @@ pnpm server:dev       # 后端本地开发（Fastify，默认 http://127.0.0.1:8
 
 ### 领域约定
 
-- 题目的 `a` 是 **0 基下标**（`a:3` 表示 D）；`o` 固定 4 项；唯一键为 `${c}-${n}`（`qkey()`）。
+- 题目的 `a` 是 **0 基下标**（`a:3` 表示 D）；`o` 固定 4 项；唯一键统一由 `qkey()` 产出：优先用稳定 `id`（导入题库必须带稳定 id），仅内置题库在 `normalizeQuizData()` 中回退为 `${c}-${n}`。`c`/`n` 只用于展示与排序，改动题号不应丢失进度、收藏与心得。
+- 题库文件读入一律经 `normalizeQuizData(raw, defaults)` 补齐 `id`/`name`/`version`；导入与服务端发布前用 `validateBank()` 校验，不要绕开这两处自行解析 JSON。
 - `chapters` 在 JSON 中键为字符串，读取时统一用 `String(c)`。
 - 题号存在刻意间断：多空题被剔除，不要为了“连续”而重排 `n`。
 - 选项乱序通过 `SessionItem.map`（显示下标 → 原始下标）实现；渲染与判分必须经 `map` 换算，`q.a` 始终是原始下标。

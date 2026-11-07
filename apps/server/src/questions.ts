@@ -5,7 +5,7 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import type { QuizData } from '@megrez/core';
+import { BUILTIN_BANK_ID, normalizeQuizData, type QuizData, type RawQuizData } from '@megrez/core';
 
 function loadQuestions(): QuizData | null {
   const candidates = [
@@ -18,8 +18,13 @@ function loadQuestions(): QuizData | null {
   for (const path of candidates) {
     if (!existsSync(path)) continue;
     try {
-      const data = JSON.parse(readFileSync(path, 'utf8')) as QuizData;
-      if (Array.isArray(data.questions) && data.chapters) return data;
+      const raw = JSON.parse(readFileSync(path, 'utf8')) as RawQuizData;
+      if (!Array.isArray(raw.questions) || !raw.chapters) continue;
+      return normalizeQuizData(raw, {
+        id: BUILTIN_BANK_ID,
+        name: '清晖软考（高项）题库',
+        version: 1,
+      });
     } catch {
       // 继续尝试下一个候选路径
     }

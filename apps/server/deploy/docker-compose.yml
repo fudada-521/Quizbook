@@ -11,6 +11,8 @@ services:
       PORT: 8787
       PUBLIC_URL: ${PUBLIC_URL:?请在 .env 中设置 PUBLIC_URL}
       DB_PATH: /data/megrez.db
+      # 管理后台产物：镜像内已构建，/admin/ 由 server 直接托管
+      ADMIN_DIST: /app/apps/admin/dist
       # 允许 App / 原生壳的跨域请求；使用 Bearer token，不依赖 Cookie
       CORS_ORIGIN: '*'
     volumes:

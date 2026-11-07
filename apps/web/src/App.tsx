@@ -1,7 +1,13 @@
 /** @format */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { achievementById, type QuizData } from "@megrez/core";
+import {
+    achievementById,
+    BUILTIN_BANK_ID,
+    normalizeQuizData,
+    type QuizData,
+    type RawQuizData,
+} from "@megrez/core";
 import { createLocalStorageStore, DEFAULT_SYNC_BACKEND } from "@megrez/storage/web";
 import { QuizProvider, useQuiz, type View } from "./store/QuizStore";
 import { useEdgeSwipeBack } from "./gestures";
@@ -17,13 +23,16 @@ import { WaterLight } from "./components/WaterLight";
 import rawData from "../../../data/questions.json";
 
 export default function App() {
-    const data = useMemo<QuizData>(() => {
-        const d = rawData as unknown as QuizData;
-        // JSON 反序列化后 chapters 键为字符串，标准化为数字键便于索引
-        const chapters: Record<string, string> = { ...d.chapters };
-        const questions = d.questions.map((q) => ({ ...q }));
-        return { ...d, chapters, questions };
-    }, []);
+    const data = useMemo<QuizData>(
+        () =>
+            // 构建期补齐题库元数据与题目 ID：内置题库的 id 就是 `${c}-${n}`，旧进度键因此保持不变
+            normalizeQuizData(rawData as unknown as RawQuizData, {
+                id: BUILTIN_BANK_ID,
+                name: "清晖软考（高项）题库",
+                version: 1,
+            }),
+        [],
+    );
     const store = useMemo(() => createLocalStorageStore(), []);
     const sync = useMemo(() => DEFAULT_SYNC_BACKEND, []);
 

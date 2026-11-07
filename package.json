@@ -20,7 +20,9 @@
     "mobile:ios": "pnpm --filter @megrez/mobile ios",
     "mobile:android": "pnpm --filter @megrez/mobile android",
     "server:dev": "pnpm --filter @megrez/server dev",
-    "server:start": "pnpm --filter @megrez/server start"
+    "server:start": "pnpm --filter @megrez/server start",
+    "admin:dev": "pnpm --filter @megrez/admin dev",
+    "admin:build": "pnpm --filter @megrez/admin build"
   },
   "devDependencies": {
     "tsx": "^4.23.15",

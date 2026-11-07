@@ -10,13 +10,17 @@
 ```
 答题程序/
 ├── data/
-│   └── questions.json          # 题库（唯一数据源，2210 题）
+│   └── questions.json          # 内置题库（构建期打进 Web 包，2726 题）
+├── docs/
+│   ├── 项目架构.md              # 分层、包边界、数据流
+│   └── 后端与收费设计.md         # 题库/同步/会员/后台设计
 ├── packages/
-│   ├── core/                   # 平台无关领域逻辑：判分/抽题/错题本/进度
+│   ├── core/                   # 平台无关领域逻辑：判分/抽题/错题本/进度/题库校验
 │   └── storage/                # 进度存储适配层：localStorage/文件/云同步接口
 └── apps/
     ├── web/                    # React + Vite + TS 前端（所有端共用）
-    ├── server/                 # Fastify 后端：登录 + 云同步（本地可跑）
+    ├── admin/                  # 运营后台（题库维护、发布、兑换码、用户）
+    ├── server/                 # Fastify 后端：账号、题库发布、同步、会员
     ├── desktop/                # Tauri 2 桌面壳（macOS/Windows/Linux）
     └── mobile/                 # Capacitor 移动壳（iOS/Android）
 ```
@@ -32,6 +36,8 @@ pnpm test             # 运行 core 单元测试
 pnpm desktop:dev      # 桌面 App 开发模式
 pnpm desktop:build    # 桌面 App 打包（apps/desktop/src-tauri/target/release/）
 pnpm server:dev       # 后端本地开发（http://127.0.0.1:8787）
+pnpm admin:dev        # 管理后台开发（http://127.0.0.1:5174）
+pnpm admin:build      # 构建管理后台（apps/admin/dist）
 ```
 
 ### 各端使用方式
@@ -76,15 +82,17 @@ gradle assembleDebug            # 或 ./gradlew assembleDebug
 ```
 
 - `a` 是 **0 基下标**（`a:3` 表示 D）。
-- 题目唯一键 `${c}-${n}`，新增题目必须保证唯一。
-- 进度持久化 schema 见 `packages/core/src/types.ts`（`PersistedState`，当前 `schemaVersion: 4`，包含收藏、题目心得、每日打卡、挑战记录与成就）。
+- 题目有稳定的 `id`（内置题库在构建期补为 `${c}-${n}`），进度/收藏/心得都用它做键；`c`、`n` 只负责展示与排序，可以重排而不丢记录。
+- 题库文件的完整规范与服务端发布格式见 `docs/后端与收费设计.md` 第五节。
+- 进度持久化 schema 见 `packages/core/src/types.ts`（`PersistedState`，当前 `schemaVersion: 6`，包含收藏、题目心得、每日打卡、挑战记录与成就）。
 
 ## 架构
 
 - **`@megrez/core`**：纯函数领域逻辑，无 DOM/框架依赖，可用 `pnpm test` 单测。
 - **`@megrez/storage`**：`ProgressStore` 接口（`load`/`save`/`subscribe`）+ 云同步客户端 `CloudClient`（账号密码登录、拉取/推送）与本地 token 存储。
   Web 用 `localStorage`（`@megrez/storage/web`），桌面/移动可注入文件或原生存储实现。
-- **`@megrez/server`**：Fastify + TypeScript + SQLite。用户名 + 密码注册/登录（scrypt 哈希、失败限流），Bearer token 鉴权，服务端用 `mergeStates()` 合并多端进度并权威校验成就。详见 `apps/server/README.md`。
+- **`@megrez/server`**：Fastify + TypeScript + SQLite。用户名 + 密码注册/登录（scrypt 哈希、失败限流），Bearer token 鉴权；题库分「草稿 → 不可变发布包」，客户端只读发布包；进度按「用户 × 题库」各存一份，用 `mergeStates()` 合并并权威校验成就；同步与题库下载属于会员，兑换码开通。详见 `apps/server/README.md`。
+- **`@megrez/admin`**：运营后台（同域 `/admin/`），当前是可登录的骨架，题库编辑/发布、兑换码、用户管理在后续迭代接入。
 - **`@megrez/web`**：React UI，通过 `QuizStore`（Context + hook）封装状态；极简工具风界面（浅色/深色自动跟随系统）、百词斩式答题卡片、答对自动跳转（答错停留）、章节进度、错题本、收藏夹、题目心得、答题卡、键盘快捷键。
 - **断点续做**：每个练习入口（章节、随机、错题、收藏、挑战等）的未完成进度分别保存在本机（`megrez_quiz_sessions_v2`），从同一入口进入或退出后重新打开，都可回到该练习上次的原题继续。
 
@@ -110,4 +118,4 @@ gradle assembleDebug            # 或 ./gradlew assembleDebug
 1. 题目文字来自题库整理，个别字词可能存在错别字，不影响作答。
 2. 少数含网络图/表格的计算题文字描述不完整，属原书图片内容，可忽略。
 3. 被刻意剔除的多空题导致题号间断，不要"修复"编号连续性。
-4. 云同步已接入（`apps/server` + 账号密码登录），但 Docker 镜像与 Tauri / Capacitor 真机流程尚未实际验证；不登录时仍可完全离线使用，导出/导入 JSON 依旧可用（见 `TODO.md`）。
+4. 云同步已接入（`apps/server` + 账号密码登录），Docker 镜像已实测构建与运行；Tauri / Capacitor 真机流程尚未实际验证。不登录时仍可完全离线使用，导出/导入 JSON 依旧可用（见 `TODO.md`）。

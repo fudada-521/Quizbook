@@ -165,7 +165,7 @@ export function normalizeState(raw: unknown): PersistedState {
 /** 是否已收藏 */
 export function isFavorite(
   state: PersistedState,
-  q: Pick<Question, 'c' | 'n'>,
+  q: Pick<Question, 'id' | 'c' | 'n'>,
 ): boolean {
   return Object.prototype.hasOwnProperty.call(state.favorites, qkey(q));
 }
@@ -173,7 +173,7 @@ export function isFavorite(
 /** 切换收藏，返回切换后的收藏状态 */
 export function toggleFavorite(
   state: PersistedState,
-  q: Pick<Question, 'c' | 'n'>,
+  q: Pick<Question, 'id' | 'c' | 'n'>,
   now = Date.now(),
 ): boolean {
   const k = qkey(q);
@@ -235,7 +235,7 @@ export function favoriteQuestions(
 /** 某道题的心得时间线（旧→新） */
 export function notesFor(
   state: PersistedState,
-  q: Pick<Question, 'c' | 'n'>,
+  q: Pick<Question, 'id' | 'c' | 'n'>,
 ): QuestionNote[] {
   return state.notes[qkey(q)] ?? [];
 }
@@ -243,7 +243,7 @@ export function notesFor(
 /** 追加一条心得；空白内容不记录，返回新心得或 null */
 export function addQuestionNote(
   state: PersistedState,
-  q: Pick<Question, 'c' | 'n'>,
+  q: Pick<Question, 'id' | 'c' | 'n'>,
   text: string,
   at = Date.now(),
 ): QuestionNote | null {

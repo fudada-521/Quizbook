@@ -17,6 +17,8 @@ export const env = {
   publicUrl,
   dbPath: process.env.DB_PATH ?? resolve(process.cwd(), 'data/megrez.db'),
   webDist: process.env.WEB_DIST ?? resolve(process.cwd(), '../web/dist'),
+  /** 管理后台产物；未构建时 /admin 返回 404，不影响 API 与答题端 */
+  adminDist: process.env.ADMIN_DIST ?? resolve(process.cwd(), '../admin/dist'),
   corsOrigin: process.env.CORS_ORIGIN ?? '*',
   /** 登录 token 有效期（天） */
   tokenTtlDays: Number(process.env.TOKEN_TTL_DAYS ?? 365),

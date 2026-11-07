@@ -2,11 +2,16 @@
  * 题库与进度核心数据模型 —— packages/core 共用。
  * 数据源为 data/questions.json，语义与原单页版 questions.js 完全一致：
  *   - a 为 0 基下标（a:3 表示 D）
- *   - 题目唯一键 `${c}-${n}`
+ *   - 题目的稳定 ID 是进度键；缺省时退回 `${c}-${n}`
  *   - o 固定 4 项
  */
 
 export interface Question {
+  /**
+   * 稳定题目 ID：题库内唯一且永不变，进度/收藏/心得都用它做键。
+   * `c`、`n` 只用于展示与排序，可以重排而不丢记录。
+   */
+  id: string;
   /** 章节号 */
   c: number;
   /** 原书题号 */
@@ -21,11 +26,59 @@ export interface Question {
   e: string;
 }
 
+/** 内置题库的固定 ID：免费、构建期内置、不可删除 */
+export const BUILTIN_BANK_ID = 'builtin';
+
 export interface QuizData {
-  generatedFrom: string;
+  /** 题库文件格式版本（与进度 schemaVersion 无关） */
+  schema?: number;
+  /** 题库 ID，稳定不可变；内置题库固定为 `builtin` */
+  id: string;
+  /** 题库显示名 */
+  name: string;
+  subtitle?: string;
+  /** 题库版本号，服务端每次发布 +1 */
+  version: number;
+  /** 原始数据来源说明（内置题库保留） */
+  generatedFrom?: string;
   /** 章节号 → 标题（JSON 反序列化后键为字符串，用 Number 读取） */
   chapters: Record<string, string>;
   questions: Question[];
+}
+
+/** 题库 JSON 的原始形态：元数据与题目 ID 都允许缺省 */
+export type RawQuestion = Omit<Question, 'id'> & { id?: string };
+
+export interface RawQuizData {
+  schema?: number;
+  id?: string;
+  name?: string;
+  subtitle?: string;
+  version?: number;
+  generatedFrom?: string;
+  chapters: Record<string, string>;
+  questions: RawQuestion[];
+}
+
+/**
+ * 把原始题库 JSON 规范化为 QuizData：补齐题库元数据与题目 ID。
+ * 缺省题目 ID 一律用 `${c}-${n}` —— 内置题库刻意如此，以兼容旧进度键。
+ * 读入题库的唯一入口，客户端、服务端 seed 与单测都走这里。
+ */
+export function normalizeQuizData(
+  raw: RawQuizData,
+  defaults: { id: string; name: string; version?: number },
+): QuizData {
+  return {
+    schema: raw.schema ?? 1,
+    id: raw.id ?? defaults.id,
+    name: raw.name ?? defaults.name,
+    subtitle: raw.subtitle,
+    version: raw.version ?? defaults.version ?? 1,
+    generatedFrom: raw.generatedFrom,
+    chapters: { ...raw.chapters },
+    questions: raw.questions.map((q) => ({ ...q, id: q.id || `${q.c}-${q.n}` })),
+  };
 }
 
 /** 单题作答记录 */
@@ -179,8 +232,12 @@ export const DEFAULT_SETTINGS: Settings = {
 /** 进度存储当前 schema 版本；v6 增加「清空全部学习数据」的 dataResetAt 纪元 */
 export const SCHEMA_VERSION = 6;
 
-export function qkey(q: Pick<Question, 'c' | 'n'> | Question): string {
-  return `${q.c}-${q.n}`;
+/**
+ * 题目在进度里的键：优先用稳定 id，缺省（旧数据/旧题库）退回 `${c}-${n}`。
+ * 内置题库的 id 恰好就是 `${c}-${n}`，因此旧 localStorage 键保持不变。
+ */
+export function qkey(q: Pick<Question, 'id' | 'c' | 'n'>): string {
+  return q.id || `${q.c}-${q.n}`;
 }
 
 export function chapterTitle(data: QuizData, c: number): string {

@@ -1,12 +1,16 @@
-import { createSession, gradeAnswer, normalizeState, shouldAutoAdvance, wrongQuestions, unansweredQuestions, questionsOfChapter, qkey, isFavorite, toggleFavorite, favoriteQuestions, notesFor, addQuestionNote, mergeStates, dailyQuestions, scoreSession, makeChallengeRecord, ACHIEVEMENTS, achievementStats, achievementProgress, evaluateAchievements, resetProgressState, resetAllLearningState, gradeAnswer as grade, DEFAULT_SETTINGS, SCHEMA_VERSION, dateKey, type QuizData, type PersistedState } from '../src/index.ts';
+import { readFileSync } from 'node:fs';
+import { createSession, gradeAnswer, normalizeState, normalizeQuizData, validateBank, shouldAutoAdvance, wrongQuestions, unansweredQuestions, questionsOfChapter, qkey, isFavorite, toggleFavorite, favoriteQuestions, notesFor, addQuestionNote, mergeStates, dailyQuestions, scoreSession, makeChallengeRecord, ACHIEVEMENTS, achievementStats, achievementProgress, evaluateAchievements, resetProgressState, resetAllLearningState, gradeAnswer as grade, DEFAULT_SETTINGS, SCHEMA_VERSION, dateKey, BUILTIN_BANK_ID, type QuizData, type PersistedState } from '../src/index.ts';
 
 const data: QuizData = {
+  id: 'test-bank',
+  name: '测试题库',
+  version: 1,
   generatedFrom: 'test',
   chapters: { 1: '第一章', 2: '第二章' },
   questions: [
-    { c: 1, n: 1, s: '题1', o: ['A', 'B', 'C', 'D'], a: 0, e: '解析1' },
-    { c: 1, n: 2, s: '题2', o: ['A', 'B', 'C', 'D'], a: 3, e: '解析2' },
-    { c: 2, n: 1, s: '题3', o: ['A', 'B', 'C', 'D'], a: 1, e: '解析3' },
+    { id: '1-1', c: 1, n: 1, s: '题1', o: ['A', 'B', 'C', 'D'], a: 0, e: '解析1' },
+    { id: '1-2', c: 1, n: 2, s: '题2', o: ['A', 'B', 'C', 'D'], a: 3, e: '解析2' },
+    { id: '2-1', c: 2, n: 1, s: '题3', o: ['A', 'B', 'C', 'D'], a: 1, e: '解析3' },
   ],
 };
 let passes=0, fails=0;
@@ -203,21 +207,23 @@ ok(ACHIEVEMENTS.filter((item) => item.hidden).length >= 3, 'has hidden achieveme
 ok(ACHIEVEMENTS.some((item) => item.tier === 5), 'has diamond tier');
 
 // 用于统计类成就的较大题库（30 章 × 10 题）
-const bigQuestions = Array.from({ length: 300 }, (_, i) => ({
-  c: Math.floor(i / 10) + 1,
-  n: (i % 10) + 1,
-  s: `题${i}`,
-  o: ['A', 'B', 'C', 'D'] as [string, string, string, string],
-  a: 0,
-  e: '',
-}));
-const bigData: QuizData = {
-  generatedFrom: 'test-big',
-  chapters: Object.fromEntries(
-    Array.from({ length: 30 }, (_, i) => [String(i + 1), `第${i + 1}章`]),
-  ),
-  questions: bigQuestions,
-};
+const bigData: QuizData = normalizeQuizData(
+  {
+    generatedFrom: 'test-big',
+    chapters: Object.fromEntries(
+      Array.from({ length: 30 }, (_, i) => [String(i + 1), `第${i + 1}章`]),
+    ),
+    questions: Array.from({ length: 300 }, (_, i) => ({
+      c: Math.floor(i / 10) + 1,
+      n: (i % 10) + 1,
+      s: `题${i}`,
+      o: ['A', 'B', 'C', 'D'] as [string, string, string, string],
+      a: 0,
+      e: '',
+    })),
+  },
+  { id: 'test-big', name: '大题库' },
+);
 
 // 综合统计：题量、正确率、周末/深夜/大满贯与速度类
 const richAnswers: Record<string, { ok: boolean; tries: number; t: number }> = {};
@@ -367,6 +373,88 @@ const dailyGrade = normalizeState({});
 grade(dailyGrade, createSession([data.questions[0]], 't').list[0], 0, 1234);
 const today = dateKey(1234);
 ok(dailyGrade.daily[today].answered === 1 && dailyGrade.daily[today].correct === 1, 'grade updates daily record');
+
+// ---------- 题库元数据与稳定题目 ID ----------
+const explicitBank = normalizeQuizData(
+  {
+    id: 'custom-bank',
+    name: '自定义题库',
+    version: 2,
+    chapters: { 1: '第一章' },
+    questions: [{ id: 'q-1', c: 1, n: 9, s: '题', o: ['A', 'B', 'C', 'D'], a: 0, e: '' }],
+  },
+  { id: 'unused', name: '未使用' },
+);
+ok(explicitBank.id === 'custom-bank' && explicitBank.version === 2 && explicitBank.schema === 1, 'normalizeQuizData keeps explicit metadata');
+ok(explicitBank.questions[0].id === 'q-1', 'explicit question id is kept');
+
+const filledBank = normalizeQuizData(
+  {
+    chapters: { 1: '第一章' },
+    questions: [{ c: 1, n: 7, s: '题', o: ['A', 'B', 'C', 'D'], a: 0, e: '' }],
+  },
+  { id: BUILTIN_BANK_ID, name: '内置题库' },
+);
+ok(filledBank.id === BUILTIN_BANK_ID && filledBank.version === 1, 'normalizeQuizData fills metadata defaults');
+ok(filledBank.questions[0].id === '1-7' && qkey(filledBank.questions[0]) === '1-7', 'missing question id falls back to c-n');
+
+ok(qkey({ id: 'stable-question', c: 9, n: 9 }) === 'stable-question', 'qkey prefers stable id over c-n');
+ok(data.questions.every((q) => qkey(q) === `${q.c}-${q.n}`), 'builtin-style ids keep legacy keys unchanged');
+
+// ---------- validateBank ----------
+const demoBank = (questions: unknown[]) => ({
+  schema: 1,
+  id: 'demo-bank',
+  name: '示例题库',
+  version: 1,
+  chapters: { '1': '第一章' } as Record<string, string>,
+  questions,
+});
+const goodQ = { id: 'q1', c: 1, n: 1, s: '题干', o: ['A', 'B', 'C', 'D'], a: 0, e: '' };
+
+const validBank = validateBank(demoBank([goodQ]));
+ok(validBank.ok && validBank.bank?.id === 'demo-bank' && validBank.removed === 0, 'validateBank accepts a valid bank');
+ok(validateBank('not-a-bank').ok === false, 'validateBank rejects non-object input');
+
+const illegalId = validateBank({ ...demoBank([goodQ]), id: 'Demo Bank' });
+ok(!illegalId.ok && illegalId.errors.some((e) => e.includes('id')), 'validateBank rejects illegal bank id');
+
+const duplicateIds = validateBank(
+  demoBank([goodQ, { ...goodQ, c: 1, n: 2 }]),
+);
+ok(!duplicateIds.ok && duplicateIds.errors.some((e) => e.includes('重复')), 'validateBank rejects duplicate question ids');
+
+const outOfRange = validateBank(demoBank([goodQ, { ...goodQ, id: 'q2', n: 2, a: 4 }]));
+ok(outOfRange.ok && outOfRange.removed === 1 && outOfRange.bank?.questions.length === 1, 'validateBank removes out-of-range a');
+
+const missingChapter = validateBank(demoBank([goodQ, { ...goodQ, id: 'q2', n: 2, c: 5 }]));
+ok(missingChapter.ok && missingChapter.removed === 1, 'validateBank removes questions of unknown chapters');
+
+const badOptions = validateBank(demoBank([goodQ, { ...goodQ, id: 'q2', n: 2, o: ['A', 'B', 'C'] }]));
+ok(badOptions.ok && badOptions.removed === 1, 'validateBank removes questions without 4 options');
+
+const emptyStem = validateBank(demoBank([goodQ, { ...goodQ, id: 'q2', n: 2, s: '  ' }]));
+ok(emptyStem.ok && emptyStem.removed === 1, 'validateBank removes questions with empty stem');
+
+const allRemoved = validateBank(demoBank([{ ...goodQ, a: 9 }]));
+ok(!allRemoved.ok && allRemoved.errors.some((e) => e.includes('可用')), 'validateBank fails when no question survives');
+
+// 内置题库同样跑一遍校验：应当零错误、零剔除
+const builtinRaw = JSON.parse(
+  readFileSync(new URL('../../../data/questions.json', import.meta.url), 'utf8'),
+);
+const builtinCheck = validateBank({
+  schema: 1,
+  id: BUILTIN_BANK_ID,
+  name: '清晖软考（高项）题库',
+  version: 1,
+  chapters: builtinRaw.chapters,
+  questions: builtinRaw.questions,
+});
+ok(
+  builtinCheck.ok && builtinCheck.removed === 0 && builtinCheck.bank?.questions.length === builtinRaw.questions.length,
+  'builtin bank passes validateBank without removal',
+);
 
 console.log(`\n${passes} passed, ${fails} failed`);
 process.exit(fails?1:0);
