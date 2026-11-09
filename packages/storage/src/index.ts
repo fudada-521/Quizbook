@@ -8,6 +8,8 @@
  */
 import { PersistedState } from '@megrez/core';
 
+export * from './banks';
+
 export interface ProgressStore {
   readonly kind: string;
   /** 读取进度；不存在时返回 null */

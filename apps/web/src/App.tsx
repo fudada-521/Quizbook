@@ -8,14 +8,17 @@ import {
     type QuizData,
     type RawQuizData,
 } from "@megrez/core";
-import { createLocalStorageStore, DEFAULT_SYNC_BACKEND } from "@megrez/storage/web";
+import { createLocalStorageStore } from "@megrez/storage/web";
+import { createBankRepository } from "@megrez/storage";
 import { QuizProvider, useQuiz, type View } from "./store/QuizStore";
+import { bankProgressKey, migrateBankStorage } from "./store/bankStorage";
 import { useEdgeSwipeBack } from "./gestures";
 import { HomeView } from "./views/HomeView";
 import { QuizView } from "./views/QuizView";
 import { ResultView } from "./views/ResultView";
 import { FavoritesView } from "./views/FavoritesView";
 import { AchievementsView } from "./views/AchievementsView";
+import { BankStoreView } from "./views/BankStoreView";
 import { SettingsView } from "./views/SettingsView";
 import { Icon } from "./components/Icon";
 import { FeedbackHost } from "./components/Feedback";
@@ -33,14 +36,22 @@ export default function App() {
             }),
         [],
     );
-    const store = useMemo(() => createLocalStorageStore(), []);
-    const sync = useMemo(() => DEFAULT_SYNC_BACKEND, []);
+    // 首次启动把旧版单题库进度复制到 builtin 桶，幂等
+    const banks = useMemo(() => {
+        migrateBankStorage();
+        return createBankRepository();
+    }, []);
+    // 每个题库一个 localStorage 桶，切换题库互不影响
+    const createStore = useCallback(
+        (bankId: string) => createLocalStorageStore(undefined, bankProgressKey(bankId)),
+        [],
+    );
 
     return (
         <QuizProvider
-            data={data}
-            store={store}
-            sync={sync}>
+            builtin={data}
+            banks={banks}
+            createStore={createStore}>
             <Shell />
         </QuizProvider>
     );
@@ -179,6 +190,13 @@ function Shell() {
                     </button>
                     <div className="header-actions">
                         <button
+                            className={`icon-btn${app.view === "banks" ? " active" : ""}`}
+                            onClick={() => setView("banks")}
+                            aria-label="题库"
+                            title="题库">
+                            <Icon name="book" />
+                        </button>
+                        <button
                             className={`icon-btn${app.view === "achievements" ? " active" : ""}`}
                             onClick={() => setView("achievements")}
                             aria-label="成就"
@@ -217,6 +235,7 @@ function Shell() {
                 {app.view === "result" && <ResultView />}
                 {(app.view === "favorites" || app.view === "favorite-detail") && <FavoritesView />}
                 {app.view === "achievements" && <AchievementsView />}
+                {app.view === "banks" && <BankStoreView />}
                 {app.view === "settings" && <SettingsView />}
             </main>
 

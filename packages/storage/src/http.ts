@@ -1,13 +1,22 @@
 /**
- * 云端 API 客户端：账号密码登录 + 进度同步 + 成就查询。
+ * 云端 API 客户端：账号密码登录 + 题库目录/下载 + 按题库同步 + 会员。
  * 只依赖 fetch，浏览器 / Tauri / Capacitor 通用。
  */
-import type { PersistedState } from '@megrez/core';
+import type { PersistedState, QuizData } from '@megrez/core';
+
+export type UserRole = 'user' | 'admin';
+
+export interface MembershipState {
+  active: boolean;
+  expiresAt: number | null;
+}
 
 export interface AuthUser {
   id: string;
   username: string;
   name: string | null;
+  role?: UserRole;
+  membership?: MembershipState;
 }
 
 export interface StoredAuth {
@@ -22,6 +31,18 @@ export interface AuthResult {
   user: AuthUser;
 }
 
+/** 服务端已发布题库的元数据 */
+export interface RemoteBankMeta {
+  id: string;
+  name: string;
+  subtitle: string;
+  description: string;
+  version: number;
+  questionCount: number;
+  chapterCount: number;
+  updatedAt: number;
+}
+
 export interface RemoteState {
   state: PersistedState | null;
   version: number;
@@ -33,6 +54,15 @@ export interface PushResult {
   version: number;
   updatedAt: number;
   unlockedAchievements: string[];
+}
+
+export interface DownloadResult {
+  data: QuizData;
+  etag: string | null;
+}
+
+export interface RedeemResult extends MembershipState {
+  days: number;
 }
 
 export interface ServerConfig {
@@ -52,7 +82,10 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
+async function requestWithMeta<T>(
+  url: string,
+  init: RequestInit = {},
+): Promise<{ data: T; headers: Headers }> {
   let res: Response;
   try {
     res = await fetch(url, {
@@ -77,13 +110,20 @@ async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
   }
 
   if (!res.ok) {
-    const message =
-      payload && typeof payload === 'object' && 'error' in payload
-        ? String((payload as { error: unknown }).error)
-        : `请求失败 (${res.status})`;
+    // 优先展示服务端给人类看的 message；没有时退回错误码
+    let message = `请求失败 (${res.status})`;
+    if (payload && typeof payload === 'object') {
+      const body = payload as { message?: unknown; error?: unknown };
+      if (typeof body.message === 'string' && body.message) message = body.message;
+      else if ('error' in body) message = String(body.error);
+    }
     throw new ApiError(res.status, message, payload);
   }
-  return payload as T;
+  return { data: payload as T, headers: res.headers };
+}
+
+async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
+  return (await requestWithMeta<T>(url, init)).data;
 }
 
 export class CloudClient {
@@ -125,15 +165,62 @@ export class CloudClient {
     return request(this.url('/api/me'), { headers: this.authHeaders() });
   }
 
-  pull(): Promise<RemoteState> {
-    return request<RemoteState>(this.url('/api/sync'), { headers: this.authHeaders() });
+  // ---------- 题库目录与下载 ----------
+
+  /** 已发布题库列表（公开接口，不需要登录） */
+  listBanks(): Promise<RemoteBankMeta[]> {
+    return request<RemoteBankMeta[]>(this.url('/api/banks'));
   }
 
-  push(state: PersistedState, baseVersion = 0): Promise<PushResult> {
-    return request<PushResult>(this.url('/api/sync'), {
+  /** 下载完整题库包；内置题库公开，其他题库需要会员 */
+  async downloadBank(bankId: string): Promise<DownloadResult> {
+    const { data, headers } = await requestWithMeta<QuizData>(
+      this.url(`/api/banks/${encodeURIComponent(bankId)}/bundle`),
+      { headers: this.authHeaders() },
+    );
+    return { data, etag: headers.get('ETag') };
+  }
+
+  // ---------- 按题库同步 ----------
+
+  pullBankState(bankId: string): Promise<RemoteState> {
+    return request<RemoteState>(this.url(`/api/banks/${encodeURIComponent(bankId)}/sync`), {
+      headers: this.authHeaders(),
+    });
+  }
+
+  pushBankState(
+    bankId: string,
+    state: PersistedState,
+    baseVersion = 0,
+  ): Promise<PushResult> {
+    return request<PushResult>(this.url(`/api/banks/${encodeURIComponent(bankId)}/sync`), {
       method: 'PUT',
       headers: this.authHeaders(),
       body: JSON.stringify({ state, baseVersion }),
+    });
+  }
+
+  async deleteBankState(bankId: string): Promise<void> {
+    await request(this.url(`/api/banks/${encodeURIComponent(bankId)}/sync`), {
+      method: 'DELETE',
+      headers: this.authHeaders(),
+    });
+  }
+
+  // ---------- 会员 ----------
+
+  getMembership(): Promise<MembershipState> {
+    return request<MembershipState>(this.url('/api/membership'), {
+      headers: this.authHeaders(),
+    });
+  }
+
+  redeem(code: string): Promise<RedeemResult> {
+    return request<RedeemResult>(this.url('/api/membership/redeem'), {
+      method: 'POST',
+      headers: this.authHeaders(),
+      body: JSON.stringify({ code }),
     });
   }
 

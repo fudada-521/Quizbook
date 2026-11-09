@@ -1,11 +1,12 @@
 /**
- * 未完成练习会话的本地快照。
- * 只保存题目的唯一键与作答状态，不重复存储题干，数据仍以 questions.json 为准。
+ * 未完成练习会话的本地快照，按题库隔离。
+ * 只保存题目的唯一键与作答状态，不重复存储题干，数据仍以题库包为准。
  *
- * 每个练习来源（章节、随机、错题、收藏、每日一练……）各存一份，
- * 互不覆盖：从哪个入口进来，就从该入口上次中断的位置继续。
+ * 每个「题库 × 练习来源」各存一份，互不覆盖：从哪个入口进来，
+ * 就从该入口上次中断的位置继续。
  */
 import {
+  BUILTIN_BANK_ID,
   qkey,
   type Question,
   type QuizData,
@@ -13,10 +14,10 @@ import {
   type SessionItem,
   type SessionMode,
 } from '@megrez/core';
+import { bankSessionsKey } from './bankStorage';
 
-const KEY = 'megrez_quiz_sessions_v2';
-/** 上一品牌时期的多会话键，格式未变，读取时整份搬到新键 */
-const LEGACY_MAP_KEY = 'quizbook_quiz_sessions_v2';
+/** 上一品牌时期的多会话键，格式未变；内置题库首次读取时整份搬到分桶键 */
+const LEGACY_MAP_KEYS = ['megrez_quiz_sessions_v2', 'quizbook_quiz_sessions_v2'];
 /** 旧版本单份快照的键，读取时自动迁移 */
 const LEGACY_KEY = 'quizbook_quiz_session_v1';
 /** 旧品牌时期的会话键，读取时自动迁移 */
@@ -67,17 +68,24 @@ function isMap(v: unknown): v is [number, number, number, number] {
   );
 }
 
-function readMap(): StoredMap {
+function readMap(bankId: string): StoredMap {
   const s = storage();
   if (!s) return { v: 1, sessions: {} };
+  const key = bankSessionsKey(bankId);
   try {
-    let raw = s.getItem(KEY);
-    if (!raw) {
-      const legacyMap = s.getItem(LEGACY_MAP_KEY);
-      if (legacyMap) {
-        s.setItem(KEY, legacyMap);
-        s.removeItem(LEGACY_MAP_KEY);
-        raw = legacyMap;
+    let raw = s.getItem(key);
+    // 内置题库兼容旧版整表键（bankStorage 已复制过一次，这里兜底）
+    if (!raw && bankId === BUILTIN_BANK_ID) {
+      for (const legacy of LEGACY_MAP_KEYS) {
+        const value = s.getItem(legacy);
+        if (!value) continue;
+        try {
+          s.setItem(key, value);
+          raw = value;
+        } catch {
+          // ignore
+        }
+        break;
       }
     }
     if (!raw) return { v: 1, sessions: {} };
@@ -91,11 +99,11 @@ function readMap(): StoredMap {
   return { v: 1, sessions: {} };
 }
 
-function writeMap(map: StoredMap): void {
+function writeMap(bankId: string, map: StoredMap): void {
   const s = storage();
   if (!s) return;
   try {
-    s.setItem(KEY, JSON.stringify(map));
+    s.setItem(bankSessionsKey(bankId), JSON.stringify(map));
   } catch {
     // 隐私模式或存储空间不足时静默失败，不影响答题
   }
@@ -177,10 +185,10 @@ function inferLegacyOrigin(session: QuizSession, data: QuizData): string {
   return 'legacy';
 }
 
-/** 把旧版本的单份快照迁进新的多会话存储 */
-function migrateLegacy(data: QuizData, map: StoredMap): boolean {
+/** 把旧版本的单份快照迁进新的多会话存储（只对内置题库） */
+function migrateLegacy(bankId: string, data: QuizData, map: StoredMap): boolean {
   const s = storage();
-  if (!s) return false;
+  if (!s || bankId !== BUILTIN_BANK_ID) return false;
   let migrated = false;
   for (const legacyKey of [LEGACY_KEY, LEGACY_BRAND_KEY]) {
     const raw = s.getItem(legacyKey);
@@ -190,33 +198,34 @@ function migrateLegacy(data: QuizData, map: StoredMap): boolean {
       const session = decode(parsed, data);
       if (session) {
         const origin = inferLegacyOrigin(session, data);
-        session.origin = origin;
-        map.sessions[origin] = encode(session, session.updatedAt ?? Date.now());
-        migrated = true;
+        if (!map.sessions[origin]) {
+          session.origin = origin;
+          map.sessions[origin] = encode(session, session.updatedAt ?? Date.now());
+          migrated = true;
+        }
       }
     } catch {
       // 旧快照损坏则直接丢弃
     }
     s.removeItem(legacyKey);
-    migrated = true;
   }
   return migrated;
 }
 
-export function saveSession(session: QuizSession): void {
+export function saveSession(bankId: string, session: QuizSession): void {
   if (!session.origin) return;
-  const map = readMap();
+  const map = readMap(bankId);
   const now = Date.now();
   // 与 core 的可变约定保持一致：会话对象本身记录最近保存时间
   session.updatedAt = now;
   map.sessions[session.origin] = encode(session, now);
-  writeMap(map);
+  writeMap(bankId, map);
 }
 
-/** 读取全部未完成会话，按最近保存时间从新到旧排序 */
-export function loadSessions(data: QuizData): QuizSession[] {
-  const map = readMap();
-  let dirty = migrateLegacy(data, map);
+/** 读取某个题库的全部未完成会话，按最近保存时间从新到旧排序 */
+export function loadSessions(bankId: string, data: QuizData): QuizSession[] {
+  const map = readMap(bankId);
+  let dirty = migrateLegacy(bankId, data, map);
 
   const out: QuizSession[] = [];
   for (const [origin, raw] of Object.entries(map.sessions)) {
@@ -229,28 +238,30 @@ export function loadSessions(data: QuizData): QuizSession[] {
     session.origin = origin;
     out.push(session);
   }
-  if (dirty) writeMap(map);
+  if (dirty) writeMap(bankId, map);
   return out.sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
 }
 
-export function loadSession(data: QuizData, origin: string): QuizSession | null {
-  return loadSessions(data).find((s) => s.origin === origin) ?? null;
+export function loadSession(bankId: string, data: QuizData, origin: string): QuizSession | null {
+  return loadSessions(bankId, data).find((s) => s.origin === origin) ?? null;
 }
 
-export function clearSession(origin: string): void {
-  const map = readMap();
+export function clearSession(bankId: string, origin: string): void {
+  const map = readMap(bankId);
   if (!(origin in map.sessions)) return;
   delete map.sessions[origin];
-  writeMap(map);
+  writeMap(bankId, map);
 }
 
-export function clearAllSessions(): void {
+export function clearAllSessions(bankId: string): void {
+  const s = storage();
+  if (!s) return;
   try {
-    const s = storage();
-    s?.removeItem(KEY);
-    s?.removeItem(LEGACY_MAP_KEY);
-    s?.removeItem(LEGACY_KEY);
-    s?.removeItem(LEGACY_BRAND_KEY);
+    s.removeItem(bankSessionsKey(bankId));
+    // 内置题库兼容键也一并清掉，避免旧表被重新复制回来
+    if (bankId === BUILTIN_BANK_ID) {
+      for (const legacy of LEGACY_MAP_KEYS) s.removeItem(legacy);
+    }
   } catch {
     // ignore
   }

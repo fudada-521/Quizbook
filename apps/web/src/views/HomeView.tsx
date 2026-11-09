@@ -1,11 +1,13 @@
 /** @format */
 
 import {
+    BUILTIN_BANK_ID,
     favoriteQuestions,
     achievementProgress,
     achievementStats,
     dailyCompletedOn,
     dateKey,
+    qkey,
     DAILY_COUNT,
     TIMED_COUNT,
     EXAM_COUNT,
@@ -31,6 +33,10 @@ export function HomeView() {
         startTimed,
         startExam,
         setView,
+        bankName,
+        bankVersion,
+        installedBanks,
+        catalog,
     } = useQuiz();
 
     const stats = achievementStats(state, data);
@@ -57,8 +63,35 @@ export function HomeView() {
         return p ? `继续，第 ${p.idx + 1}/${p.list.length} 题` : fallback;
     };
 
+    // 有第二个题库（已安装或可下载）时才显示当前题库胶囊
+    const extraBanks = new Set(
+        [...installedBanks.map((b) => b.id), ...catalog.map((b) => b.id)].filter(
+            (id) => id !== BUILTIN_BANK_ID,
+        ),
+    );
+
     return (
         <div className="home">
+            {extraBanks.size > 0 && (
+                <button
+                    className="bank-capsule"
+                    onClick={() => setView("banks")}
+                    title="切换题库">
+                    <Icon
+                        name="book"
+                        size={15}
+                    />
+                    <span className="bank-capsule-name">{bankName}</span>
+                    <span className="bank-capsule-meta">
+                        v{bankVersion} · {total.toLocaleString()} 题
+                    </span>
+                    <span className="bank-capsule-action">切换题库</span>
+                    <Icon
+                        name="chevron-right"
+                        size={14}
+                    />
+                </button>
+            )}
             <div className="home-grid">
                 <section className="continue-card home-hero">
                     <div className="continue-main">
@@ -313,8 +346,8 @@ export function HomeView() {
                             .sort((a, b) => a - b)
                             .map((c) => {
                                 const qs = byCh[c];
-                                const done = qs.filter((q) => state.answers[`${q.c}-${q.n}`]).length;
-                                const r = qs.filter((q) => state.answers[`${q.c}-${q.n}`]?.ok).length;
+                                const done = qs.filter((q) => state.answers[qkey(q)]).length;
+                                const r = qs.filter((q) => state.answers[qkey(q)]?.ok).length;
                                 const wrong = done - r;
                                 const pct = done ? Math.round((r / done) * 100) : 0;
                                 const pending = resumeByOrigin.get(`chapter:${c}`);

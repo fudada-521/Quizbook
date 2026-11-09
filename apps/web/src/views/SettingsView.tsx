@@ -52,8 +52,18 @@ export function SettingsView() {
         logout,
         syncNow,
         setServerUrl,
+        membership,
+        isMember,
+        refreshMembership,
+        redeemCode,
+        setView,
+        bankName,
+        bankVersion,
     } = useQuiz();
     const [section, setSection] = useState<Section>("account");
+    const [redeemInput, setRedeemInput] = useState("");
+    const [redeeming, setRedeeming] = useState(false);
+    const [redeemError, setRedeemError] = useState("");
     const [themeMode, setThemeMode] = useState<ThemeMode>(() => loadThemeMode());
     const [serverInput, setServerInput] = useState(cloud.serverUrl);
     const [username, setUsername] = useState("");
@@ -106,6 +116,31 @@ export function SettingsView() {
     useEffect(() => {
         window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     }, []);
+
+    // 进入账号页时刷新一次会员状态；断网时保持本地缓存
+    useEffect(() => {
+        if (section === "account" && cloud.user) void refreshMembership();
+    }, [section, cloud.user, refreshMembership]);
+
+    const submitRedeem = async () => {
+        const code = redeemInput.trim();
+        if (!code || redeeming) return;
+        setRedeeming(true);
+        setRedeemError("");
+        try {
+            const result = await redeemCode(code);
+            setRedeemInput("");
+            notify(result.days ? `兑换成功，会员延长 ${result.days} 天` : "兑换成功");
+        } catch (err) {
+            setRedeemError(err instanceof Error ? err.message : "兑换失败");
+        } finally {
+            setRedeeming(false);
+        }
+    };
+
+    const memberExpiry = membership?.expiresAt
+        ? new Date(membership.expiresAt).toLocaleDateString("zh-CN")
+        : null;
 
     const answered = Object.keys(state.answers).length;
     const favoriteCount = Object.keys(state.favorites).length;
@@ -198,8 +233,9 @@ export function SettingsView() {
                                         <button
                                             className="btn ghost sm"
                                             onClick={() => void syncNow()}
-                                            disabled={cloud.phase === "syncing"}>
-                                            {cloud.phase === "syncing" ? "同步中…" : "立即同步"}
+                                            disabled={cloud.phase === "syncing" || !isMember}
+                                            title={isMember ? undefined : "多端同步为会员功能"}>
+                                            {cloud.phase === "syncing" ? "同步中…" : isMember ? "立即同步" : "会员专享"}
                                         </button>
                                         <button
                                             className="text-btn danger"
@@ -266,6 +302,86 @@ export function SettingsView() {
                                 aria-live="polite">
                                 {cloud.error}
                             </p>
+
+                            <div className="membership-row">
+                                <div className="membership-copy">
+                                    <span className={`member-tag${isMember ? " active" : ""}`}>
+                                        {isMember ? "会员" : "免费用户"}
+                                    </span>
+                                    <p>
+                                        {isMember
+                                            ? memberExpiry
+                                                ? `有效期至 ${memberExpiry}，题库下载与多端同步可用`
+                                                : "长期会员，题库下载与多端同步可用"
+                                            : cloud.user
+                                              ? "兑换会员后可下载云端题库并开启多端同步"
+                                              : "登录后可兑换会员，题库下载与多端同步为会员功能"}
+                                    </p>
+                                </div>
+                                {cloud.user && !isMember && (
+                                    <button
+                                        className="btn ghost sm"
+                                        onClick={() => void refreshMembership()}>
+                                        刷新状态
+                                    </button>
+                                )}
+                            </div>
+
+                            {cloud.user && (
+                                <form
+                                    className="redeem-form"
+                                    onSubmit={(e) => {
+                                        e.preventDefault();
+                                        void submitRedeem();
+                                    }}>
+                                    <label htmlFor="set-redeem">兑换码</label>
+                                    <div className="server-input">
+                                        <input
+                                            id="set-redeem"
+                                            type="text"
+                                            value={redeemInput}
+                                            onChange={(e) => {
+                                                setRedeemInput(e.target.value);
+                                                setRedeemError("");
+                                            }}
+                                            autoCapitalize="characters"
+                                            spellCheck={false}
+                                            placeholder="输入会员兑换码"
+                                        />
+                                        <button
+                                            className="btn primary sm"
+                                            type="submit"
+                                            disabled={!redeemInput.trim() || redeeming}>
+                                            {redeeming ? "兑换中…" : "兑换"}
+                                        </button>
+                                    </div>
+                                    {redeemError && (
+                                        <p
+                                            className="cloud-error"
+                                            role="status">
+                                            {redeemError}
+                                        </p>
+                                    )}
+                                </form>
+                            )}
+
+                            <div className="setting-row">
+                                <div className="setting-copy">
+                                    <label>题库</label>
+                                    <p>当前题库：{bankName} v{bankVersion}。下载、更新与切换云端题库</p>
+                                </div>
+                                <div className="setting-control">
+                                    <button
+                                        className="btn ghost sm"
+                                        onClick={() => setView("banks")}>
+                                        <Icon
+                                            name="book"
+                                            size={14}
+                                        />
+                                        管理题库
+                                    </button>
+                                </div>
+                            </div>
 
                             <div className="server-row">
                                 <label htmlFor="set-server">服务器地址</label>

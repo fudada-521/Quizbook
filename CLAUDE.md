@@ -37,7 +37,7 @@ pnpm admin:build      # 管理后台构建（apps/admin/dist，生产由 server 
 
 - `data/questions.json` 是**内置题库**的原始数据（清晖题库 2726 题、68 章）。它由 `apps/web/src/App.tsx` 直接 `import`（依赖 `resolveJsonModule`）打进 Web bundle，因此三端共享同一份数据；服务端首次启动也用它 seed 成 `id = builtin` 的题库并发布 v1。改题库后必须重新 `pnpm build`，桌面/移动端也需要重新 sync/打包。`.history/` 里的旧 `questions.js` 只是编辑器历史，不要恢复使用。
 - `packages/core`：平台无关的纯函数领域逻辑（判分、抽题、错题本、收藏、题目心得、进度、schema 兼容、题库规范化与校验），不依赖 DOM 或框架。题库读入的唯一入口是 `normalizeQuizData()`（补齐题库元数据与题目 `id`），校验是 `validateBank()`（导入、后台、单测共用）。
-- `packages/storage`：`ProgressStore`（`load`/`save`/`subscribe`）与 `SyncBackend` 接口及适配器。`src/web.ts` 是 localStorage 实现，键名 `megrez_quiz_v1`（首次加载自动迁移旧键 `quizbook_quiz_v1`、`gaoxiang_quiz_v1`）；`src/sync.ts` 是手动导入/导出的序列化辅助；`src/http.ts` 是云同步客户端 `CloudClient`（设备码登录、`pull`/`push`、成就），`src/auth.ts` 存 token（`megrez_auth_v1`）与服务器地址（`megrez_server_v1`）。
+- `packages/storage`：`ProgressStore`（`load`/`save`/`subscribe`）与 `BankRepository`（`src/banks.ts`，IndexedDB 首选、localStorage 回退）。`src/web.ts` 是 localStorage 实现，键名由调用方传入（Web 端按题库用 `megrez_quiz_v1:<bankId>`）；`src/sync.ts` 是手动导入/导出的序列化辅助；`src/http.ts` 是云客户端 `CloudClient`（用户名密码登录、题库目录与包下载、按题库 `pullBankState`/`pushBankState`、会员与兑换），`src/auth.ts` 存 token（`megrez_auth_v1`）与服务器地址（`megrez_server_v1`）。
 - 所有 workspace 包都通过 `package.json` 的 `main`/`exports` 直接暴露 `src/*.ts` 源码，没有包级编译步骤；Vite、tsx、tsconfig paths 直接消费 TS 源码。不要为它们增加 `dist` 构建产物。
 - `apps/server`：Fastify + TypeScript 后端（`pnpm server:dev`）。使用 Node 24 内置 `node:sqlite`，无需原生依赖。登录采用**用户名 + 密码**：`POST /api/auth/register` 开放注册（首个用户自动 `admin`，新用户送 7 天试用）、`POST /api/auth/login` 登录，密码用 scrypt 加盐哈希存储，失败尝试按 IP 限流。token 只存 SHA-256 哈希。
   - 题库分两层：`banks`/`bank_chapters`/`bank_questions` 是草稿，`bank_releases` 是每次发布生成的**不可变完整包**，客户端只读发布包。导入/发布在 `src/banks.ts`（`importBank` / `publishBank` / `getPublishedBank`），seed 是 `seedBuiltinBank()`（幂等，已有题目就跳过）。
@@ -50,10 +50,11 @@ pnpm admin:build      # 管理后台构建（apps/admin/dist，生产由 server 
 
 ### Web 应用
 
-- `apps/web/src/store/QuizStore.tsx` 是唯一状态中枢：`useReducer` 管理视图/会话/答题卡（`AppState`），`useState` 管理持久化进度（`PersistedState`），通过 Context + `useQuiz()` 暴露。
-- 断点续做由 `store/sessionPersistence.ts` 负责：会话快照存 localStorage 键 `megrez_quiz_sessions_v2`，按练习来源（`chapter:3`、`favorites:8`、`random`、`wrong`、`daily:2026-11-04` 等）各存一份，互不覆盖；上一品牌的整份表 `quizbook_quiz_sessions_v2` 与更早的旧单份键 `quizbook_quiz_session_v1`、`gaoxiang_quiz_session_v1` 首次读取自动迁移。快照只保存题目键（`qkey()`，即稳定 `id`）与作答状态，加载时按当前题库重新关联。从同一入口再次进入会恢复该来源上次中断的位置；进入结算页只清除当前这一份，导入/清空进度会清除全部；答题中退出则保留，首页「继续练习」显示最近活动的一份。
+- `apps/web/src/store/QuizStore.tsx` 是唯一状态中枢：`useReducer` 管理视图/会话/答题卡（`AppState`），`useState` 管理持久化进度（`PersistedState`）与当前题库（`bankId`），通过 Context + `useQuiz()` 暴露。`App.tsx` 负责把 `data/questions.json` 包装成内置题库、创建 `BankRepository` 与「按题库分键」的 `ProgressStore`，再传给 `QuizProvider`。切换题库只动本地：加载新题库数据、进度、会话，回到首页；冷启动不联网，登录/切换/手动/答题后防抖才按当前题库同步。
+- 断点续做由 `store/sessionPersistence.ts` 负责：会话快照存 localStorage 键 `megrez_quiz_sessions_v2:<bankId>`，按练习来源（`chapter:3`、`favorites:8`、`random`、`wrong`、`daily:2026-11-04` 等）各存一份，互不覆盖；上一品牌的整份表 `quizbook_quiz_sessions_v2` 与更早的旧单份键 `quizbook_quiz_session_v1`、`gaoxiang_quiz_session_v1` 首次读取自动迁移，旧表只归入 `builtin`。快照只保存题目键（`qkey()`，即稳定 `id`）与作答状态，加载时按当前题库重新关联。从同一入口再次进入会恢复该来源上次中断的位置；进入结算页只清除当前这一份，导入/清空进度会清除全部；答题中退出则保留，首页「继续练习」显示最近活动的一份。
 - 关键设计：`@megrez/core` 的 `gradeAnswer()` 会**原地修改** `PersistedState` 和 `SessionItem`（设置 `done`、`lastPick`）。QuizStore 因此用 `persistRef` 持有最新进度、修改后 `setPersisted({...persistRef.current})` 触发刷新。改动状态管理时要保持这个“可变 core + 不可变 React 快照”的约定。
-- 视图切换在 `App.tsx` 中按 `app.view` 渲染 `HomeView` / `QuizView` / `ResultView` / `FavoritesView`；`SettingsDialog` 是常驻的 `<dialog>`。收藏夹详情弹窗由 `FavoritesView` 自行管理，打开时用 `showModal()` 并把焦点放在对话框容器上。
+- 视图切换在 `App.tsx` 中按 `app.view` 渲染 `HomeView` / `QuizView` / `ResultView` / `FavoritesView` / `AchievementsView` / `BankStoreView` / `SettingsView`；`SettingsDialog` 是常驻的 `<dialog>`。收藏夹详情弹窗由 `FavoritesView` 自行管理，打开时用 `showModal()` 并把焦点放在对话框容器上；题库删除确认由 `BankStoreView` 自行管理。
+- 本地存储的题库维度集中在 `store/bankStorage.ts`：进度键 `megrez_quiz_v1:<bankId>`、会话键 `megrez_quiz_sessions_v2:<bankId>`、当前题库 `megrez_bank_current_v1`；旧单题库数据首次启动复制到 `builtin` 并写 `megrez_migrated_v7`，只复制不删除旧键。服务端目录与会员缓存分别在 `megrez_bank_catalog_v1`、`megrez_membership_v1`（`store/account.ts`），启动只读缓存，不联网校验。
 - 收藏、成就、设置三页共用 `.view-page` / `.view-head` 骨架（宽度以设置页 920px 为准）；题干、选项与解析卡统一用 `components/AnswerParts.tsx` 的 `AnswerOptions` / `RevealCard`，答题页与收藏详情不得各写一套。
 - 移动端手势集中在 `gestures.ts`（左缘右滑返回、答题页左右滑翻题、收藏详情下滑关闭），用 touch 事件实现；`Shell` 通过 History API 维护一条二级页历史，系统返回键/手势与应用内视图共用同一套切换逻辑。
 - 题目心得统一由 `components/QuestionNotes.tsx` 渲染，答题解析（`AnswerParts.RevealCard`）与收藏详情复用。解析页传入 `onComposeStart`，用户聚焦输入框即暂停本题自动跳转倒计时。
@@ -68,7 +69,7 @@ pnpm admin:build      # 管理后台构建（apps/admin/dist，生产由 server 
 - 题号存在刻意间断：多空题被剔除，不要为了“连续”而重排 `n`。
 - 选项乱序通过 `SessionItem.map`（显示下标 → 原始下标）实现；渲染与判分必须经 `map` 换算，`q.a` 始终是原始下标。
 - 进度 schema 当前为 `schemaVersion: 6`（v2 `favorites`，v3 `notes`，v4 `daily`/`challenges`/`achievements`/`favoriteRemovals`/`settingsAt`/`resetAt`，v5 音效/触觉开关，v6 `dataResetAt`），`normalizeState()` 负责旧数据兜底。改动 `PersistedState` 结构时需同步迁移逻辑并提升版本号。
-- 多端合并集中在 `packages/core/src/merge.ts` 的 `mergeStates(a, b)`，客户端启动/登录时与服务端共用同一实现；不要另写一套合并规则。删除收藏靠 `favoriteRemovals` 墓碑，清空答题记录靠 `resetAt`，清空全部学习数据（含收藏/心得/成就）靠 `dataResetAt` 纪元，三者不可省略。
+- 多端合并集中在 `packages/core/src/merge.ts` 的 `mergeStates(a, b)`，客户端登录/切换题库/手动同步时与服务端共用同一实现（同步接口按题库隔离）；不要另写一套合并规则。删除收藏靠 `favoriteRemovals` 墓碑，清空答题记录靠 `resetAt`，清空全部学习数据（含收藏/心得/成就）靠 `dataResetAt` 纪元，三者不可省略。
 - 挑战模式常量与确定性抽题在 `packages/core/src/challenges.ts`（每日一练 10 题、限时 20 题/10 分钟、模拟考 75 题/150 分钟/45 分及格）；成就在 `packages/core/src/achievements.ts`，本地即时解锁，服务端同步时权威复核。
 - `favorites` 是 `题目键 → 收藏时间戳` 的映射；`favoriteQuestions()` 按收藏时间从新到旧返回，`toggleFavorite()` 原地修改状态。收藏专项练习使用全部收藏题；「清空记录」通过 `resetProgress` 保留 `favorites`。
 - `notes` 是 `题目键 → QuestionNote[]` 的心得时间线，只追加、不修改也不删除；`notesFor()` 返回旧→新数组，`addQuestionNote()` 负责去空白并生成题内唯一 id。UI 展示时反转数组使最新在前；「清空记录」同样保留 `notes`。
